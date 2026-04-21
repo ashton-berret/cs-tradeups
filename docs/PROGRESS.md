@@ -2,7 +2,7 @@
 
 ## Status Snapshot
 
-**Project Status:** Phase 1 scaffold implemented; SQLite migration and seed verified
+**Project Status:** Phase 2 server-side domain services implemented; Phase 1 foundation complete
 **Last Updated:** 2026-04-21
 **Plan Reference:** See `docs/PLAN.md`
 
@@ -30,7 +30,7 @@ What currently exists:
 
 What does not exist yet:
 
-- domain services, API endpoints, or full workflow UI
+- API endpoints or full workflow UI
 - Chrome extension integration code in this repo (the extension is called CS2 Trader - Steam Trading Enhancer on google's extension store)
 - automated tests beyond Svelte type checking/build verification
 
@@ -80,13 +80,15 @@ The foundation is ready for Phase 2 service-layer work.
 
 ### Phase 2: Core Domain Services
 
-- [ ] Candidate service
-- [ ] Inventory service
-- [ ] Trade-up plan service
-- [ ] Basket service
-- [ ] Evaluation service
-- [ ] Execution service
-- [ ] Analytics service
+- [x] Candidate service — implemented (`src/lib/server/candidates/`)
+- [x] Inventory service — implemented (`src/lib/server/inventory/`)
+- [x] Trade-up plan service — implemented (`src/lib/server/tradeups/planService.ts`)
+- [x] Basket service — implemented (`src/lib/server/tradeups/basketService.ts`)
+- [x] Evaluation service — implemented (`src/lib/server/tradeups/evaluation/`)
+- [x] Execution service — implemented (`src/lib/server/tradeups/executionService.ts`)
+- [x] Analytics service — implemented (`src/lib/server/analytics/analyticsService.ts`)
+
+Legend: `[~]` = structure + typed contracts in place, function bodies pending.
 
 ### Phase 3: Ingestion And API Layer
 
@@ -140,15 +142,42 @@ These decisions are currently stable enough to build against:
 
 ## Open Questions
 
-These are unresolved, but none block Phase 2 service-layer work:
+Resolved during Phase 2 scaffold planning:
 
-- exact first-pass expected value formula
-- minimum extension payload guaranteed on day one
-- whether MVP should include notifications beyond queue visibility
-- when and how candidate evaluations should be recomputed as prices age
-- whether audit/event logging lands in the first schema or the second schema pass
+- **First-pass EV formula — RESOLVED.** CS2 collection-weighted formula:
+  each input contributes 1/10 of the source-collection pick weight, then
+  each outcome in the chosen collection is drawn proportional to its
+  `probabilityWeight`. Scaffolded in
+  `src/lib/server/tradeups/evaluation/expectedValue.ts`.
+- **Re-evaluation triggers — RESOLVED.** Eager fan-out on plan mutations
+  via `planService.reevaluateAllForPlan`, plus a manual
+  `reevaluateOpenCandidates` escape hatch.
+- **Audit/event log — DEFERRED.** Not shipping in Phase 2. Revisit in
+  Phase 3 when extension ingestion lands and we need to explain duplicate
+  behavior and state transitions.
 
-These questions should be resolved during Phase 2 work, not deferred until UI polish.
+Still unresolved (do NOT block Phase 2 implementation, but must be
+addressed before Phase 5 scoring refinement):
+
+- **Per-weapon / per-skin float ranges.** Each skin has its own
+  `minFloat`/`maxFloat`, which narrows the effective exterior band for any
+  given output. Needed to correctly map basket averageFloat to the actual
+  output float and therefore the correct price tier. Current EV code uses
+  outcome `estimatedMarketValue` as-is, which collapses this dimension. A
+  lookup table (skin → minFloat, maxFloat) will need to be added. Marked
+  with `TODO` in `src/lib/server/utils/float.ts` and
+  `src/lib/server/tradeups/evaluation/scoring.ts`.
+- **Liquidity data source.** `computeLiquidityScore` is a 0.5 stub until a
+  listing-volume signal (daily scrape, or a rolling count of how often we
+  see the same hash name in ingestion) is added.
+- **Candidate re-evaluation on price age.** Prices drift; at some point a
+  stored evaluation is a lie. Options: time-based sweep on a timer, or
+  on-view recompute when a candidate row is read and its `lastSeenAt` is
+  older than N hours.
+- **Minimum extension payload guaranteed on day one.** Depends on
+  extension integration work in Phase 3.
+- **Notifications beyond queue visibility.** MVP likely skips; revisit in
+  Phase 5.
 
 ---
 
@@ -175,6 +204,32 @@ The correct bias right now is to build the system of record first, then deepen t
 ---
 
 ## Change Log
+
+### 2026-04-21 (Phase 2 scaffold)
+
+- Implemented Phase 2 evaluation utilities and orchestrator: normalization-independent rule matching, CS2 collection-weighted EV, scoring, recommendations, and persisted candidate evaluation.
+- Implemented candidate normalization, duplicate merging/staleness, candidate CRUD, extension ingestion, buy conversion, and open-candidate re-evaluation.
+- Implemented inventory ledger reads/writes, basket eligibility, candidate conversion alias, DTO mapping, and status-machine enforcement.
+- Implemented trade-up plan CRUD, rule/outcome management, target-rarity validation, delete guards, DTO mapping, and eager candidate re-evaluation fan-out.
+- Implemented basket CRUD, item reservation/release, READY/CANCELLED transitions, transaction-safe reordering, and eager metric recomputation.
+- Implemented execution reads, atomic READY-to-EXECUTED creation, result recording, sale recording, and realized profit calculations.
+- Implemented analytics dashboard summary, plan performance rollups, live-row activity feed, and expected-vs-realized execution series.
+- Added service-layer skeletons with full type contracts and header-comment
+  specs; bodies are `throw new Error('Not implemented')` placeholders.
+- Added `src/lib/types/services.ts` with DTOs and evaluation result shapes
+  so routes/UI never touch `Prisma.Decimal`.
+- Added `src/lib/server/README.md` describing contract rules (validation
+  boundary, transactional mutations, eager metric recomputation, caller-
+  driven re-eval fan-out).
+- Locked decisions captured during scaffolding:
+  - Duplicates always merge; staleness is a derived signal.
+  - Re-evaluation fans out eagerly from plan mutations; manual "re-score"
+    action remains as an escape hatch.
+  - Basket metrics recomputed eagerly inside every mutation transaction.
+  - Execution creation is a single atomic transaction; no partial states.
+  - CS2 collection-weighted EV formula adopted (not simple weighted mean).
+  - Services return plain `number` at the boundary; no `Decimal` leaks.
+- Per-skin float ranges surfaced as future work (see Open Questions).
 
 ### 2026-04-20
 
