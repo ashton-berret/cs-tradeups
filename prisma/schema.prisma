@@ -1,0 +1,262 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enum-like values
+// ---------------------------------------------------------------------------
+//
+// SQLite stores enum-like fields as strings. App-level validation remains in
+// src/lib/types/enums.ts and src/lib/schemas/shared.ts.
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model CandidateListing {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Item identity
+  marketHashName String
+  weaponName     String?
+  skinName       String?
+  collection     String?
+  rarity         String?
+  exterior       String?
+  floatValue     Float?
+  pattern        Int?
+  inspectLink    String?
+
+  // Listing details
+  listPrice  Decimal
+  currency   String  @default("USD")
+  listingUrl String?
+  listingId  String?
+
+  // Ingestion metadata
+  source     String
+  rawPayload Json?
+
+  // Evaluation results
+  status              String  @default("WATCHING")
+  qualityScore        Float?
+  liquidityScore      Float?
+  expectedProfit      Decimal?
+  expectedProfitPct   Float?
+  maxBuyPrice         Decimal?
+  matchedPlanId       String?
+  marginalBasketValue Decimal?
+
+  // Duplicate tracking
+  timesSeen  Int      @default(1)
+  lastSeenAt DateTime @default(now())
+
+  // User input
+  notes String?
+
+  // Relations
+  matchedPlan    TradeupPlan?    @relation(fields: [matchedPlanId], references: [id], onDelete: SetNull)
+  inventoryItems InventoryItem[]
+
+  @@index([marketHashName, floatValue])
+  @@index([status])
+  @@index([matchedPlanId])
+  @@index([createdAt])
+  @@index([collection])
+  @@index([rarity])
+}
+
+model InventoryItem {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Item identity
+  marketHashName String
+  weaponName     String?
+  skinName       String?
+  collection     String?
+  rarity         String?
+  exterior       String?
+  floatValue     Float?
+  pattern        Int?
+  inspectLink    String?
+
+  // Purchase details
+  purchasePrice    Decimal
+  purchaseCurrency String   @default("USD")
+  purchaseFees     Decimal?
+  purchaseDate     DateTime @default(now())
+
+  // State
+  status       String @default("HELD")
+  currentEstValue Decimal?
+  notes        String?
+
+  // Relations
+  candidateId String?
+  candidate   CandidateListing? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  basketItems TradeupBasketItem[]
+
+  @@index([status])
+  @@index([collection, rarity])
+  @@index([candidateId])
+  @@index([marketHashName])
+}
+
+model TradeupPlan {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String
+  description String?
+  inputRarity  String
+  targetRarity String
+  isActive     Boolean @default(true)
+
+  // Thresholds
+  minProfitThreshold    Decimal?
+  minProfitPctThreshold Float?
+  minLiquidityScore     Float?
+
+  notes String?
+
+  // Relations
+  rules             TradeupPlanRule[]
+  outcomeItems      TradeupOutcomeItem[]
+  baskets           TradeupBasket[]
+  executions        TradeupExecution[]
+  matchedCandidates CandidateListing[]
+}
+
+model TradeupPlanRule {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  planId      String
+  collection  String?
+  rarity      String?
+  exterior    String?
+  minFloat    Float?
+  maxFloat    Float?
+  maxBuyPrice Decimal?
+  minQuantity Int?
+  maxQuantity Int?
+  priority    Int     @default(0)
+  isPreferred Boolean @default(false)
+
+  plan TradeupPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+  @@index([collection, rarity])
+}
+
+model TradeupOutcomeItem {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  planId               String
+  marketHashName       String
+  weaponName           String?
+  skinName             String?
+  collection           String
+  rarity               String
+  estimatedMarketValue Decimal
+  probabilityWeight    Float @default(1.0)
+
+  plan TradeupPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+}
+
+model TradeupBasket {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  planId String
+  name   String?
+  status String @default("BUILDING")
+
+  // Computed metrics (updated when items change)
+  totalCost         Decimal?
+  expectedEV        Decimal?
+  expectedProfit    Decimal?
+  expectedProfitPct Float?
+  averageFloat      Float?
+
+  notes String?
+
+  // Relations
+  plan      TradeupPlan         @relation(fields: [planId], references: [id])
+  items     TradeupBasketItem[]
+  execution TradeupExecution?
+
+  @@index([planId])
+  @@index([status])
+}
+
+model TradeupBasketItem {
+  id              String   @id @default(cuid())
+  basketId        String
+  inventoryItemId String
+  slotIndex       Int
+  addedAt         DateTime @default(now())
+
+  basket        TradeupBasket @relation(fields: [basketId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id])
+
+  @@unique([basketId, inventoryItemId])
+  @@unique([basketId, slotIndex])
+  @@index([basketId])
+  @@index([inventoryItemId])
+}
+
+model TradeupExecution {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  basketId   String   @unique
+  planId     String
+  executedAt DateTime
+
+  // Frozen values at execution time
+  inputCost  Decimal
+  expectedEV Decimal?
+
+  // Result
+  resultMarketHashName String?
+  resultWeaponName     String?
+  resultSkinName       String?
+  resultCollection     String?
+  resultExterior       String?
+  resultFloatValue     Float?
+  estimatedResultValue Decimal?
+
+  // Sale
+  salePrice        Decimal?
+  saleFees         Decimal?
+  saleDate         DateTime?
+  realizedProfit   Decimal?
+  realizedProfitPct Float?
+
+  notes String?
+
+  // Relations
+  basket TradeupBasket @relation(fields: [basketId], references: [id], onDelete: Cascade)
+  plan   TradeupPlan   @relation(fields: [planId], references: [id])
+
+  @@index([planId])
+  @@index([executedAt])
+}

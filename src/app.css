@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+:root {
+	--color-bg-base: #0e100f;
+	--color-bg-surface: #161818;
+	--color-bg-surface-elevated: #1e2020;
+	--color-bg-surface-overlay: #262828;
+	--color-primary: #0ae448;
+	--color-primary-hover: #08c73d;
+	--color-primary-glow: rgba(10, 228, 72, 0.4);
+	--color-secondary: #00d4ff;
+	--color-success: #0ae448;
+	--color-warning: #ffb800;
+	--color-danger: #ff4757;
+	--color-text-primary: #f5f5f5;
+	--color-text-secondary: #a3a3a3;
+	--color-text-muted: #6b6b6b;
+	--color-border: #2d2d2d;
+	--color-border-hover: #3d3d3d;
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	color: var(--color-text-primary);
+	background: var(--color-bg-base);
+	transition:
+		background-color 0.2s ease,
+		color 0.2s ease;
+}
+
+.light {
+	--color-bg-base: #f3f4f6;
+	--color-bg-surface: #ffffff;
+	--color-bg-surface-elevated: #ffffff;
+	--color-bg-surface-overlay: #f9fafb;
+	--color-primary: #2563eb;
+	--color-primary-hover: #1d4ed8;
+	--color-primary-glow: rgba(37, 99, 235, 0.3);
+	--color-secondary: #3b82f6;
+	--color-success: #10b981;
+	--color-warning: #f59e0b;
+	--color-danger: #ef4444;
+	--color-text-primary: #111827;
+	--color-text-secondary: #6b7280;
+	--color-text-muted: #9ca3af;
+	--color-border: #e5e7eb;
+	--color-border-hover: #d1d5db;
+}
+
+html,
+body {
+	margin: 0;
+	min-height: 100%;
+	background: var(--color-bg-base);
+	color: var(--color-text-primary);
+	transition:
+		background-color 0.2s ease,
+		color 0.2s ease;
+}
+
+body {
+	min-height: 100vh;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+a {
+	color: inherit;
+	text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+	font: inherit;
+}
+
+.btn-glow {
+	transition: box-shadow 0.3s ease;
+}
+
+.btn-glow:hover:not(:disabled) {
+	box-shadow:
+		0 0 15px var(--color-primary-glow),
+		0 0 30px var(--color-primary-glow);
+}
+
+.card-glow {
+	transition:
+		box-shadow 0.3s ease,
+		border-color 0.3s ease;
+}
+
+.card-glow:hover {
+	border-color: var(--color-primary);
+	box-shadow:
+		0 0 20px var(--color-primary-glow),
+		0 0 40px var(--color-primary-glow);
+}
