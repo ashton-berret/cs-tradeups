@@ -1,1 +1,91 @@
-<h1 class="text-2xl font-semibold text-[var(--color-text-primary)]">Dashboard</h1>
+<script lang="ts">
+	import Card from '$lib/components/Card.svelte';
+	import DataTable from '$lib/components/DataTable.svelte';
+	import Money from '$lib/components/Money.svelte';
+	import {
+		activityLabel,
+		evDelta,
+		planDelta,
+		toDashboardKpis
+	} from '$lib/client/viewModels/dashboard';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+	const kpis = $derived(toDashboardKpis(data.summary));
+</script>
+
+<div class="space-y-6">
+	<div>
+		<h1 class="text-2xl font-semibold text-[var(--color-text-primary)]">Dashboard</h1>
+		<p class="mt-1 text-sm text-[var(--color-text-secondary)]">
+			Current workflow health, activity, and plan performance.
+		</p>
+	</div>
+
+	<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+		{#each kpis as kpi}
+			<Card>
+				<div class="text-sm text-[var(--color-text-secondary)]">{kpi.label}</div>
+				<div class="mt-2 text-3xl font-semibold">{kpi.value}</div>
+				<div class="mt-1 text-sm text-[var(--color-text-muted)]">{kpi.help}</div>
+			</Card>
+		{/each}
+	</section>
+
+	<section class="grid gap-6 xl:grid-cols-[1fr_1fr]">
+		<div class="space-y-3">
+			<h2 class="text-lg font-semibold">Recent activity</h2>
+			<DataTable
+				columns={['When', 'Kind', 'Label']}
+				rows={data.activity}
+				emptyTitle="No activity yet."
+				emptyDescription="Candidate, basket, execution, and sale events will appear here."
+			>
+				{#snippet row(entry)}
+					<td class="px-4 py-3">{new Date(entry.at).toLocaleString()}</td>
+					<td class="px-4 py-3 capitalize">{activityLabel(entry)}</td>
+					<td class="px-4 py-3">{entry.label}</td>
+				{/snippet}
+			</DataTable>
+		</div>
+
+		<div class="space-y-3">
+			<h2 class="text-lg font-semibold">Expected vs realized</h2>
+			<DataTable
+				columns={['Executed', 'Plan', 'Expected', 'Realized', 'Delta']}
+				rows={data.evRealized}
+				emptyTitle="No completed execution sales yet."
+				emptyDescription="Record an execution result and sale to compare expected against realized profit."
+			>
+				{#snippet row(point)}
+					<td class="px-4 py-3">{new Date(point.executedAt).toLocaleDateString()}</td>
+					<td class="px-4 py-3">{point.planName}</td>
+					<td class="px-4 py-3"><Money value={point.expectedProfit} /></td>
+					<td class="px-4 py-3"><Money value={point.realizedProfit} /></td>
+					<td class="px-4 py-3"><Money value={evDelta(point)} /></td>
+				{/snippet}
+			</DataTable>
+		</div>
+	</section>
+
+	<section class="space-y-3">
+		<h2 class="text-lg font-semibold">Plan performance</h2>
+		<DataTable
+			columns={['Plan', 'Executions', 'Input cost', 'Realized', 'Realized profit', 'Avg expected', 'Avg realized', 'EV delta']}
+			rows={data.planPerformance}
+			emptyTitle="No plan performance yet."
+			emptyDescription="Plan rollups appear after baskets are executed."
+		>
+			{#snippet row(plan)}
+				<td class="px-4 py-3">{plan.planName}</td>
+				<td class="px-4 py-3">{plan.executions}</td>
+				<td class="px-4 py-3"><Money value={plan.totalInputCost} /></td>
+				<td class="px-4 py-3"><Money value={plan.totalRealized} /></td>
+				<td class="px-4 py-3"><Money value={plan.totalRealizedProfit} /></td>
+				<td class="px-4 py-3"><Money value={plan.avgExpectedProfit} /></td>
+				<td class="px-4 py-3"><Money value={plan.avgRealizedProfit} /></td>
+				<td class="px-4 py-3"><Money value={planDelta(plan)} /></td>
+			{/snippet}
+		</DataTable>
+	</section>
+</div>

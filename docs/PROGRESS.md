@@ -2,7 +2,7 @@
 
 ## Status Snapshot
 
-**Project Status:** Phase 3 API layer complete (typecheck clean, smoke-tested); Phase 4 operator UI pending; Phases 0-2 complete
+**Project Status:** Phase 4 operator UI implemented (typecheck clean; build blocked only by known Windows sandbox EPERM); Phases 0-3 complete
 **Last Updated:** 2026-04-22
 **Plan Reference:** See `docs/PLAN.md`
 
@@ -23,9 +23,11 @@ What currently exists:
 - Bun lockfile and package metadata.
 - TailwindCSS 4.x Vite plugin and theme CSS variables.
 - Base app shell with fixed sidebar navigation and theme toggle.
-- Placeholder pages for dashboard, candidates, inventory, plans, baskets,
-  and executions.
-- Reusable UI primitives: Button, Card, Input, Badge, and Modal.
+- Full Phase 4 operator UI for dashboard, candidates, inventory, plans,
+  baskets, and executions.
+- Reusable UI primitives: Button, Card, Input, Badge, Modal, DataTable,
+  FilterBar, PaginationControl, StatusBadge, ConfirmModal, and numeric
+  formatters.
 - `.env.example` with the SQLite database URL shape.
 - Prisma schema with 8 models, applied SQLite migration, Prisma client
   singleton, and seed script.
@@ -39,7 +41,6 @@ What currently exists:
 
 What does not exist yet:
 
-- Full workflow UI beyond placeholder page headings.
 - Chrome extension integration code in this repo. The ingestion endpoint
   exists, but the bridge from the third-party CS2 Trader extension is not
   implemented here.
@@ -116,12 +117,12 @@ What does not exist yet:
 
 ### Phase 4: Operator UI
 
-- [ ] Dashboard.
-- [ ] Candidates page.
-- [ ] Inventory page.
-- [ ] Trade-up plans page.
-- [ ] Trade-up baskets page.
-- [ ] Executions page.
+- [x] Dashboard.
+- [x] Candidates page.
+- [x] Inventory page.
+- [x] Trade-up plans page.
+- [x] Trade-up baskets page.
+- [x] Executions page.
 
 ### Phase 5: Scoring And Workflow Refinement
 
@@ -214,22 +215,13 @@ Still unresolved:
 
 ## Immediate Next Steps
 
-The next implementation slice should be Phase 4 UI, using the API layer as
-the only data boundary:
+The next implementation slice should move into Phase 5 workflow refinement:
 
-1. Build `/dashboard` with KPI cards, recent activity, and expected-vs-
-   realized table fallback.
-2. Build `/candidates` with list/filter/review actions and candidate-to-
-   inventory conversion.
-3. Build `/inventory` with holdings management and status/value updates.
-4. Build `/tradeups/plans` with plan, rule, and outcome management.
-5. Build `/tradeups/baskets` with basket list/composition. Add a plan-aware
-   eligibility API route if the UI needs it.
-6. Build `/tradeups/executions` with execution history, result recording,
-   and sale recording.
-
-Use `+page.server.ts` loads/actions or client fetches consistently per page,
-but call `/api/...` routes rather than importing service functions directly.
+1. Exercise the Phase 4 UI against the seeded and real local workflow data.
+2. Refine duplicate suppression and price-age re-evaluation behavior.
+3. Add basket-aware ranking and recommendation threshold tuning.
+4. Revisit the plan-aware inventory eligibility endpoint once builder usage
+   proves the workaround insufficient.
 
 ---
 
@@ -268,6 +260,75 @@ verified API, then deepen recommendation quality.
 ---
 
 ## Change Log
+
+### 2026-04-22 (Phase 4 candidates UI)
+
+- Added shared Phase 4 UI plumbing: typed API fetch wrapper, data table,
+  filters, pagination, status badges, confirmation modal, formatters, and
+  shared error page.
+- Shipped `/candidates` with filtered SSR list, manual creation, status
+  updates, buy conversion, re-evaluation, delete confirmation, and inline
+  API validation feedback.
+- Verified `bun run check` passes with 0 errors and 0 warnings. `bun run
+  build` still hits the known sandbox `spawn EPERM` native-binding issue.
+
+### 2026-04-22 (Phase 4 inventory UI)
+
+- Shipped `/inventory` with filtered SSR list, manual inventory creation,
+  status/value/notes editing, delete confirmation, and empty-state filter
+  clearing.
+- Verified `bun run check` passes with 0 errors and 0 warnings. `bun run
+  build` still hits the known sandbox `spawn EPERM` native-binding issue.
+
+### 2026-04-22 (Phase 4 trade-up plans UI)
+
+- Shipped `/tradeups/plans` with filtered SSR list, plan metadata update,
+  create/delete flows, and nested rule/outcome add/update/delete forms.
+- Surfaced plan refinement failures for adjacent target rarity and rule
+  float bounds inline from the API `issues[]` envelope.
+- Verified `bun run check` passes with 0 errors and 0 warnings. `bun run
+  build` still hits the known sandbox `spawn EPERM` native-binding issue.
+
+### 2026-04-22 (Phase 4 trade-up baskets UI)
+
+- Shipped `/tradeups/baskets` with filtered SSR list, create/update/delete,
+  builder modal, add/remove item forms, ready transition, and cancel
+  confirmation.
+- Used the documented Phase 4 workaround for plan-aware eligibility:
+  fetch `availableForBasket=true` inventory and filter by plan/rules in the
+  basket view model. No new API route was added.
+- Called `/api/tradeups/evaluate` before readying a basket and surfaced
+  `BasketReadinessIssue[]` inline on failure.
+- Verified `bun run check` passes with 0 errors and 0 warnings. `bun run
+  build` still hits the known sandbox `spawn EPERM` native-binding issue.
+
+### 2026-04-22 (Phase 4 executions UI)
+
+- Shipped `/tradeups/executions` with filtered SSR history, create from
+  READY basket, result recording, sale recording, and expected-vs-realized
+  delta display.
+- Verified `bun run check` passes with 0 errors and 0 warnings. `bun run
+  build` still hits the known sandbox `spawn EPERM` native-binding issue.
+
+### 2026-04-22 (Phase 4 dashboard UI)
+
+- Shipped `/dashboard` with KPI cards, activity feed, plan performance
+  table, and expected-vs-realized table fallback.
+- Confirmed the analytics summary response shape in
+  `src/lib/server/analytics/analyticsService.ts` and pinned the matching
+  UI DTO in `src/lib/client/viewModels/dashboard.ts`.
+- Verified `bun run check` passes with 0 errors and 0 warnings. `bun run
+  build` still hits the known sandbox `spawn EPERM` native-binding issue.
+
+### 2026-04-22 (Phase 4 operator UI shipment)
+
+- Completed all six Phase 4 operator UI surfaces: dashboard, candidates,
+  inventory, plans, baskets, and executions.
+- Kept page loads/actions behind same-origin `/api/**` calls and avoided
+  service/API route changes.
+- Verification: final `bun run check` passes with 0 errors and 0 warnings;
+  final `bun run build` remains blocked in this sandbox by the documented
+  Windows `spawn EPERM` native-binding issue.
 
 ### 2026-04-22 (Documentation and Phase 3 verification)
 

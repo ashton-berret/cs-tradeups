@@ -1,1 +1,106 @@
-<h1 class="text-2xl font-semibold text-[var(--color-text-primary)]">Plans</h1>
+<script lang="ts">
+	import Button from '$lib/components/Button.svelte';
+	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+	import DataTable from '$lib/components/DataTable.svelte';
+	import FilterBar from '$lib/components/FilterBar.svelte';
+	import Input from '$lib/components/Input.svelte';
+	import PaginationControl from '$lib/components/PaginationControl.svelte';
+	import { ITEM_RARITIES } from '$lib/types/enums';
+	import { hasPlanFilters, toPlanCards, type PlanCardVM } from '$lib/client/viewModels/plans';
+	import PlanCard from './PlanCard.svelte';
+	import PlanEditorModal from './PlanEditorModal.svelte';
+	import type { ActionData, PageData } from './$types';
+
+	let { data, form }: { data: PageData; form?: ActionData } = $props();
+
+	let createOpen = $state(false);
+	let deleteOpen = $state(false);
+	let selected = $state<PlanCardVM | null>(null);
+
+	const cards = $derived(toPlanCards(data.page.data));
+	const hasFilters = $derived(hasPlanFilters(data.filter));
+	const issueText = $derived(JSON.stringify(form?.issues ?? []));
+	const ruleError = $derived(issueText.includes('minFloat must be <= maxFloat') ? 'minFloat must be <= maxFloat' : null);
+
+	function hrefForPage(page: number) {
+		const params = new URLSearchParams(window.location.search);
+		params.set('page', String(page));
+		return `?${params.toString()}`;
+	}
+
+	function openDelete(vm: PlanCardVM) {
+		selected = vm;
+		deleteOpen = true;
+	}
+</script>
+
+<div class="space-y-6">
+	<div class="flex flex-wrap items-start justify-between gap-4">
+		<div>
+			<h1 class="text-2xl font-semibold text-[var(--color-text-primary)]">Trade-up plans</h1>
+			<p class="mt-1 text-sm text-[var(--color-text-secondary)]">
+				Maintain plan metadata, input rules, and expected outcome values.
+			</p>
+		</div>
+		<Button onclick={() => (createOpen = true)}>New plan</Button>
+	</div>
+
+	{#if form?.error}
+		<div class="rounded-md border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 p-3 text-sm text-[var(--color-danger)]">{form.error}</div>
+	{:else if form?.success}
+		<div class="rounded-md border border-[var(--color-success)]/40 bg-[var(--color-success)]/10 p-3 text-sm text-[var(--color-success)]">{form.success}</div>
+	{/if}
+
+	<FilterBar resetHref="/tradeups/plans">
+		<select name="isActive" value={data.filter.isActive == null ? '' : String(data.filter.isActive)} class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">
+			<option value="">Any status</option>
+			<option value="true">Active</option>
+			<option value="false">Inactive</option>
+		</select>
+		<select name="inputRarity" value={data.filter.inputRarity ?? ''} class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">
+			<option value="">Input rarity</option>
+			{#each ITEM_RARITIES as rarity}
+				<option value={rarity}>{rarity.replaceAll('_', ' ')}</option>
+			{/each}
+		</select>
+		<select name="targetRarity" value={data.filter.targetRarity ?? ''} class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">
+			<option value="">Target rarity</option>
+			{#each ITEM_RARITIES as rarity}
+				<option value={rarity}>{rarity.replaceAll('_', ' ')}</option>
+			{/each}
+		</select>
+		<Input name="search" placeholder="Search" value={data.filter.search ?? ''} class="w-56" />
+	</FilterBar>
+
+	<DataTable
+		columns={['Plans']}
+		rows={cards}
+		emptyTitle="No plans match these filters."
+		emptyDescription="Create a plan to start evaluating candidates against trade-up rules."
+		clearHref={hasFilters ? '/tradeups/plans' : null}
+	>
+		{#snippet row(vm)}
+			<td class="px-4 py-4">
+				<PlanCard {vm} ondelete={openDelete} {ruleError} />
+			</td>
+		{/snippet}
+	</DataTable>
+
+	<PaginationControl
+		page={data.page.page}
+		limit={data.page.limit}
+		total={data.page.total}
+		totalPages={data.page.totalPages}
+		{hrefForPage}
+	/>
+</div>
+
+<PlanEditorModal bind:open={createOpen} error={form?.error ?? null} issues={form?.issues ?? null} />
+<ConfirmModal
+	bind:open={deleteOpen}
+	title="Delete plan"
+	message={selected ? `Delete ${selected.plan.name}? Existing baskets or executions may block this.` : ''}
+	action="?/deletePlan"
+	fields={{ id: selected?.plan.id }}
+	confirmLabel="Delete"
+/>
