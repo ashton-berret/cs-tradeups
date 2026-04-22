@@ -3,7 +3,7 @@
 ## Document Contract
 
 **Purpose:** This file is the implementation source of truth for `cs-tradeups`.
-**Last Updated:** 2026-04-21
+**Last Updated:** 2026-04-22
 **Companion Document:** See `docs/PROGRESS.md` for actual current status and completed work.
 **Supporting Reference:** `docs/UI_STYLE_GUIDE.md` remains the visual/style reference, but it does not override product scope, architecture, or delivery priorities defined here.
 
@@ -145,15 +145,50 @@ The MVP is successful when the user can:
 ### Core Programmatic Endpoints
 
 - `POST /api/extension/candidates`
+- `GET /api/candidates`
 - `POST /api/candidates`
+- `GET /api/candidates/[id]`
 - `PATCH /api/candidates/[id]`
+- `DELETE /api/candidates/[id]`
+- `POST /api/candidates/[id]/buy`
+- `POST /api/candidates/[id]/reevaluate`
+- `POST /api/candidates/reevaluate-open`
+- `GET /api/inventory`
 - `POST /api/inventory`
+- `GET /api/inventory/[id]`
 - `PATCH /api/inventory/[id]`
+- `DELETE /api/inventory/[id]`
+- `GET /api/tradeups/plans`
 - `POST /api/tradeups/plans`
+- `GET /api/tradeups/plans/[id]`
+- `PATCH /api/tradeups/plans/[id]`
+- `DELETE /api/tradeups/plans/[id]`
+- `POST /api/tradeups/plans/[id]/rules`
+- `PATCH /api/tradeups/plans/rules/[ruleId]`
+- `DELETE /api/tradeups/plans/rules/[ruleId]`
+- `POST /api/tradeups/plans/[id]/outcomes`
+- `PATCH /api/tradeups/plans/outcomes/[outcomeId]`
+- `DELETE /api/tradeups/plans/outcomes/[outcomeId]`
+- `GET /api/tradeups/baskets`
 - `POST /api/tradeups/baskets`
+- `GET /api/tradeups/baskets/[id]`
+- `PATCH /api/tradeups/baskets/[id]`
+- `DELETE /api/tradeups/baskets/[id]`
+- `POST /api/tradeups/baskets/[id]/items`
+- `DELETE /api/tradeups/baskets/[id]/items/[inventoryItemId]`
+- `PATCH /api/tradeups/baskets/[id]/items/reorder`
+- `POST /api/tradeups/baskets/[id]/ready`
+- `POST /api/tradeups/baskets/[id]/cancel`
 - `POST /api/tradeups/evaluate` (evaluate a candidate, inventory item, or basket on demand)
+- `GET /api/tradeups/executions`
 - `POST /api/tradeups/executions`
+- `GET /api/tradeups/executions/[id]`
+- `PATCH /api/tradeups/executions/[id]/result`
+- `PATCH /api/tradeups/executions/[id]/sale`
 - `GET /api/analytics/summary`
+- `GET /api/analytics/activity`
+- `GET /api/analytics/plan-performance`
+- `GET /api/analytics/expected-vs-realized`
 
 ---
 
@@ -392,7 +427,7 @@ The ingestion source is a third-party Chrome extension (CS2 Trader - Steam Tradi
 
 ### Integration Approach
 
-The exact mechanism for bridging the third-party extension output into the app's ingestion endpoint needs to be determined during Phase 3. Options include a lightweight relay extension, a bookmarklet, or manual copy-paste with a structured import form.
+The app-side ingestion endpoint exists. The exact mechanism for bridging the third-party extension output into that endpoint still needs to be determined. Options include a lightweight relay extension, a bookmarklet, or manual copy-paste with a structured import form.
 
 ### MVP Security
 
@@ -563,7 +598,7 @@ This order intentionally biases toward getting the discovery loop working before
 
 ### Risks
 
-- extension payload quality may be inconsistent until normalization is enforced
+- extension payload quality may be inconsistent until the bridge mechanism and minimum payload are proven against real extension output
 - float precision and duplicate matching can create false positives or false negatives
 - expected value formulas can be misleading if assumptions are not explicit
 - marketplace prices are time-sensitive, so stale candidate evaluations may need re-evaluation logic
@@ -573,7 +608,7 @@ This order intentionally biases toward getting the discovery loop working before
 - how detailed should the first expected-value model be for mixed baskets and multiple outcome distributions?
 - what minimum extension payload is guaranteed on day one?
 - should notification behavior exist in MVP or wait until the queue workflow is stable?
-- when should candidate evaluations be recomputed after ingestion?
+- when should stored candidate evaluations be recomputed after prices age?
 
 These questions are real, but none of them block the foundation build.
 

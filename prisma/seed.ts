@@ -407,8 +407,8 @@ async function main() {
       status: 'EXECUTED',
       totalCost: 19.50,
       expectedEV: 6.35,
-      expectedProfit: 3.35,
-      expectedProfitPct: 17.2,
+      expectedProfit: -13.15,
+      expectedProfitPct: -67.44,
       averageFloat: 0.2250,
       items: {
         create: usedItems.map((item, i) => ({
