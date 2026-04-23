@@ -1,20 +1,18 @@
 // HTTP error translation for API routes.
 //
-// Services throw plain `Error` with descriptive messages (see the service
-// module headers under $lib/server). Routes wrap every handler in a
-// try/catch and funnel the caught value through `toErrorResponse`, which
-// decides the HTTP status code and produces the JSON body.
+// Services throw typed HttpError subclasses for expected domain failures.
+// Routes wrap every handler in a try/catch and funnel the caught value through
+// `toErrorResponse`, which decides the HTTP status code and produces the JSON
+// body.
 //
 // Classification strategy (Phase 3):
 //   1. ZodError              -> 400 with the issue list
 //   2. HttpError subclass    -> the status baked into the class
-//   3. plain Error            -> substring-match the message to pick 404 / 409
+//   3. plain Error            -> deprecated substring fallback for legacy throws
 //   4. anything else          -> 500
 //
-// The typed error classes below are here so a future phase can migrate the
-// service layer from stringly-typed throws to real typed errors without
-// changing the route code. Until that migration happens, the substring
-// matcher is the load-bearing piece.
+// Keep the substring matcher for the first typed-error release, but new service
+// throws should use the classes below directly.
 
 import { json } from '@sveltejs/kit';
 import { z } from 'zod';
@@ -101,11 +99,10 @@ export function toErrorResponse(err: unknown): Response {
 }
 
 /**
- * Map a raw service error message onto an HTTP status code.
+ * Map a raw legacy service error message onto an HTTP status code.
  *
- * This is the fragile part of the error pipeline; the keyword list below is
- * derived from the exact throws in $lib/server/**. When new service errors
- * are added, extend this list in the same PR.
+ * Deprecated Phase 6 fallback only. New service errors should throw an
+ * HttpError subclass directly instead of relying on this classifier.
  */
 function classifyServiceError(message: string): number {
   const m = message.toLowerCase();

@@ -138,10 +138,11 @@ What does not exist yet:
 
 ### Phase 6: Quality And Decision Support
 
-- [ ] Historical analytics improvements.
-- [ ] Expected vs realized reporting improvements.
-- [ ] Export/report helpers if needed.
-- [ ] Broader verification and testing coverage.
+- [ ] Workstream A: ECharts install and dashboard chart surfaces.
+- [ ] Workstream B: CSV export helpers.
+- [ ] Workstream C: Plan-aware inventory eligibility endpoint.
+- [x] Workstream D: Typed service errors migration.
+- [ ] Workstream E: Automated test coverage with `bun test`.
 
 Legend: `[x]` = complete and verified at the current expected level;
 `[ ]` = not implemented.
@@ -213,8 +214,7 @@ Still unresolved:
   `planId`-aware eligibility route.
 - **Typed service errors.** Routes classify plain service `Error` messages
   by substring. Typed `HttpError` classes exist for a future migration.
-- **Notifications beyond queue visibility.** MVP likely skips; revisit in
-  Phase 5.
+- **Notifications beyond queue visibility.** MVP likely skips; revisit.
 
 ---
 
@@ -265,6 +265,15 @@ verified API, then deepen recommendation quality.
 ---
 
 ## Change Log
+
+### 2026-04-23 (Phase 6 workstream D typed service errors)
+
+- Migrated service throw sites in candidate, inventory, plan, basket,
+  execution, and evaluation services to typed `HttpError` subclasses.
+- Marked the substring classifier in `src/lib/server/http/errors.ts` as a
+  deprecated legacy fallback.
+- New endpoints: none. New dependencies: none. New files: none.
+- Verified `bun run check` after each service migration.
 
 ### 2026-04-22 (Phase 4 candidates UI)
 
