@@ -138,7 +138,7 @@ What does not exist yet:
 
 ### Phase 6: Quality And Decision Support
 
-- [ ] Workstream A: ECharts install and dashboard chart surfaces.
+- [x] Workstream A: ECharts install and dashboard chart surfaces.
 - [x] Workstream B: CSV export helpers.
 - [x] Workstream C: Plan-aware inventory eligibility endpoint.
 - [x] Workstream D: Typed service errors migration.
@@ -265,6 +265,21 @@ verified API, then deepen recommendation quality.
 ---
 
 ## Change Log
+
+### 2026-04-23 (Phase 6 workstream A ECharts dashboard charts)
+
+- Added the `echarts` runtime dependency.
+- Added client-only line and bar chart wrappers plus shared chart theme
+  helpers under `src/lib/components/charts/`.
+- Added expected-vs-realized and plan-performance chart option helpers in
+  `src/lib/client/viewModels/dashboard.ts`.
+- Updated `/dashboard` to render charts with raw table fallbacks under
+  collapsed `<details>` elements.
+- New endpoints: none. New dependencies: `echarts`. New files:
+  `LineChart.svelte`, `BarChart.svelte`, and `theme.ts`.
+- Verified `bun run check`, `bun run build`, `bun test tests/`,
+  `bun prisma migrate deploy`, `bun prisma db seed`, and confirmed
+  `.svelte-kit/output/server` contains no `echarts` references.
 
 ### 2026-04-23 (Phase 6 workstream B CSV exports)
 

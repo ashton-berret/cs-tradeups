@@ -1,17 +1,24 @@
 <script lang="ts">
 	import Card from '$lib/components/Card.svelte';
+	import BarChart from '$lib/components/charts/BarChart.svelte';
+	import LineChart from '$lib/components/charts/LineChart.svelte';
 	import DataTable from '$lib/components/DataTable.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import {
 		activityLabel,
 		evDelta,
 		planDelta,
-		toDashboardKpis
+		toDashboardKpis,
+		toEvRealizedSeries,
+		toPlanPerformanceBars
 	} from '$lib/client/viewModels/dashboard';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 	const kpis = $derived(toDashboardKpis(data.summary));
+	const evRealizedOption = $derived(toEvRealizedSeries(data.evRealized));
+	const planPerformanceOption = $derived(toPlanPerformanceBars(data.planPerformance));
+	const planChartHeight = $derived(`${Math.max(280, data.planPerformance.length * 54 + 90)}px`);
 </script>
 
 <div class="space-y-6">
@@ -59,41 +66,53 @@
 					Export expected vs realized
 				</a>
 			</div>
-			<DataTable
-				columns={['Executed', 'Plan', 'Expected', 'Realized', 'Delta']}
-				rows={data.evRealized}
-				emptyTitle="No completed execution sales yet."
-				emptyDescription="Record an execution result and sale to compare expected against realized profit."
-			>
-				{#snippet row(point)}
-					<td class="px-4 py-3">{new Date(point.executedAt).toLocaleDateString()}</td>
-					<td class="px-4 py-3">{point.planName}</td>
-					<td class="px-4 py-3"><Money value={point.expectedProfit} /></td>
-					<td class="px-4 py-3"><Money value={point.realizedProfit} /></td>
-					<td class="px-4 py-3"><Money value={evDelta(point)} /></td>
-				{/snippet}
-			</DataTable>
+			<LineChart option={evRealizedOption} />
+			<details class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
+				<summary class="cursor-pointer px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)]">Raw expected vs realized rows</summary>
+				<div class="border-t border-[var(--color-border)]">
+					<DataTable
+						columns={['Executed', 'Plan', 'Expected', 'Realized', 'Delta']}
+						rows={data.evRealized}
+						emptyTitle="No completed execution sales yet."
+						emptyDescription="Record an execution result and sale to compare expected against realized profit."
+					>
+						{#snippet row(point)}
+							<td class="px-4 py-3">{new Date(point.executedAt).toLocaleDateString()}</td>
+							<td class="px-4 py-3">{point.planName}</td>
+							<td class="px-4 py-3"><Money value={point.expectedProfit} /></td>
+							<td class="px-4 py-3"><Money value={point.realizedProfit} /></td>
+							<td class="px-4 py-3"><Money value={evDelta(point)} /></td>
+						{/snippet}
+					</DataTable>
+				</div>
+			</details>
 		</div>
 	</section>
 
 	<section class="space-y-3">
 		<h2 class="text-lg font-semibold">Plan performance</h2>
-		<DataTable
-			columns={['Plan', 'Executions', 'Input cost', 'Realized', 'Realized profit', 'Avg expected', 'Avg realized', 'EV delta']}
-			rows={data.planPerformance}
-			emptyTitle="No plan performance yet."
-			emptyDescription="Plan rollups appear after baskets are executed."
-		>
-			{#snippet row(plan)}
-				<td class="px-4 py-3">{plan.planName}</td>
-				<td class="px-4 py-3">{plan.executions}</td>
-				<td class="px-4 py-3"><Money value={plan.totalInputCost} /></td>
-				<td class="px-4 py-3"><Money value={plan.totalRealized} /></td>
-				<td class="px-4 py-3"><Money value={plan.totalRealizedProfit} /></td>
-				<td class="px-4 py-3"><Money value={plan.avgExpectedProfit} /></td>
-				<td class="px-4 py-3"><Money value={plan.avgRealizedProfit} /></td>
-				<td class="px-4 py-3"><Money value={planDelta(plan)} /></td>
-			{/snippet}
-		</DataTable>
+		<BarChart option={planPerformanceOption} height={planChartHeight} />
+		<details class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
+			<summary class="cursor-pointer px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)]">Raw plan performance rows</summary>
+			<div class="border-t border-[var(--color-border)]">
+				<DataTable
+					columns={['Plan', 'Executions', 'Input cost', 'Realized', 'Realized profit', 'Avg expected', 'Avg realized', 'EV delta']}
+					rows={data.planPerformance}
+					emptyTitle="No plan performance yet."
+					emptyDescription="Plan rollups appear after baskets are executed."
+				>
+					{#snippet row(plan)}
+						<td class="px-4 py-3">{plan.planName}</td>
+						<td class="px-4 py-3">{plan.executions}</td>
+						<td class="px-4 py-3"><Money value={plan.totalInputCost} /></td>
+						<td class="px-4 py-3"><Money value={plan.totalRealized} /></td>
+						<td class="px-4 py-3"><Money value={plan.totalRealizedProfit} /></td>
+						<td class="px-4 py-3"><Money value={plan.avgExpectedProfit} /></td>
+						<td class="px-4 py-3"><Money value={plan.avgRealizedProfit} /></td>
+						<td class="px-4 py-3"><Money value={planDelta(plan)} /></td>
+					{/snippet}
+				</DataTable>
+			</div>
+		</details>
 	</section>
 </div>
