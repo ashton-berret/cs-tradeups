@@ -142,7 +142,7 @@ What does not exist yet:
 - [ ] Workstream B: CSV export helpers.
 - [ ] Workstream C: Plan-aware inventory eligibility endpoint.
 - [x] Workstream D: Typed service errors migration.
-- [ ] Workstream E: Automated test coverage with `bun test`.
+- [x] Workstream E: Automated test coverage with `bun test`.
 
 Legend: `[x]` = complete and verified at the current expected level;
 `[ ]` = not implemented.
@@ -265,6 +265,18 @@ verified API, then deepen recommendation quality.
 ---
 
 ## Change Log
+
+### 2026-04-23 (Phase 6 workstream E bun test starter suite)
+
+- Added the root `tests/` starter suite for expected value, scoring,
+  recommendation, duplicate detection, and basket readiness pure logic.
+- Added `bun test tests/` as the package `test` script.
+- Extracted basket readiness checks into
+  `src/lib/server/tradeups/evaluation/readiness.ts` and added a
+  `RULE_MISMATCH` readiness issue for items that do not match any plan rule.
+- New endpoints: none. New dependencies: none. New files: `tests/**` and the
+  readiness helper.
+- Verified `bun test tests/` and `bun run check`.
 
 ### 2026-04-23 (Phase 6 workstream D typed service errors)
 

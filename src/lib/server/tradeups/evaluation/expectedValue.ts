@@ -35,6 +35,7 @@ import { DEFAULT_MAX_BUY_MARGIN_PCT } from './tuning';
 export interface BasketSlotContext {
   inventoryItemId: string;
   collection: string | null;
+  exterior?: string | null;
   floatValue: number | null;
   rarity: string | null;
 }

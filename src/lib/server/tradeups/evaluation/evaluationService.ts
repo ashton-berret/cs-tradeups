@@ -18,7 +18,6 @@
 
 import type {
   BasketEvaluation,
-  BasketReadinessIssue,
   CandidateEvaluation,
   EvaluateTarget,
   EvaluationResult,
@@ -41,6 +40,7 @@ import { deriveRecommendation } from './recommendation';
 import { computeLiquidityScore, computeQualityScore, type LiquiditySignal } from './scoring';
 import { LIQUIDITY_DENSITY_WINDOW_MS } from './tuning';
 import { matchCandidateToPlans, pickBestMatch, toCandidateLike } from './ruleMatching';
+import { basketReadinessIssues } from './readiness';
 
 /**
  * Dispatch on target kind. Mirrors the union defined in
@@ -221,7 +221,7 @@ async function evaluateBasketImpl(basketId: string): Promise<BasketEvaluation> {
   const basket = await db.tradeupBasket.findUnique({
     where: { id: basketId },
     include: {
-      plan: { include: { outcomeItems: true } },
+      plan: { include: { outcomeItems: true, rules: true } },
       items: { include: { inventoryItem: true }, orderBy: { slotIndex: 'asc' } },
     },
   });
@@ -239,6 +239,7 @@ async function evaluateBasketImpl(basketId: string): Promise<BasketEvaluation> {
   const expectedProfitPct = percentChange(inputCost, ev.totalEV);
   const readinessIssues = basketReadinessIssues(
     basket.plan.inputRarity as ItemRarity,
+    basket.plan.rules,
     slots,
   );
 
@@ -324,47 +325,15 @@ async function loadLiquiditySignal(
 function toBasketSlotContext(item: {
   id: string;
   collection: string | null;
+  exterior?: string | null;
   floatValue: number | null;
   rarity: string | null;
 }): BasketSlotContext {
   return {
     inventoryItemId: item.id,
     collection: item.collection,
+    exterior: item.exterior,
     floatValue: item.floatValue,
     rarity: item.rarity,
   };
-}
-
-function basketReadinessIssues(
-  expectedRarity: ItemRarity,
-  slots: BasketSlotContext[],
-): BasketReadinessIssue[] {
-  const issues: BasketReadinessIssue[] = [];
-
-  if (slots.length !== 10) {
-    issues.push({ code: 'ITEM_COUNT', actual: slots.length });
-  }
-
-  const rarities = Array.from(new Set(slots.map((slot) => slot.rarity).filter(Boolean))) as ItemRarity[];
-  if (rarities.length > 1) {
-    issues.push({ code: 'MIXED_RARITY', rarities });
-  }
-
-  for (const rarity of rarities) {
-    if (rarity !== expectedRarity) {
-      issues.push({ code: 'RARITY_MISMATCH', expected: expectedRarity, actual: rarity });
-    }
-  }
-
-  for (const slot of slots) {
-    if (slot.floatValue == null) {
-      issues.push({ code: 'MISSING_FLOAT', itemId: slot.inventoryItemId });
-    }
-
-    if (!slot.collection) {
-      issues.push({ code: 'MISSING_COLLECTION', itemId: slot.inventoryItemId });
-    }
-  }
-
-  return issues;
 }

@@ -666,12 +666,14 @@ function validateBasketStatusTransition(
 function toBasketSlotContext(item: {
   id: string;
   collection: string | null;
+  exterior?: string | null;
   floatValue: number | null;
   rarity: string | null;
 }): BasketSlotContext {
   return {
     inventoryItemId: item.id,
     collection: item.collection,
+    exterior: item.exterior,
     floatValue: item.floatValue,
     rarity: item.rarity,
   };

@@ -284,7 +284,8 @@ export type BasketReadinessIssue =
   | { code: 'MIXED_RARITY'; rarities: ItemRarity[] }
   | { code: 'RARITY_MISMATCH'; expected: ItemRarity; actual: ItemRarity }
   | { code: 'MISSING_FLOAT'; itemId: string }
-  | { code: 'MISSING_COLLECTION'; itemId: string };
+  | { code: 'MISSING_COLLECTION'; itemId: string }
+  | { code: 'RULE_MISMATCH'; itemId: string };
 
 export type EvaluationResult =
   | { kind: 'candidate'; result: CandidateEvaluation }
