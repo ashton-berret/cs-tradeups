@@ -26,6 +26,7 @@ import type {
 import type { InventoryItemDTO } from '$lib/types/services';
 import type { InventoryStatus, ItemExterior, ItemRarity } from '$lib/types/enums';
 import { db } from '$lib/server/db/client';
+import { ConflictError, NotFoundError } from '$lib/server/http/errors';
 import { toDecimal, toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
 import { markBought } from '$lib/server/candidates/candidateService';
 
@@ -204,7 +205,7 @@ async function listAvailableForBasketImpl(
   });
 
   if (!plan) {
-    throw new Error(`Plan not found: ${planId}`);
+    throw new NotFoundError(`Plan not found: ${planId}`);
   }
 
   const ruleCollections = Array.from(
@@ -252,7 +253,7 @@ async function setStatusImpl(id: string, next: InventoryStatus): Promise<Invento
   const row = await db.inventoryItem.findUnique({ where: { id } });
 
   if (!row) {
-    throw new Error(`Inventory item not found: ${id}`);
+    throw new NotFoundError(`Inventory item not found: ${id}`);
   }
 
   const current = row.status as InventoryStatus;
@@ -265,7 +266,7 @@ async function deleteInventoryItemImpl(id: string): Promise<void> {
   const basketLinks = await db.tradeupBasketItem.count({ where: { inventoryItemId: id } });
 
   if (basketLinks > 0) {
-    throw new Error('Cannot delete inventory that is linked to a basket');
+    throw new ConflictError('Cannot delete inventory that is linked to a basket');
   }
 
   await db.inventoryItem.delete({ where: { id } });
@@ -277,22 +278,22 @@ function validateStatusTransition(current: InventoryStatus, next: InventoryStatu
   }
 
   if (next === 'RESERVED_FOR_BASKET') {
-    throw new Error('RESERVED_FOR_BASKET is owned by basketService.addItem');
+    throw new ConflictError('RESERVED_FOR_BASKET is owned by basketService.addItem');
   }
 
   if (current === 'USED_IN_CONTRACT' && next !== 'ARCHIVED') {
-    throw new Error('USED_IN_CONTRACT items can only transition to ARCHIVED');
+    throw new ConflictError('USED_IN_CONTRACT items can only transition to ARCHIVED');
   }
 
   if (current === 'RESERVED_FOR_BASKET' && next !== 'ARCHIVED') {
-    throw new Error('Reserved items must be released by basketService');
+    throw new ConflictError('Reserved items must be released by basketService');
   }
 
   if (current === 'ARCHIVED') {
-    throw new Error('ARCHIVED inventory is terminal');
+    throw new ConflictError('ARCHIVED inventory is terminal');
   }
 
   if (current === 'SOLD' && next !== 'ARCHIVED') {
-    throw new Error('SOLD inventory can only transition to ARCHIVED');
+    throw new ConflictError('SOLD inventory can only transition to ARCHIVED');
   }
 }
