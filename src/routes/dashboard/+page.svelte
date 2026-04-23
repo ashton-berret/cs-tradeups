@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Card from '$lib/components/Card.svelte';
 	import BarChart from '$lib/components/charts/BarChart.svelte';
 	import LineChart from '$lib/components/charts/LineChart.svelte';
 	import DataTable from '$lib/components/DataTable.svelte';
@@ -31,11 +30,14 @@
 
 	<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 		{#each kpis as kpi}
-			<Card>
-				<div class="text-sm text-[var(--color-text-secondary)]">{kpi.label}</div>
-				<div class="mt-2 text-3xl font-semibold">{kpi.value}</div>
-				<div class="mt-1 text-sm text-[var(--color-text-muted)]">{kpi.help}</div>
-			</Card>
+			<div class="group relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface-elevated)] p-5 shadow-sm transition-all duration-200 hover:border-[var(--color-border-hover)] hover:shadow-[0_8px_20px_-12px_rgba(0,0,0,0.5)]">
+				<div class="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[var(--color-primary)] to-[var(--color-secondary)] opacity-60 transition-opacity group-hover:opacity-100"></div>
+				<div class="pl-2">
+					<div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">{kpi.label}</div>
+					<div class="mt-2 text-3xl font-semibold tabular-nums text-[var(--color-text-primary)]">{kpi.value}</div>
+					<div class="mt-1 text-xs text-[var(--color-text-muted)]">{kpi.help}</div>
+				</div>
+			</div>
 		{/each}
 	</section>
 

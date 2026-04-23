@@ -50,16 +50,16 @@
 	{:else}
 		<div class="overflow-x-auto">
 			<table class="w-full min-w-max text-left text-sm">
-				<thead class="border-b border-[var(--color-border)] bg-[var(--color-bg-surface)] text-xs uppercase text-[var(--color-text-muted)]">
+				<thead class="border-b border-[var(--color-border)] bg-[var(--color-bg-surface)]/60 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
 					<tr>
 						{#each columns as column}
-							<th class="px-4 py-3 font-medium">{column}</th>
+							<th class="px-4 py-3">{column}</th>
 						{/each}
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-[var(--color-border)]">
+				<tbody class="divide-y divide-[var(--color-border)]/60">
 					{#each rows as item}
-						<tr class="align-top hover:bg-[var(--color-bg-surface-overlay)]/50">
+						<tr class="align-top transition-colors hover:bg-[var(--color-bg-surface-overlay)]/40">
 							{@render row(item)}
 						</tr>
 					{/each}

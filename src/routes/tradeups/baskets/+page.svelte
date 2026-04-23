@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Button from '$lib/components/Button.svelte';
+	import Card from '$lib/components/Card.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
-	import DataTable from '$lib/components/DataTable.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Modal from '$lib/components/Modal.svelte';
@@ -87,19 +87,25 @@
 		</select>
 	</FilterBar>
 
-	<DataTable
-		columns={['Baskets']}
-		rows={cards}
-		emptyTitle="No baskets match these filters."
-		emptyDescription="Create a basket from an active plan, then add eligible inventory."
-		clearHref={hasFilters ? '/tradeups/baskets' : null}
-	>
-		{#snippet row(vm)}
-			<td class="px-4 py-4">
+	{#if cards.length === 0}
+		<Card class="flex min-h-48 flex-col items-center justify-center gap-3 text-center">
+			<h2 class="text-base font-semibold text-[var(--color-text-primary)]">No baskets match these filters.</h2>
+			<p class="max-w-md text-sm text-[var(--color-text-secondary)]">
+				Create a basket from an active plan, then add eligible inventory.
+			</p>
+			{#if hasFilters}
+				<a href="/tradeups/baskets">
+					<Button variant="secondary" size="sm">Clear filters</Button>
+				</a>
+			{/if}
+		</Card>
+	{:else}
+		<div class="grid gap-3 xl:grid-cols-2">
+			{#each cards as vm (vm.basket.id)}
 				<BasketCard {vm} onbuild={openBuilder} oncancel={openCancel} ondelete={openDelete} />
-			</td>
-		{/snippet}
-	</DataTable>
+			{/each}
+		</div>
+	{/if}
 
 	<PaginationControl
 		page={data.page.page}

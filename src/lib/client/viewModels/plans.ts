@@ -10,6 +10,9 @@ export type PlanCardVM = {
 	isCompositionValid: boolean;
 	inputRarityLabel: string;
 	targetRarityLabel: string;
+	collections: string[];
+	estimatedMaxCost: number | null;
+	expectedValue: number | null;
 };
 
 export function toPlanCards(plans: PlanDTO[]): PlanCardVM[] {
@@ -20,6 +23,30 @@ export function toPlanCards(plans: PlanDTO[]): PlanCardVM[] {
 		);
 		const requiredSlots = plan.rules.reduce((total, rule) => total + (rule.minQuantity ?? 0), 0);
 
+		const collections = Array.from(
+			new Set(
+				plan.rules
+					.map((rule) => rule.collection)
+					.filter((collection): collection is string => Boolean(collection))
+			)
+		);
+
+		const rulesWithMaxBuy = plan.rules.filter((rule) => rule.maxBuyPrice != null);
+		const estimatedMaxCost =
+			rulesWithMaxBuy.length > 0
+				? (rulesWithMaxBuy.reduce((sum, rule) => sum + (rule.maxBuyPrice ?? 0), 0) /
+						rulesWithMaxBuy.length) *
+					10
+				: null;
+
+		const expectedValue =
+			totalProbabilityWeight > 0
+				? plan.outcomeItems.reduce(
+						(sum, outcome) => sum + outcome.estimatedMarketValue * outcome.probabilityWeight,
+						0
+					) / totalProbabilityWeight
+				: null;
+
 		return {
 			plan,
 			ruleCount: plan.rules.length,
@@ -27,7 +54,10 @@ export function toPlanCards(plans: PlanDTO[]): PlanCardVM[] {
 			totalProbabilityWeight,
 			isCompositionValid: totalProbabilityWeight > 0 && (requiredSlots === 0 || requiredSlots === 10),
 			inputRarityLabel: RARITY_LABELS[plan.inputRarity],
-			targetRarityLabel: RARITY_LABELS[plan.targetRarity]
+			targetRarityLabel: RARITY_LABELS[plan.targetRarity],
+			collections,
+			estimatedMaxCost,
+			expectedValue
 		};
 	});
 }

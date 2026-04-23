@@ -3,6 +3,7 @@
 	import FloatValue from '$lib/components/FloatValue.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import Percent from '$lib/components/Percent.svelte';
+	import RarityDot from '$lib/components/RarityDot.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import type { CandidateRowVM } from '$lib/client/viewModels/candidates';
 
@@ -28,6 +29,9 @@
 </td>
 <td class="px-4 py-3">
 	<div class="flex items-center gap-2">
+		{#if row.rarity}
+			<RarityDot rarity={row.rarity} title={row.rarityLabel} />
+		{/if}
 		<span class="font-medium text-[var(--color-text-primary)]">{row.marketHashName}</span>
 		{#if row.pinnedByUser}
 			<span class="rounded bg-[var(--color-primary)]/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--color-primary)]" title="Pinned by user — engine re-evaluations will not change the status.">Pinned</span>

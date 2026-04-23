@@ -14,16 +14,18 @@
 	const action = $derived(mode === 'add' ? '?/addOutcome' : '?/updateOutcome');
 </script>
 
-<form method="POST" action={action} class="rounded-md border border-[var(--color-border)] p-3">
+<form method="POST" action={action} class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface-elevated)] p-3">
 	{#if planId}
 		<input type="hidden" name="planId" value={planId} />
 	{/if}
 	{#if outcome}
 		<input type="hidden" name="outcomeId" value={outcome.id} />
 	{/if}
-	<p class="mb-3 text-xs text-[var(--color-text-muted)]">
-		Outcome rows are EV inputs. They do not control matching; they control what value the plan assumes after a contract hits an output.
-	</p>
+	{#if mode === 'add'}
+		<p class="mb-3 text-xs text-[var(--color-text-muted)]">
+			Outcome rows feed expected value. They do not control matching.
+		</p>
+	{/if}
 	<div class="grid grid-cols-2 gap-2 md:grid-cols-4">
 		<Input name="marketHashName" placeholder="Market hash name" value={outcome?.marketHashName ?? ''} help="Full market name of the possible output item." required />
 		<Input name="weaponName" placeholder="Weapon" value={outcome?.weaponName ?? ''} help="Optional display field." />

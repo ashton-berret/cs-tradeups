@@ -2,6 +2,7 @@
 	import Button from '$lib/components/Button.svelte';
 	import FloatValue from '$lib/components/FloatValue.svelte';
 	import Money from '$lib/components/Money.svelte';
+	import RarityDot from '$lib/components/RarityDot.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import type { InventoryRowVM } from '$lib/client/viewModels/inventory';
 
@@ -25,7 +26,12 @@
 	/>
 </td>
 <td class="px-4 py-3">
-	<div class="font-medium text-[var(--color-text-primary)]">{row.marketHashName}</div>
+	<div class="flex items-center gap-2">
+		{#if row.rarity}
+			<RarityDot rarity={row.rarity} title={row.rarityLabel} />
+		{/if}
+		<span class="font-medium text-[var(--color-text-primary)]">{row.marketHashName}</span>
+	</div>
 	<div class="mt-1 text-xs text-[var(--color-text-muted)]">
 		{row.rarityLabel} · {row.exteriorLabel} · held {row.ageDays}d
 	</div>

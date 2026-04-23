@@ -2,6 +2,8 @@
 
 A comprehensive guide to the UI design decisions, color system, component patterns, and styling conventions used in this project. Use this as a reference for building consistent interfaces in related projects.
 
+**Last Updated:** 2026-04-23
+
 ---
 
 ## Table of Contents
@@ -12,10 +14,11 @@ A comprehensive guide to the UI design decisions, color system, component patter
 4. [Typography](#typography)
 5. [Component Library](#component-library)
 6. [Layout Patterns](#layout-patterns)
-7. [Chart Theming](#chart-theming)
-8. [Utility Classes](#utility-classes)
-9. [Icon System](#icon-system)
-10. [Accessibility](#accessibility)
+7. [Feature Patterns](#feature-patterns)
+8. [Chart Theming](#chart-theming)
+9. [Utility Classes](#utility-classes)
+10. [Icon System](#icon-system)
+11. [Accessibility](#accessibility)
 
 ---
 
@@ -84,7 +87,7 @@ A comprehensive guide to the UI design decisions, color system, component patter
 
 ### Rarity Colors (Consistent Across Themes)
 
-These colors match CS2's in-game rarity tiers and are used for rarity identification throughout the UI:
+These colors match CS2's in-game rarity tiers and are used for rarity identification throughout the UI. Exported as `RARITY_COLORS` from `$lib/types/enums`:
 
 | Rarity | Hex | Usage |
 |--------|-----|-------|
@@ -94,6 +97,30 @@ These colors match CS2's in-game rarity tiers and are used for rarity identifica
 | Restricted | `#8847FF` | Purple-tier rarity |
 | Classified | `#D32CE6` | Pink-tier rarity |
 | Covert | `#EB4B4B` | Red-tier rarity |
+
+**Rarity Dot** (`$lib/components/RarityDot.svelte`) — inline glowing dot for dense contexts (table rows, compact listings):
+
+```html
+<span
+    class="inline-block h-2 w-2 shrink-0 rounded-full ring-1 ring-black/20"
+    style:background-color={RARITY_COLORS[rarity]}
+    style:box-shadow={`0 0 6px ${RARITY_COLORS[rarity]}66`}
+></span>
+```
+
+**Rarity Pill** — label + dot with color-matched border/background for headers and rarity flow indicators:
+
+```html
+<span
+    class="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium"
+    style:color={color}
+    style:border-color={`${color}55`}
+    style:background-color={`${color}15`}
+>
+    <span class="h-1.5 w-1.5 rounded-full" style:background-color={color}></span>
+    {label}
+</span>
+```
 
 ### Chart Color Palettes
 
@@ -195,6 +222,7 @@ font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, s
 
 | Class | Size | Usage |
 |-------|------|-------|
+| `text-[10px]` | 10px | Micro-labels on stat blocks, section eyebrows, table headers |
 | `text-xs` | 12px | Labels, hints, badges |
 | `text-sm` | 14px | Body text, inputs, buttons |
 | `text-base` | 16px | Large buttons, emphasis |
@@ -202,6 +230,21 @@ font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, s
 | `text-xl` | 20px | Section headers |
 | `text-2xl` | 24px | Page titles |
 | `text-3xl` | 30px | Large metrics, hero numbers |
+
+### Micro-label
+
+Used above any stat value, KPI, or sub-section header. Uppercase + tracking-wider + muted gives a quiet "category tag" look that keeps stat triads readable without competing with the value.
+
+```html
+<div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+    Cost
+</div>
+<div class="text-sm font-semibold tabular-nums text-[var(--color-text-primary)]">
+    $12.40
+</div>
+```
+
+Numeric values should always use `tabular-nums` for stable column widths.
 
 ### Font Weights
 
@@ -282,21 +325,38 @@ disabled:opacity-50 disabled:cursor-not-allowed
 **Base Classes:**
 ```
 bg-[var(--color-bg-surface-elevated)]
-rounded-lg shadow
+rounded-xl shadow-sm
 border border-[var(--color-border)]
-transition-colors
+transition-all duration-200
 ```
+
+`rounded-xl` is the default radius for all cards to keep the app visually consistent with feature cards (PlanCard, BasketCard, KPI tiles). Legacy `rounded-lg` is reserved for sub-elements inside a card (nested stat panels, editor forms).
 
 **Card with Glow:**
 ```html
 <div class="
     bg-[var(--color-bg-surface-elevated)]
-    rounded-lg shadow
+    rounded-xl shadow-sm
     border border-[var(--color-border)]
     card-glow
     p-6
 ">
     Card content
+</div>
+```
+
+**Hover-elevate pattern** (used for feature cards that respond to interaction):
+
+```html
+<div class="
+    group relative overflow-hidden rounded-xl border
+    border-[var(--color-border)]
+    bg-[var(--color-bg-surface-elevated)]
+    shadow-sm transition-all duration-200
+    hover:border-[var(--color-border-hover)]
+    hover:shadow-[0_8px_20px_-12px_rgba(0,0,0,0.5)]
+">
+    ...
 </div>
 ```
 
@@ -363,6 +423,27 @@ flex justify-end gap-3
 border-t border-[var(--color-border)]
 px-6 py-4
 ```
+
+### DataTable
+
+`$lib/components/DataTable.svelte` — shared paginated-row container. Wraps its children in a `Card` (`padding="none"`) and renders a `<table>`. Use it for flat tabular data; for feature cards (plans, baskets), render a direct grid/list of the feature card component instead and skip DataTable.
+
+**Header:**
+```
+border-b border-[var(--color-border)]
+bg-[var(--color-bg-surface)]/60
+text-[10px] font-semibold uppercase tracking-wider
+text-[var(--color-text-muted)]
+```
+
+**Row dividers and hover:**
+```
+divide-y divide-[var(--color-border)]/60
+hover: bg-[var(--color-bg-surface-overlay)]/40
+transition-colors
+```
+
+The `/60` and `/40` alpha suffixes soften dividers and hover against the elevated card surface.
 
 ### Toggle Switch
 
@@ -464,6 +545,141 @@ ml-64 min-h-screen bg-[var(--color-bg-base)]
 
 <!-- Three-column settings grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+```
+
+---
+
+## Feature Patterns
+
+Higher-level compositions that appear across multiple pages. Keep these visually consistent — they define the app's character.
+
+### Accent Stripe
+
+A 1-wide vertical gradient bar flush to a card's left edge. Signals "this card has a dominant property" (a rarity flow, a status axis, a brand accent). Always paired with a card that sets `overflow-hidden`.
+
+```html
+<div class="relative overflow-hidden rounded-xl border ...">
+    <div
+        class="pointer-events-none absolute left-0 top-0 h-full w-1"
+        style:background={`linear-gradient(180deg, ${inputColor} 0%, ${targetColor} 100%)`}
+    ></div>
+    ...
+</div>
+```
+
+For KPI tiles without a domain-specific gradient, use the brand gradient:
+```
+bg-gradient-to-b from-[var(--color-primary)] to-[var(--color-secondary)] opacity-60
+hover: opacity-100
+```
+
+### Stat Triad
+
+Three numeric cells separated by 1px hairline dividers. Use it any time a feature card has 2–4 headline metrics (cost / EV / target, cost / EV / float, etc.). Each cell pairs a micro-label with a tabular-nums value; color the value semantically where relevant (`--color-success`, `--color-danger`, `--color-secondary`, or primary text).
+
+```html
+<div class="flex items-center gap-4 text-right tabular-nums">
+    <div>
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Cost</div>
+        <div class="text-sm font-semibold text-[var(--color-text-primary)]">$12.40</div>
+    </div>
+    <div class="h-8 w-px bg-[var(--color-border)]"></div>
+    <div>
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">EV</div>
+        <div class="text-sm font-semibold text-[var(--color-secondary)]">$18.20</div>
+    </div>
+    <div class="h-8 w-px bg-[var(--color-border)]"></div>
+    <div>
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Target</div>
+        <div class="text-sm font-semibold text-[var(--color-success)]">≥ 30%</div>
+    </div>
+</div>
+```
+
+When laid out inside a sub-panel (instead of inline in a header), wrap the triad in its own bordered surface and separate cells with `border-l` instead of a sized hairline:
+
+```html
+<div class="grid grid-cols-3 gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)]/40 p-3">
+    <div> ...stat 1... </div>
+    <div class="border-l border-[var(--color-border)] pl-3"> ...stat 2... </div>
+    <div class="border-l border-[var(--color-border)] pl-3"> ...stat 3... </div>
+</div>
+```
+
+### KPI Tile
+
+Dashboard headline metric. Left-edge brand gradient stripe + micro-label + large tabular value + help text.
+
+```html
+<div class="group relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface-elevated)] p-5 shadow-sm transition-all duration-200 hover:border-[var(--color-border-hover)] hover:shadow-[0_8px_20px_-12px_rgba(0,0,0,0.5)]">
+    <div class="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[var(--color-primary)] to-[var(--color-secondary)] opacity-60 transition-opacity group-hover:opacity-100"></div>
+    <div class="pl-2">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Candidates this week</div>
+        <div class="mt-2 text-3xl font-semibold tabular-nums text-[var(--color-text-primary)]">42</div>
+        <div class="mt-1 text-xs text-[var(--color-text-muted)]">Helper text</div>
+    </div>
+</div>
+```
+
+### Collapsible Feature Card
+
+A dense-list card that shows a single summary row by default and reveals detail sections when expanded. Used for PlanCard; applicable to any entity with a long edit form but short at-a-glance summary.
+
+Structure:
+- Outer: hover-elevate card with `overflow-hidden`.
+- Optional accent stripe on the left edge.
+- Full-width `<button type="button">` header containing a chevron (rotates `90°` and tints primary when open), name + status badges, any domain summary (rarity pills, collection chips), and a stat triad on the right.
+- When expanded: `border-t` divider, then alternating-background sections. Section headers use micro-labels. A **Danger zone** footer (red-tinted bar) can hold the delete action.
+
+```html
+<div class="group relative overflow-hidden rounded-xl border ...">
+    <div class="absolute left-0 top-0 h-full w-1" style:background={gradient}></div>
+
+    <button type="button" class="flex w-full items-center gap-5 py-4 pl-6 pr-5 text-left transition-colors hover:bg-[var(--color-bg-surface-overlay)]/30">
+        <span class={`flex h-7 w-7 items-center justify-center rounded-md border transition-all ${expanded ? 'rotate-90 border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 text-[var(--color-primary)]' : '...'}`}>
+            <!-- chevron svg -->
+        </span>
+        <!-- name, badges, pills, stat triad -->
+    </button>
+
+    {#if expanded}
+        <div class="border-t border-[var(--color-border)]">
+            <section class="bg-[var(--color-bg-surface)]/40 p-6">...</section>
+            <section class="p-6">...</section>
+            <section class="border-t border-[var(--color-border)] bg-[var(--color-bg-surface)]/40 p-6">...</section>
+            <div class="flex items-center justify-between border-t border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-6 py-4">
+                <!-- danger zone -->
+            </div>
+        </div>
+    {/if}
+</div>
+```
+
+### Gradient Progress Bar
+
+Used for slot fill, capacity, or completion meters. Thin track over surface-overlay, filled with the brand gradient.
+
+```html
+<div class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-bg-surface-overlay)]">
+    <div
+        class="h-full rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] transition-all"
+        style:width={`${pct}%`}
+    ></div>
+</div>
+```
+
+### Danger Zone Footer
+
+For destructive actions on feature cards, tuck them into a distinct red-tinted footer strip instead of placing them inline. Establishes a clear safety perimeter.
+
+```html
+<div class="flex items-center justify-between border-t border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-6 py-4">
+    <div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--color-danger)]">Danger zone</div>
+        <p class="text-xs text-[var(--color-text-muted)]">Reason deletion may be blocked.</p>
+    </div>
+    <Button variant="danger" size="sm">Delete</Button>
+</div>
 ```
 
 ---
@@ -725,8 +941,11 @@ export const theme = createThemeStore();
 | Input background | `bg-[var(--color-bg-surface-overlay)]` |
 | Primary text | `text-[var(--color-text-primary)]` |
 | Secondary text | `text-[var(--color-text-secondary)]` |
+| Micro-label | `text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]` |
+| Numeric value | `tabular-nums` |
 | Border | `border border-[var(--color-border)]` |
 | Primary button | `bg-[var(--color-primary)] text-[#0E100F] btn-glow` |
+| Rarity color | `RARITY_COLORS[rarity]` from `$lib/types/enums` |
 | Success text | `text-[var(--color-success)]` |
 | Warning text | `text-[var(--color-warning)]` |
 | Danger text | `text-[var(--color-danger)]` |
@@ -743,9 +962,10 @@ Follow Tailwind's default spacing scale:
 
 ### Border Radius
 
-- `rounded-md` - Inputs, small elements
-- `rounded-lg` - Cards, buttons, modals
-- `rounded-full` - Avatars, badges, toggle knobs
+- `rounded-md` - Inputs, small elements, nested panels
+- `rounded-lg` - Buttons, modals, sub-surfaces inside a card
+- `rounded-xl` - Top-level cards and feature cards (PlanCard, BasketCard, KPI tiles)
+- `rounded-full` - Avatars, badges, dots, toggle knobs, progress bars
 
 ---
 

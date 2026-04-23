@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Button from '$lib/components/Button.svelte';
+	import Card from '$lib/components/Card.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
-	import DataTable from '$lib/components/DataTable.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import PaginationControl from '$lib/components/PaginationControl.svelte';
@@ -73,19 +73,25 @@
 		<Input name="search" placeholder="Search" value={data.filter.search ?? ''} class="w-56" />
 	</FilterBar>
 
-	<DataTable
-		columns={['Plans']}
-		rows={cards}
-		emptyTitle="No plans match these filters."
-		emptyDescription="Create a plan to start evaluating candidates against trade-up rules."
-		clearHref={hasFilters ? '/tradeups/plans' : null}
-	>
-		{#snippet row(vm)}
-			<td class="px-4 py-4">
+	{#if cards.length === 0}
+		<Card class="flex min-h-48 flex-col items-center justify-center gap-3 text-center">
+			<h2 class="text-base font-semibold text-[var(--color-text-primary)]">No plans match these filters.</h2>
+			<p class="max-w-md text-sm text-[var(--color-text-secondary)]">
+				Create a plan to start evaluating candidates against trade-up rules.
+			</p>
+			{#if hasFilters}
+				<a href="/tradeups/plans">
+					<Button variant="secondary" size="sm">Clear filters</Button>
+				</a>
+			{/if}
+		</Card>
+	{:else}
+		<div class="space-y-3">
+			{#each cards as vm (vm.plan.id)}
 				<PlanCard {vm} ondelete={openDelete} {ruleError} />
-			</td>
-		{/snippet}
-	</DataTable>
+			{/each}
+		</div>
+	{/if}
 
 	<PaginationControl
 		page={data.page.page}

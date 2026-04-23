@@ -29,6 +29,16 @@ export const RARITY_LABELS: Record<ItemRarity, string> = {
   COVERT: 'Covert',
 };
 
+// CS2 in-game rarity tier colors. Consistent across light/dark themes.
+export const RARITY_COLORS: Record<ItemRarity, string> = {
+  CONSUMER_GRADE: '#B0C3D9',
+  INDUSTRIAL_GRADE: '#5E98D9',
+  MIL_SPEC: '#4B69FF',
+  RESTRICTED: '#8847FF',
+  CLASSIFIED: '#D32CE6',
+  COVERT: '#EB4B4B',
+};
+
 export function getNextRarity(rarity: ItemRarity): ItemRarity | null {
   const tier = RARITY_TIER[rarity];
   return ITEM_RARITIES.find((r) => RARITY_TIER[r] === tier + 1) ?? null;

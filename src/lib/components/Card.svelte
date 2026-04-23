@@ -22,7 +22,7 @@
 
 <div
 	class={[
-		'rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface-elevated)] shadow transition-colors',
+		'rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface-elevated)] shadow-sm transition-all duration-200',
 		paddingClasses[padding],
 		glow ? 'card-glow' : '',
 		className

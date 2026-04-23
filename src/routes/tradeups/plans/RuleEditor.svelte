@@ -15,16 +15,18 @@
 	const action = $derived(mode === 'add' ? '?/addRule' : '?/updateRule');
 </script>
 
-<form method="POST" action={action} class="rounded-md border border-[var(--color-border)] p-3">
+<form method="POST" action={action} class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface-elevated)] p-3">
 	{#if planId}
 		<input type="hidden" name="planId" value={planId} />
 	{/if}
 	{#if rule}
 		<input type="hidden" name="ruleId" value={rule.id} />
 	{/if}
-	<p class="mb-3 text-xs text-[var(--color-text-muted)]">
-		This rule is a hard filter. Any filled field must match for the candidate to qualify under this rule.
-	</p>
+	{#if mode === 'add'}
+		<p class="mb-3 text-xs text-[var(--color-text-muted)]">
+			Any filled field must match for a candidate to qualify under this rule.
+		</p>
+	{/if}
 	<div class="grid grid-cols-2 gap-2 md:grid-cols-4">
 		<Input name="collection" placeholder="Collection" value={rule?.collection ?? ''} help="Exact collection name to allow." />
 		<div>
