@@ -26,6 +26,7 @@ import type {
 } from '$lib/types/services';
 import type { CandidateDecisionStatus, ItemRarity } from '$lib/types/enums';
 import { db } from '$lib/server/db/client';
+import { NotFoundError } from '$lib/server/http/errors';
 import { toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
 import { averageFloat } from '$lib/server/utils/float';
 import { percentChange, roundMoney, sumMoney } from '$lib/server/utils/money';
@@ -108,7 +109,7 @@ async function evaluateCandidateImpl(candidateId: string): Promise<CandidateEval
   const candidate = await db.candidateListing.findUnique({ where: { id: candidateId } });
 
   if (!candidate) {
-    throw new Error(`Candidate not found: ${candidateId}`);
+    throw new NotFoundError(`Candidate not found: ${candidateId}`);
   }
 
   const plans = await db.tradeupPlan.findMany({
@@ -181,7 +182,7 @@ async function evaluateInventoryItemImpl(inventoryItemId: string): Promise<Inven
   const item = await db.inventoryItem.findUnique({ where: { id: inventoryItemId } });
 
   if (!item) {
-    throw new Error(`Inventory item not found: ${inventoryItemId}`);
+    throw new NotFoundError(`Inventory item not found: ${inventoryItemId}`);
   }
 
   const plans = await db.tradeupPlan.findMany({
@@ -226,7 +227,7 @@ async function evaluateBasketImpl(basketId: string): Promise<BasketEvaluation> {
   });
 
   if (!basket) {
-    throw new Error(`Basket not found: ${basketId}`);
+    throw new NotFoundError(`Basket not found: ${basketId}`);
   }
 
   const inventoryItems = basket.items.map((item) => item.inventoryItem);
