@@ -10,6 +10,7 @@ import type {
   createInventoryItemSchema,
   updateInventoryItemSchema,
   convertCandidateSchema,
+  eligibleInventoryFilterSchema,
   inventoryFilterSchema,
 } from '$lib/schemas/inventory';
 import type {
@@ -44,6 +45,7 @@ export type CreateInventoryItemInput = z.infer<typeof createInventoryItemSchema>
 export type UpdateInventoryItemInput = z.infer<typeof updateInventoryItemSchema>;
 export type ConvertCandidateInput = z.infer<typeof convertCandidateSchema>;
 export type InventoryFilter = z.infer<typeof inventoryFilterSchema>;
+export type EligibleInventoryFilter = z.infer<typeof eligibleInventoryFilterSchema>;
 
 // -- Plan --
 export type CreatePlanInput = z.infer<typeof createPlanSchema>;

@@ -140,7 +140,7 @@ What does not exist yet:
 
 - [ ] Workstream A: ECharts install and dashboard chart surfaces.
 - [ ] Workstream B: CSV export helpers.
-- [ ] Workstream C: Plan-aware inventory eligibility endpoint.
+- [x] Workstream C: Plan-aware inventory eligibility endpoint.
 - [x] Workstream D: Typed service errors migration.
 - [x] Workstream E: Automated test coverage with `bun test`.
 
@@ -265,6 +265,19 @@ verified API, then deepen recommendation quality.
 ---
 
 ## Change Log
+
+### 2026-04-23 (Phase 6 workstream C plan-aware inventory eligibility)
+
+- Added `GET /api/inventory/eligible?planId=...` with pagination and sort
+  query support.
+- Added `eligibleInventoryFilterSchema` and
+  `inventoryService.listEligibleInventoryForPlan`.
+- Updated the basket builder to call the plan-aware endpoint and removed the
+  Phase 4 client-side eligibility workaround.
+- New endpoints: `GET /api/inventory/eligible`. New dependencies: none. New
+  files: `src/routes/api/inventory/eligible/+server.ts`.
+- Verified `bun run check`, `bun run build`, `bun test tests/`,
+  `bun prisma migrate deploy`, and `bun prisma db seed`.
 
 ### 2026-04-23 (Phase 6 workstream E bun test starter suite)
 

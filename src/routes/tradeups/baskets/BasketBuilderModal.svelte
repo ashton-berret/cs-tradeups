@@ -4,7 +4,7 @@
 	import Modal from '$lib/components/Modal.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import Percent from '$lib/components/Percent.svelte';
-	import { eligibleInventoryForPlan, emptySlots } from '$lib/client/viewModels/baskets';
+	import { emptySlots } from '$lib/client/viewModels/baskets';
 	import type { BasketDTO, InventoryItemDTO, PlanDTO } from '$lib/types/services';
 	import type { PaginatedResponse } from '$lib/types/domain';
 	import BasketSlotGrid from './BasketSlotGrid.svelte';
@@ -24,7 +24,7 @@
 	let selectedInventoryIds = $state(new Set<string>());
 
 	const currentBasket = $derived(freshBasket ?? basket);
-	const eligibleInventory = $derived(eligibleInventoryForPlan(inventory, plan));
+	const eligibleInventory = $derived(inventory);
 	const selectedInventory = $derived(
 		eligibleInventory.filter((item) => selectedInventoryIds.has(item.id))
 	);
@@ -39,22 +39,20 @@
 
 	$effect(() => {
 		if (open && basket) {
-			void loadBuilderData(basket.id);
+			void loadBuilderData();
 		}
 	});
 
-	async function loadBuilderData(id: string) {
+	async function loadBuilderData() {
+		if (!basket) return;
 		loading = true;
 		loadError = null;
 		try {
-			const [basketResult, inventoryResult] = await Promise.all([
-				apiFetch<BasketDTO>(fetch, `/api/tradeups/baskets/${id}`),
-				apiFetch<PaginatedResponse<InventoryItemDTO>>(
-					fetch,
-					'/api/inventory?availableForBasket=true&limit=100'
-				)
-			]);
-			freshBasket = basketResult;
+			const inventoryResult = await apiFetch<PaginatedResponse<InventoryItemDTO>>(
+				fetch,
+				`/api/inventory/eligible?planId=${encodeURIComponent(basket.planId)}&limit=100`
+			);
+			freshBasket = basket;
 			inventory = inventoryResult.data;
 			selectedInventoryIds = new Set();
 		} catch (err) {

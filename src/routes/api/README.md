@@ -104,6 +104,7 @@ don't check it into the repo.
 ### Inventory
 
 - `GET  /api/inventory`
+- `GET  /api/inventory/eligible`
 - `POST /api/inventory`
 - `GET    /api/inventory/[id]`
 - `PATCH  /api/inventory/[id]`

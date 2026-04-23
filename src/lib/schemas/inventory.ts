@@ -59,3 +59,13 @@ export const inventoryFilterSchema = z
     sortDir: sortDirectionSchema,
   })
   .merge(paginationSchema);
+
+export const eligibleInventoryFilterSchema = z
+  .object({
+    planId: z.string().min(1),
+    sortBy: z
+      .enum(['createdAt', 'purchasePrice', 'floatValue', 'currentEstValue'])
+      .default('createdAt'),
+    sortDir: sortDirectionSchema,
+  })
+  .merge(paginationSchema);

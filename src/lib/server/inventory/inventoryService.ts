@@ -19,6 +19,7 @@ import type { InventoryItem, Prisma } from '@prisma/client';
 import type {
   ConvertCandidateInput,
   CreateInventoryItemInput,
+  EligibleInventoryFilter,
   InventoryFilter,
   UpdateInventoryItemInput,
   PaginatedResponse,
@@ -28,6 +29,7 @@ import type { InventoryStatus, ItemExterior, ItemRarity } from '$lib/types/enums
 import { db } from '$lib/server/db/client';
 import { ConflictError, NotFoundError } from '$lib/server/http/errors';
 import { toDecimal, toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
+import { isWithinFloatRange } from '$lib/server/utils/float';
 import { markBought } from '$lib/server/candidates/candidateService';
 
 // ---------------------------------------------------------------------------
@@ -62,6 +64,12 @@ export function listAvailableForBasket(
   opts?: { respectRuleCollections?: boolean },
 ): Promise<InventoryItemDTO[]> {
   return listAvailableForBasketImpl(planId, opts);
+}
+
+export function listEligibleInventoryForPlan(
+  filter: EligibleInventoryFilter,
+): Promise<PaginatedResponse<InventoryItemDTO>> {
+  return listEligibleInventoryForPlanImpl(filter);
 }
 
 // ---------------------------------------------------------------------------
@@ -225,6 +233,40 @@ async function listAvailableForBasketImpl(
   return rows.map(toInventoryItemDTO);
 }
 
+async function listEligibleInventoryForPlanImpl(
+  filter: EligibleInventoryFilter,
+): Promise<PaginatedResponse<InventoryItemDTO>> {
+  const plan = await db.tradeupPlan.findUnique({
+    where: { id: filter.planId },
+    include: { rules: true },
+  });
+
+  if (!plan) {
+    throw new NotFoundError(`Plan not found: ${filter.planId}`);
+  }
+
+  const rows = await db.inventoryItem.findMany({
+    where: {
+      status: 'HELD',
+      rarity: plan.inputRarity,
+    },
+  });
+  const eligibleRows = rows
+    .filter((item) => inventoryMatchesPlanRules(item, plan.rules))
+    .sort(compareInventoryRows(filter.sortBy, filter.sortDir));
+  const total = eligibleRows.length;
+  const skip = (filter.page - 1) * filter.limit;
+  const pageRows = eligibleRows.slice(skip, skip + filter.limit);
+
+  return {
+    data: pageRows.map(toInventoryItemDTO),
+    total,
+    page: filter.page,
+    limit: filter.limit,
+    totalPages: Math.ceil(total / filter.limit),
+  };
+}
+
 function createInventoryItemImpl(input: CreateInventoryItemInput): Promise<InventoryItemDTO> {
   return db.inventoryItem
     .create({
@@ -295,5 +337,88 @@ function validateStatusTransition(current: InventoryStatus, next: InventoryStatu
 
   if (current === 'SOLD' && next !== 'ARCHIVED') {
     throw new ConflictError('SOLD inventory can only transition to ARCHIVED');
+  }
+}
+
+type InventorySortKey = EligibleInventoryFilter['sortBy'];
+type SortDir = EligibleInventoryFilter['sortDir'];
+
+function inventoryMatchesPlanRules(
+  item: InventoryItem,
+  rules: Array<{
+    collection: string | null;
+    rarity: string | null;
+    exterior: string | null;
+    minFloat: number | null;
+    maxFloat: number | null;
+  }>,
+): boolean {
+  if (rules.length === 0) {
+    return true;
+  }
+
+  return rules.some((rule) => {
+    if (rule.rarity && item.rarity !== rule.rarity) {
+      return false;
+    }
+
+    if (rule.collection && item.collection !== rule.collection) {
+      return false;
+    }
+
+    if (rule.exterior && item.exterior !== rule.exterior) {
+      return false;
+    }
+
+    if ((rule.minFloat != null || rule.maxFloat != null) && item.floatValue == null) {
+      return false;
+    }
+
+    return isWithinFloatRange(item.floatValue ?? Number.NaN, rule.minFloat, rule.maxFloat);
+  });
+}
+
+function compareInventoryRows(sortBy: InventorySortKey, sortDir: SortDir) {
+  const direction = sortDir === 'asc' ? 1 : -1;
+
+  return (a: InventoryItem, b: InventoryItem) => {
+    const aValue = sortableInventoryValue(a, sortBy);
+    const bValue = sortableInventoryValue(b, sortBy);
+
+    if (aValue == null && bValue == null) {
+      return a.id.localeCompare(b.id);
+    }
+
+    if (aValue == null) {
+      return 1;
+    }
+
+    if (bValue == null) {
+      return -1;
+    }
+
+    if (aValue < bValue) {
+      return -1 * direction;
+    }
+
+    if (aValue > bValue) {
+      return 1 * direction;
+    }
+
+    return a.id.localeCompare(b.id);
+  };
+}
+
+function sortableInventoryValue(item: InventoryItem, sortBy: InventorySortKey): number | null {
+  switch (sortBy) {
+    case 'purchasePrice':
+      return toNumber(item.purchasePrice) ?? 0;
+    case 'floatValue':
+      return item.floatValue;
+    case 'currentEstValue':
+      return toNumber(item.currentEstValue);
+    case 'createdAt':
+    default:
+      return item.createdAt.getTime();
   }
 }
