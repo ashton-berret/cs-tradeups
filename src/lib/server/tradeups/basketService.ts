@@ -30,6 +30,7 @@ import type {
 import type { BasketDTO } from '$lib/types/services';
 import type { TradeupBasketStatus } from '$lib/types/enums';
 import { db } from '$lib/server/db/client';
+import { ConflictError, NotFoundError } from '$lib/server/http/errors';
 import { toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
 import { averageFloat } from '$lib/server/utils/float';
 import { percentChange, roundMoney, sumMoney } from '$lib/server/utils/money';
@@ -277,7 +278,7 @@ async function createBasketImpl(input: CreateBasketInput): Promise<BasketDTO> {
 
 async function updateBasketImpl(id: string, input: UpdateBasketInput): Promise<BasketDTO> {
   if (input.status === 'EXECUTED') {
-    throw new Error('EXECUTED is only set by executionService.createExecution');
+    throw new ConflictError('EXECUTED is only set by executionService.createExecution');
   }
 
   return db.$transaction(async (tx) => {
@@ -287,7 +288,7 @@ async function updateBasketImpl(id: string, input: UpdateBasketInput): Promise<B
     });
 
     if (!current) {
-      throw new Error(`Basket not found: ${id}`);
+      throw new NotFoundError(`Basket not found: ${id}`);
     }
 
     validateBasketStatusTransition(current.status as TradeupBasketStatus, input.status, current.items.length);
@@ -318,11 +319,11 @@ async function deleteBasketImpl(id: string): Promise<void> {
   const basket = await db.tradeupBasket.findUnique({ where: { id } });
 
   if (!basket) {
-    throw new Error(`Basket not found: ${id}`);
+    throw new NotFoundError(`Basket not found: ${id}`);
   }
 
   if (!['BUILDING', 'CANCELLED'].includes(basket.status)) {
-    throw new Error('Only BUILDING or CANCELLED baskets can be deleted');
+    throw new ConflictError('Only BUILDING or CANCELLED baskets can be deleted');
   }
 
   await db.tradeupBasket.delete({ where: { id } });
@@ -336,33 +337,33 @@ async function addItemImpl(basketId: string, input: AddBasketItemInput): Promise
     });
 
     if (!basket) {
-      throw new Error(`Basket not found: ${basketId}`);
+      throw new NotFoundError(`Basket not found: ${basketId}`);
     }
 
     if (!['BUILDING', 'READY'].includes(basket.status)) {
-      throw new Error('Items can only be added to BUILDING or READY baskets');
+      throw new ConflictError('Items can only be added to BUILDING or READY baskets');
     }
 
     if (basket.items.length >= 10) {
-      throw new Error('Basket already has 10 items');
+      throw new ConflictError('Basket already has 10 items');
     }
 
     if (basket.items.some((item) => item.slotIndex === input.slotIndex)) {
-      throw new Error(`Basket slot ${input.slotIndex} is already occupied`);
+      throw new ConflictError(`Basket slot ${input.slotIndex} is already occupied`);
     }
 
     const inventoryItem = await tx.inventoryItem.findUnique({ where: { id: input.inventoryItemId } });
 
     if (!inventoryItem) {
-      throw new Error(`Inventory item not found: ${input.inventoryItemId}`);
+      throw new NotFoundError(`Inventory item not found: ${input.inventoryItemId}`);
     }
 
     if (inventoryItem.status !== 'HELD') {
-      throw new Error('Only HELD inventory can be added to a basket');
+      throw new ConflictError('Only HELD inventory can be added to a basket');
     }
 
     if (inventoryItem.rarity !== basket.plan.inputRarity) {
-      throw new Error('Inventory rarity does not match the basket plan input rarity');
+      throw new ConflictError('Inventory rarity does not match the basket plan input rarity');
     }
 
     await tx.inventoryItem.update({
@@ -390,11 +391,11 @@ async function removeItemImpl(basketId: string, inventoryItemId: string): Promis
     const basket = await tx.tradeupBasket.findUnique({ where: { id: basketId } });
 
     if (!basket) {
-      throw new Error(`Basket not found: ${basketId}`);
+      throw new NotFoundError(`Basket not found: ${basketId}`);
     }
 
     if (!['BUILDING', 'READY'].includes(basket.status)) {
-      throw new Error('Items can only be removed from BUILDING or READY baskets');
+      throw new ConflictError('Items can only be removed from BUILDING or READY baskets');
     }
 
     await tx.tradeupBasketItem.delete({
@@ -418,7 +419,7 @@ async function bulkAddItemsImpl(
   items: Array<AddBasketItemInput>,
 ): Promise<BasketDTO> {
   if (items.length === 0) {
-    throw new Error('At least one item is required');
+    throw new ConflictError('At least one item is required');
   }
 
   // Reject duplicate inventoryItemIds or duplicate slot indices in the batch.
@@ -426,12 +427,12 @@ async function bulkAddItemsImpl(
   const requestedSlots = new Set<number>();
   for (const item of items) {
     if (inventoryIds.has(item.inventoryItemId)) {
-      throw new Error(`Duplicate inventory item in batch: ${item.inventoryItemId}`);
+      throw new ConflictError(`Duplicate inventory item in batch: ${item.inventoryItemId}`);
     }
     inventoryIds.add(item.inventoryItemId);
 
     if (requestedSlots.has(item.slotIndex)) {
-      throw new Error(`Duplicate slot index in batch: ${item.slotIndex}`);
+      throw new ConflictError(`Duplicate slot index in batch: ${item.slotIndex}`);
     }
     requestedSlots.add(item.slotIndex);
   }
@@ -443,22 +444,22 @@ async function bulkAddItemsImpl(
     });
 
     if (!basket) {
-      throw new Error(`Basket not found: ${basketId}`);
+      throw new NotFoundError(`Basket not found: ${basketId}`);
     }
 
     if (!['BUILDING', 'READY'].includes(basket.status)) {
-      throw new Error('Items can only be added to BUILDING or READY baskets');
+      throw new ConflictError('Items can only be added to BUILDING or READY baskets');
     }
 
     const occupiedSlots = new Set(basket.items.map((item) => item.slotIndex));
 
     if (basket.items.length + items.length > 10) {
-      throw new Error('Batch would exceed 10-slot basket capacity');
+      throw new ConflictError('Batch would exceed 10-slot basket capacity');
     }
 
     for (const item of items) {
       if (occupiedSlots.has(item.slotIndex)) {
-        throw new Error(`Basket slot ${item.slotIndex} is already occupied`);
+        throw new ConflictError(`Basket slot ${item.slotIndex} is already occupied`);
       }
     }
 
@@ -467,16 +468,16 @@ async function bulkAddItemsImpl(
     });
 
     if (inventoryItems.length !== items.length) {
-      throw new Error('One or more inventory items were not found');
+      throw new NotFoundError('One or more inventory items were not found');
     }
 
     for (const inventoryItem of inventoryItems) {
       if (inventoryItem.status !== 'HELD') {
-        throw new Error(`Inventory item ${inventoryItem.id} is not HELD`);
+        throw new ConflictError(`Inventory item ${inventoryItem.id} is not HELD`);
       }
 
       if (inventoryItem.rarity !== basket.plan.inputRarity) {
-        throw new Error(
+        throw new ConflictError(
           `Inventory item ${inventoryItem.id} rarity does not match plan inputRarity`,
         );
       }
@@ -511,27 +512,27 @@ async function reorderItemsImpl(basketId: string, slotMap: Record<string, number
     const basket = await tx.tradeupBasket.findUnique({ where: { id: basketId }, include: { items: true } });
 
     if (!basket) {
-      throw new Error(`Basket not found: ${basketId}`);
+      throw new NotFoundError(`Basket not found: ${basketId}`);
     }
 
     if (!['BUILDING', 'READY'].includes(basket.status)) {
-      throw new Error('Items can only be reordered in BUILDING or READY baskets');
+      throw new ConflictError('Items can only be reordered in BUILDING or READY baskets');
     }
 
     const currentIds = basket.items.map((item) => item.inventoryItemId).sort();
     const providedIds = Object.keys(slotMap).sort();
     if (currentIds.join('|') !== providedIds.join('|')) {
-      throw new Error('slotMap must include exactly the current basket items');
+      throw new ConflictError('slotMap must include exactly the current basket items');
     }
 
     const slots = Object.values(slotMap);
     const expectedSlots = Array.from({ length: slots.length }, (_, index) => index);
     if (slots.some((slot) => !Number.isInteger(slot) || slot < 0 || slot > 9)) {
-      throw new Error('slotMap contains an invalid slot index');
+      throw new ConflictError('slotMap contains an invalid slot index');
     }
 
     if (slots.slice().sort((a, b) => a - b).join('|') !== expectedSlots.join('|')) {
-      throw new Error('slotMap must be a permutation of 0..N-1');
+      throw new ConflictError('slotMap must be a permutation of 0..N-1');
     }
 
     for (const item of basket.items) {
@@ -564,7 +565,7 @@ async function markReadyImpl(basketId: string): Promise<BasketDTO> {
   const evaluation = await evaluateBasket(basketId);
 
   if (evaluation.readinessIssues.length > 0) {
-    throw new Error(`Basket is not ready: ${evaluation.readinessIssues.map((issue) => issue.code).join(', ')}`);
+    throw new ConflictError(`Basket is not ready: ${evaluation.readinessIssues.map((issue) => issue.code).join(', ')}`);
   }
 
   return db.$transaction(async (tx) => {
@@ -581,11 +582,11 @@ async function cancelImpl(basketId: string): Promise<BasketDTO> {
     });
 
     if (!basket) {
-      throw new Error(`Basket not found: ${basketId}`);
+      throw new NotFoundError(`Basket not found: ${basketId}`);
     }
 
     if (['CANCELLED', 'EXECUTED'].includes(basket.status)) {
-      throw new Error('Basket is terminal and cannot be cancelled');
+      throw new ConflictError('Basket is terminal and cannot be cancelled');
     }
 
     for (const item of basket.items) {
@@ -610,7 +611,7 @@ async function recomputeMetricsInTx(tx: TxClient, basketId: string): Promise<Bas
   });
 
   if (!basket) {
-    throw new Error(`Basket not found: ${basketId}`);
+    throw new NotFoundError(`Basket not found: ${basketId}`);
   }
 
   const inventoryItems = basket.items.map((item) => item.inventoryItem);
@@ -646,19 +647,19 @@ function validateBasketStatusTransition(
   }
 
   if (current === 'CANCELLED' || current === 'EXECUTED') {
-    throw new Error('Terminal baskets cannot change status');
+    throw new ConflictError('Terminal baskets cannot change status');
   }
 
   if (next === 'READY' && itemCount !== 10) {
-    throw new Error('READY requires exactly 10 items');
+    throw new ConflictError('READY requires exactly 10 items');
   }
 
   if (current === 'BUILDING' && !['READY', 'CANCELLED'].includes(next)) {
-    throw new Error(`Invalid basket transition: ${current} -> ${next}`);
+    throw new ConflictError(`Invalid basket transition: ${current} -> ${next}`);
   }
 
   if (current === 'READY' && !['BUILDING', 'CANCELLED'].includes(next)) {
-    throw new Error(`Invalid basket transition: ${current} -> ${next}`);
+    throw new ConflictError(`Invalid basket transition: ${current} -> ${next}`);
   }
 }
 
