@@ -52,13 +52,20 @@ export interface CandidateDTO {
   matchedPlanId: string | null;
 
   timesSeen: number;
+  mergeCount: number;
   lastSeenAt: Date;
   staleness: StalenessLevel; // derived, not persisted
+
+  evaluationRefreshedAt: Date | null;
+  evaluationAge: EvaluationAgeLevel; // derived, not persisted
+
+  pinnedByUser: boolean;
 
   notes: string | null;
 }
 
 export type StalenessLevel = 'FRESH' | 'RECENT' | 'STALE' | 'COLD';
+export type EvaluationAgeLevel = 'FRESH' | 'AGING' | 'STALE';
 
 // ---------------------------------------------------------------------------
 // Inventory
@@ -136,6 +143,7 @@ export interface PlanDTO {
   minProfitThreshold: number | null;
   minProfitPctThreshold: number | null;
   minLiquidityScore: number | null;
+  minCompositeScore: number | null;
 
   notes: string | null;
 

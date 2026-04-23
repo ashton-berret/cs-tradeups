@@ -50,6 +50,7 @@ export const createPlanSchema = z
     minProfitThreshold: moneySchema.optional(),
     minProfitPctThreshold: z.number().optional(),
     minLiquidityScore: z.number().min(0).max(1).optional(),
+    minCompositeScore: z.number().min(0).max(1).optional(),
     notes: z.string().optional(),
     rules: z.array(planRuleSchema).default([]),
     outcomeItems: z.array(outcomeItemSchema).default([]),
@@ -67,6 +68,7 @@ export const updatePlanSchema = z.object({
   minProfitThreshold: moneySchema.optional(),
   minProfitPctThreshold: z.number().optional(),
   minLiquidityScore: z.number().min(0).max(1).optional(),
+  minCompositeScore: z.number().min(0).max(1).optional(),
   notes: z.string().optional(),
 });
 

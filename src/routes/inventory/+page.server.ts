@@ -95,6 +95,57 @@ export const actions: Actions = {
 		} catch (err) {
 			return actionError(err, values);
 		}
+	},
+
+	bulkArchive: async ({ request, fetch }) => {
+		const form = await request.formData();
+		const values = valuesFrom(form);
+		const ids = form.getAll('ids').filter((value): value is string => typeof value === 'string');
+		if (ids.length === 0) return fail(400, { error: 'Select at least one inventory item.', values });
+
+		const errors: string[] = [];
+		for (const id of ids) {
+			try {
+				await apiFetch(fetch, `/api/inventory/${id}`, {
+					method: 'PATCH',
+					body: JSON.stringify({ status: 'ARCHIVED' })
+				});
+			} catch (err) {
+				errors.push(err instanceof ApiError ? `${id}: ${err.message}` : String(err));
+			}
+		}
+		if (errors.length > 0) {
+			return fail(409, {
+				error: `Archived ${ids.length - errors.length} of ${ids.length}; ${errors.length} failed.`,
+				issues: errors,
+				values
+			});
+		}
+		return { success: `Archived ${ids.length} inventory item${ids.length === 1 ? '' : 's'}.` };
+	},
+
+	bulkDelete: async ({ request, fetch }) => {
+		const form = await request.formData();
+		const values = valuesFrom(form);
+		const ids = form.getAll('ids').filter((value): value is string => typeof value === 'string');
+		if (ids.length === 0) return fail(400, { error: 'Select at least one inventory item.', values });
+
+		const errors: string[] = [];
+		for (const id of ids) {
+			try {
+				await apiFetch(fetch, `/api/inventory/${id}`, { method: 'DELETE' });
+			} catch (err) {
+				errors.push(err instanceof ApiError ? `${id}: ${err.message}` : String(err));
+			}
+		}
+		if (errors.length > 0) {
+			return fail(409, {
+				error: `Deleted ${ids.length - errors.length} of ${ids.length}; ${errors.length} failed.`,
+				issues: errors,
+				values
+			});
+		}
+		return { success: `Deleted ${ids.length} inventory item${ids.length === 1 ? '' : 's'}.` };
 	}
 };
 

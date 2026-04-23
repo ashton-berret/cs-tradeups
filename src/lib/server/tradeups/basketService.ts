@@ -115,6 +115,21 @@ export function removeItem(
 }
 
 /**
+ * Add multiple inventory items to a basket in a single transaction.
+ * Each item gets its slot either from the caller-provided slotIndex or from
+ * the first open slot (in ascending order). The entire batch rolls back on
+ * the first invariant failure (slot collision, rarity mismatch, etc.).
+ *
+ * Metrics are recomputed once at the end.
+ */
+export function bulkAddItems(
+  basketId: string,
+  items: Array<AddBasketItemInput>,
+): Promise<BasketDTO> {
+  return bulkAddItemsImpl(basketId, items);
+}
+
+/**
  * Reorder items within a basket (updates slotIndex only, no membership
  * change). Accepts a full {inventoryItemId -> slotIndex} map; enforces that
  * the resulting set is a permutation of 0..N-1.
@@ -389,6 +404,99 @@ async function removeItemImpl(basketId: string, inventoryItemId: string): Promis
       where: { id: inventoryItemId },
       data: { status: 'HELD' },
     });
+    await tx.tradeupBasket.update({
+      where: { id: basketId },
+      data: { status: 'BUILDING' },
+    });
+
+    return recomputeMetricsInTx(tx, basketId);
+  });
+}
+
+async function bulkAddItemsImpl(
+  basketId: string,
+  items: Array<AddBasketItemInput>,
+): Promise<BasketDTO> {
+  if (items.length === 0) {
+    throw new Error('At least one item is required');
+  }
+
+  // Reject duplicate inventoryItemIds or duplicate slot indices in the batch.
+  const inventoryIds = new Set<string>();
+  const requestedSlots = new Set<number>();
+  for (const item of items) {
+    if (inventoryIds.has(item.inventoryItemId)) {
+      throw new Error(`Duplicate inventory item in batch: ${item.inventoryItemId}`);
+    }
+    inventoryIds.add(item.inventoryItemId);
+
+    if (requestedSlots.has(item.slotIndex)) {
+      throw new Error(`Duplicate slot index in batch: ${item.slotIndex}`);
+    }
+    requestedSlots.add(item.slotIndex);
+  }
+
+  return db.$transaction(async (tx) => {
+    const basket = await tx.tradeupBasket.findUnique({
+      where: { id: basketId },
+      include: { plan: true, items: true },
+    });
+
+    if (!basket) {
+      throw new Error(`Basket not found: ${basketId}`);
+    }
+
+    if (!['BUILDING', 'READY'].includes(basket.status)) {
+      throw new Error('Items can only be added to BUILDING or READY baskets');
+    }
+
+    const occupiedSlots = new Set(basket.items.map((item) => item.slotIndex));
+
+    if (basket.items.length + items.length > 10) {
+      throw new Error('Batch would exceed 10-slot basket capacity');
+    }
+
+    for (const item of items) {
+      if (occupiedSlots.has(item.slotIndex)) {
+        throw new Error(`Basket slot ${item.slotIndex} is already occupied`);
+      }
+    }
+
+    const inventoryItems = await tx.inventoryItem.findMany({
+      where: { id: { in: [...inventoryIds] } },
+    });
+
+    if (inventoryItems.length !== items.length) {
+      throw new Error('One or more inventory items were not found');
+    }
+
+    for (const inventoryItem of inventoryItems) {
+      if (inventoryItem.status !== 'HELD') {
+        throw new Error(`Inventory item ${inventoryItem.id} is not HELD`);
+      }
+
+      if (inventoryItem.rarity !== basket.plan.inputRarity) {
+        throw new Error(
+          `Inventory item ${inventoryItem.id} rarity does not match plan inputRarity`,
+        );
+      }
+    }
+
+    await tx.inventoryItem.updateMany({
+      where: { id: { in: [...inventoryIds] } },
+      data: { status: 'RESERVED_FOR_BASKET' },
+    });
+
+    for (const item of items) {
+      await tx.tradeupBasketItem.create({
+        data: {
+          basketId,
+          inventoryItemId: item.inventoryItemId,
+          slotIndex: item.slotIndex,
+        },
+      });
+    }
+
     await tx.tradeupBasket.update({
       where: { id: basketId },
       data: { status: 'BUILDING' },

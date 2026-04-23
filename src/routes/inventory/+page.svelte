@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import Button from '$lib/components/Button.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import DataTable from '$lib/components/DataTable.svelte';
@@ -22,9 +23,32 @@
 	let editOpen = $state(false);
 	let deleteOpen = $state(false);
 	let selected = $state<InventoryRowVM | null>(null);
+	let checkedIds = $state(new Set<string>());
 
 	const rows = $derived(toInventoryRows(data.page.data));
 	const hasFilters = $derived(hasInventoryFilters(data.filter));
+	const selectedIds = $derived(rows.filter((row) => checkedIds.has(row.id)).map((row) => row.id));
+	const allVisibleSelected = $derived(rows.length > 0 && rows.every((row) => checkedIds.has(row.id)));
+
+	function toggleRow(id: string, checked: boolean) {
+		const next = new Set(checkedIds);
+		if (checked) next.add(id);
+		else next.delete(id);
+		checkedIds = next;
+	}
+
+	function toggleAllVisible(checked: boolean) {
+		const next = new Set(checkedIds);
+		for (const row of rows) {
+			if (checked) next.add(row.id);
+			else next.delete(row.id);
+		}
+		checkedIds = next;
+	}
+
+	function clearSelection() {
+		checkedIds = new Set();
+	}
 
 	function hrefForPage(page: number) {
 		const params = new URLSearchParams(window.location.search);
@@ -86,17 +110,58 @@
 		<Input name="search" placeholder="Search" value={data.filter.search ?? ''} class="w-56" />
 	</FilterBar>
 
+	<div class="flex items-center gap-3">
+		<label class="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+			<input
+				type="checkbox"
+				checked={allVisibleSelected}
+				onchange={(event) => toggleAllVisible((event.target as HTMLInputElement).checked)}
+			/>
+			Select all on this page
+		</label>
+		{#if selectedIds.length > 0}
+			<span class="text-xs text-[var(--color-text-secondary)]">{selectedIds.length} selected</span>
+			<button type="button" class="text-xs underline text-[var(--color-text-secondary)]" onclick={clearSelection}>clear</button>
+		{/if}
+	</div>
+
 	<DataTable
-		columns={['Item', 'Status', 'Cost', 'Est. value', 'Delta', 'Float', 'Actions']}
+		columns={['', 'Item', 'Status', 'Cost', 'Est. value', 'Delta', 'Float', 'Actions']}
 		rows={rows}
 		emptyTitle="No inventory items match these filters."
 		emptyDescription="Bought candidates and manual purchases appear here."
 		clearHref={hasFilters ? '/inventory' : null}
 	>
 		{#snippet row(row)}
-			<InventoryRow {row} onedit={openEdit} ondelete={openDelete} />
+			<InventoryRow
+				{row}
+				checked={checkedIds.has(row.id)}
+				onselect={toggleRow}
+				onedit={openEdit}
+				ondelete={openDelete}
+			/>
 		{/snippet}
 	</DataTable>
+
+	{#if selectedIds.length > 0}
+		<div class="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-3 shadow-lg">
+			<span class="text-sm text-[var(--color-text-secondary)]">{selectedIds.length} selected</span>
+			<div class="flex flex-wrap gap-2">
+				<form method="POST" action="?/bulkArchive" use:enhance>
+					{#each selectedIds as id}
+						<input type="hidden" name="ids" value={id} />
+					{/each}
+					<Button type="submit" size="sm" variant="secondary">Archive</Button>
+				</form>
+				<form method="POST" action="?/bulkDelete" use:enhance>
+					{#each selectedIds as id}
+						<input type="hidden" name="ids" value={id} />
+					{/each}
+					<Button type="submit" size="sm" variant="danger">Delete</Button>
+				</form>
+			</div>
+		</div>
+	{/if}
 
 	<PaginationControl
 		page={data.page.page}

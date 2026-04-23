@@ -126,10 +126,15 @@ What does not exist yet:
 
 ### Phase 5: Scoring And Workflow Refinement
 
-- [ ] Duplicate suppression refinement.
-- [ ] Basket-aware ranking.
-- [ ] Recommendation threshold tuning.
-- [ ] Bulk actions and workflow polish.
+- [x] Duplicate suppression refinement.
+- [x] Basket-aware ranking.
+- [x] Recommendation threshold tuning.
+- [x] Bulk actions and workflow polish.
+  - Keyboard shortcuts (`p`/`w`/`g`/`b`/`x`/`j`/`k`) and
+    `KeyboardHintBar.svelte` from `docs/PHASE5_PLAN.md` §3.E.2 were
+    deferred. Mouse-driven bulk selection and actions ship; the
+    shortcut layer is a follow-up if the operator finds the
+    selection ergonomics lacking.
 
 ### Phase 6: Quality And Decision Support
 
@@ -329,6 +334,19 @@ verified API, then deepen recommendation quality.
 - Verification: final `bun run check` passes with 0 errors and 0 warnings;
   final `bun run build` remains blocked in this sandbox by the documented
   Windows `spawn EPERM` native-binding issue.
+
+### 2026-04-22 (Phase 5 continuation)
+
+- Resumed partial Phase 5 work without reverting prior edits.
+- Completed the unfinished inventory bulk-selection row wiring.
+- Added basket builder multi-select and bulk-add form using the existing
+  `/api/tradeups/baskets/[id]/items/bulk` endpoint.
+- Verified `bun run check` passes with 0 errors and 0 warnings.
+- Verified `bun prisma migrate deploy` reports no pending migrations and
+  `bun prisma db seed` completes successfully once Prisma engine access is
+  allowed.
+- Added `docs/INTEGRATION_RESEARCH.md` with CS2 Trader bridge notes and
+  external trade-up source recommendations.
 
 ### 2026-04-22 (Documentation and Phase 3 verification)
 

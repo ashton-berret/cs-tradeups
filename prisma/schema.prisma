@@ -56,7 +56,14 @@ model CandidateListing {
 
   // Duplicate tracking
   timesSeen  Int      @default(1)
+  mergeCount Int      @default(0)
   lastSeenAt DateTime @default(now())
+
+  // Re-evaluation freshness
+  evaluationRefreshedAt DateTime?
+
+  // User pin — when true, evaluateCandidate must not overwrite status.
+  pinnedByUser Boolean @default(false)
 
   // User input
   notes String?
@@ -126,6 +133,7 @@ model TradeupPlan {
   minProfitThreshold    Decimal?
   minProfitPctThreshold Float?
   minLiquidityScore     Float?
+  minCompositeScore     Float?
 
   notes String?
 

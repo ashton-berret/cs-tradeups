@@ -37,6 +37,11 @@ export function nextEmptySlot(basket: BasketDTO): number | null {
 	return null;
 }
 
+export function emptySlots(basket: BasketDTO): number[] {
+	const used = new Set(basket.items.map((item) => item.slotIndex));
+	return Array.from({ length: 10 }, (_, slot) => slot).filter((slot) => !used.has(slot));
+}
+
 export function eligibleInventoryForPlan(items: InventoryItemDTO[], plan: PlanDTO | null): InventoryItemDTO[] {
 	if (!plan) return items;
 	return items.filter((item) => {

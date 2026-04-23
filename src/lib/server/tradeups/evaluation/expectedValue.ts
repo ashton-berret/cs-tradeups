@@ -30,6 +30,7 @@ import type { TradeupOutcomeItem, TradeupPlan } from '@prisma/client';
 import type { BasketEVBreakdown } from '$lib/types/services';
 import { toNumber } from '$lib/server/utils/decimal';
 import { multiplyMoney, roundMoney } from '$lib/server/utils/money';
+import { DEFAULT_MAX_BUY_MARGIN_PCT } from './tuning';
 
 export interface BasketSlotContext {
   inventoryItemId: string;
@@ -157,10 +158,13 @@ export function computeCandidateEV(
  * Derive a max buy price for a candidate from its EV and the plan's
  * thresholds.
  *
- *   maxBuyPrice = (EV - targetProfit) / 1
- * where `targetProfit` prefers plan.minProfitThreshold, and falls back to
- * plan.minProfitPctThreshold applied against EV, and finally a global
- * fallback margin (e.g., 10%).
+ *   maxBuyPrice = EV - targetProfit
+ * where `targetProfit` is (in preference order):
+ *   1. plan.minProfitThreshold (absolute)
+ *   2. plan.minProfitPctThreshold applied against EV
+ *   3. DEFAULT_MAX_BUY_MARGIN_PCT from tuning.ts (null by default — returns
+ *      null so the UI can render "—" with an explanatory tooltip instead of
+ *      silently assuming a margin)
  */
 export function computeMaxBuyPrice(
   candidateEV: number,
@@ -171,9 +175,16 @@ export function computeMaxBuyPrice(
   }
 
   const explicitProfit = toNumber(plan.minProfitThreshold);
-  const targetProfit =
-    explicitProfit ??
-    (plan.minProfitPctThreshold != null ? candidateEV * (plan.minProfitPctThreshold / 100) : candidateEV * 0.1);
+  const pctProfit =
+    plan.minProfitPctThreshold != null ? candidateEV * (plan.minProfitPctThreshold / 100) : null;
+  const fallbackProfit =
+    DEFAULT_MAX_BUY_MARGIN_PCT != null ? candidateEV * DEFAULT_MAX_BUY_MARGIN_PCT : null;
+  const targetProfit = explicitProfit ?? pctProfit ?? fallbackProfit;
+
+  if (targetProfit == null) {
+    return null;
+  }
+
   const maxBuyPrice = candidateEV - targetProfit;
 
   return maxBuyPrice >= 0 ? roundMoney(maxBuyPrice) : null;

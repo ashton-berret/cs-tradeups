@@ -2,35 +2,41 @@
 //
 // Scores are 0..1.
 //
-// Quality score (Phase 2 baseline):
-//   - float-fit inside the matched rule's band (edge floats penalized)
+// Quality score:
+//   - float-fit inside the matched rule's band (two-piece curve from tuning.ts:
+//     flat in the safe core, linear falloff at the edges)
 //   - price headroom: (maxBuyPrice - listPrice) / maxBuyPrice, clamped
 //   - exterior alignment: exact match to the rule's preferred exterior
 //   - isPreferred rule bonus
-// Blended via fixed weights; exact weights are a tunable constant.
+// Blended via tuning.QUALITY_WEIGHTS.
 //
-// Liquidity score (Phase 2 stub):
-//   - returns 0.5 placeholder until market volume data is wired up
-//   - signature is final so downstream code does not change when the real
-//     implementation lands
+// Liquidity score (Phase 5 proxy):
+//   - `computeLiquidityScore` consumes an injected observation count
+//     (distinct candidates seen with the same market hash in the last window)
+//   - observation counts below LIQUIDITY_MIN_OBSERVATIONS return the
+//     cold-start fallback so a thin seed DB doesn't look broken
+//   - saturates at LIQUIDITY_DENSITY_SATURATION → 1.0
 //
 // TODO (tracked in docs/PROGRESS.md):
 //   - per-weapon/per-skin float ranges change the "edge float" penalty
 //     because the effective band for the actual output differs from the
 //     global exterior bands
-//   - liquidity needs real listing-count data, ideally from a daily scrape
+//   - real marketplace-volume signal to replace the density proxy
 
 import type { TradeupPlanRule } from '@prisma/client';
 import type { CandidateLike } from './ruleMatching';
 import { toNumber } from '$lib/server/utils/decimal';
 import { isWithinFloatRange } from '$lib/server/utils/float';
+import {
+  FLOAT_EDGE_MIN,
+  FLOAT_SAFE_CORE_WIDTH,
+  LIQUIDITY_COLD_START,
+  LIQUIDITY_DENSITY_SATURATION,
+  LIQUIDITY_MIN_OBSERVATIONS,
+  QUALITY_WEIGHTS,
+} from './tuning';
 
-export const QUALITY_WEIGHTS = {
-  floatFit: 0.4,
-  priceHeadroom: 0.4,
-  exteriorAlignment: 0.1,
-  preferredRule: 0.1,
-} as const;
+export { QUALITY_WEIGHTS };
 
 /**
  * Compute quality score for a candidate against a specific matched rule.
@@ -80,23 +86,45 @@ export function computeQualityScore(
   );
 }
 
-/**
- * Phase 2 stub returning 0.5. Signature intentionally takes the fields a
- * real implementation will need (name + collection + rarity) so callers do
- * not change when real liquidity data is wired in.
- */
-export function computeLiquidityScore(args: {
-  marketHashName: string;
-  collection: string | null;
-  rarity: string | null;
-}): number {
-  void args;
-  return 0.5;
+export interface LiquiditySignal {
+  /** Count of distinct candidates observed with this market hash in the last window. */
+  observationCount: number;
 }
 
 /**
- * Penalize floats that sit at the edge of a rule band. Returns 0..1.
- * Used inside computeQualityScore but exposed for tests.
+ * Phase 5 density-based liquidity proxy. Caller (evaluationService) passes in
+ * the observation count so bulk re-evaluation can run a single aggregate query
+ * instead of one-per-candidate.
+ *
+ * No signal (`undefined`) returns the cold-start fallback so legacy callers
+ * that don't supply the count keep working.
+ */
+export function computeLiquidityScore(
+  _args: {
+    marketHashName: string;
+    collection: string | null;
+    rarity: string | null;
+  },
+  signal?: LiquiditySignal,
+): number {
+  if (!signal) {
+    return LIQUIDITY_COLD_START;
+  }
+
+  if (signal.observationCount < LIQUIDITY_MIN_OBSERVATIONS) {
+    return LIQUIDITY_COLD_START;
+  }
+
+  return clamp01(signal.observationCount / LIQUIDITY_DENSITY_SATURATION);
+}
+
+/**
+ * Two-piece float-fit curve:
+ *   - flat 1.0 inside the safe-core band (middle FLOAT_SAFE_CORE_WIDTH of the rule)
+ *   - linear falloff from 1.0 to FLOAT_EDGE_MIN at the band edges
+ *   - 0 outside the band
+ *
+ * Scales correctly for any band width. Exposed for tests.
  */
 export function floatFitScore(
   floatValue: number,
@@ -124,9 +152,17 @@ export function floatFitScore(
 
   const midpoint = (min + max) / 2;
   const halfWidth = (max - min) / 2;
-  const edgeDistance = Math.abs(floatValue - midpoint) / halfWidth;
+  const safeCoreHalfWidth = halfWidth * FLOAT_SAFE_CORE_WIDTH;
+  const distanceFromCenter = Math.abs(floatValue - midpoint);
 
-  return clamp01(1 - edgeDistance * 0.5);
+  if (distanceFromCenter <= safeCoreHalfWidth) {
+    return 1;
+  }
+
+  // Linear falloff from 1.0 at safe-core edge to FLOAT_EDGE_MIN at band edge.
+  const edgeBandWidth = halfWidth - safeCoreHalfWidth;
+  const edgeProgress = clamp01((distanceFromCenter - safeCoreHalfWidth) / edgeBandWidth);
+  return clamp01(1 - edgeProgress * (1 - FLOAT_EDGE_MIN));
 }
 
 function clamp01(value: number): number {

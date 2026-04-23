@@ -37,7 +37,8 @@ import {
   type BasketSlotContext,
 } from './expectedValue';
 import { deriveRecommendation } from './recommendation';
-import { computeLiquidityScore, computeQualityScore } from './scoring';
+import { computeLiquidityScore, computeQualityScore, type LiquiditySignal } from './scoring';
+import { LIQUIDITY_DENSITY_WINDOW_MS } from './tuning';
 import { matchCandidateToPlans, pickBestMatch, toCandidateLike } from './ruleMatching';
 
 /**
@@ -125,23 +126,28 @@ async function evaluateCandidateImpl(candidateId: string): Promise<CandidateEval
   const computedMaxBuy = candidateEV != null && plan ? computeMaxBuyPriceBounded(candidateEV, plan, bestMatch) : null;
   const matchedRule = bestMatch?.ruleId ? plan?.rules.find((rule) => rule.id === bestMatch.ruleId) : null;
   const qualityScore = matchedRule ? computeQualityScore(candidateLike, matchedRule) : (bestMatch?.fitScore ?? 0);
-  const liquidityScore = computeLiquidityScore({
-    marketHashName: candidate.marketHashName,
-    collection: candidate.collection,
-    rarity: candidate.rarity,
-  });
+  const liquiditySignal = await loadLiquiditySignal(candidate.marketHashName, candidate.id);
+  const liquidityScore = computeLiquidityScore(
+    {
+      marketHashName: candidate.marketHashName,
+      collection: candidate.collection,
+      rarity: candidate.rarity,
+    },
+    liquiditySignal,
+  );
   const previousStatus = candidate.status as CandidateDecisionStatus;
-  const recommendation =
-    previousStatus === 'BOUGHT' || previousStatus === 'DUPLICATE'
-      ? previousStatus
-      : deriveRecommendation({
-          plan,
-          expectedProfit,
-          expectedProfitPct,
-          qualityScore,
-          liquidityScore,
-          previousStatus,
-        });
+  const recommendation = deriveRecommendation({
+    plan,
+    expectedProfit,
+    expectedProfitPct,
+    qualityScore,
+    liquidityScore,
+    previousStatus,
+    previousPinnedByUser: candidate.pinnedByUser,
+  });
+  const marginalBasketValue = plan
+    ? await computeMarginalForActiveBasket(plan, candidate)
+    : null;
 
   await db.candidateListing.update({
     where: { id: candidate.id },
@@ -152,7 +158,9 @@ async function evaluateCandidateImpl(candidateId: string): Promise<CandidateEval
       expectedProfit: toDecimalOrNull(expectedProfit),
       expectedProfitPct,
       maxBuyPrice: toDecimalOrNull(computedMaxBuy),
+      marginalBasketValue: toDecimalOrNull(marginalBasketValue),
       status: recommendation,
+      evaluationRefreshedAt: new Date(),
     },
   });
 
@@ -255,6 +263,61 @@ function computeMaxBuyPriceBounded(
   );
 
   return values.length > 0 ? Math.min(...values) : null;
+}
+
+async function computeMarginalForActiveBasket(
+  plan: Parameters<typeof computeMarginalContribution>[2],
+  candidate: {
+    id: string;
+    collection: string | null;
+    floatValue: number | null;
+    rarity: string | null;
+  },
+): Promise<number | null> {
+  const basket = await db.tradeupBasket.findFirst({
+    where: {
+      planId: plan.id,
+      status: { in: ['BUILDING', 'READY'] },
+    },
+    include: { items: { include: { inventoryItem: true }, orderBy: { slotIndex: 'asc' } } },
+    orderBy: { updatedAt: 'desc' },
+  });
+
+  if (!basket) {
+    return null;
+  }
+
+  // If the basket is already full, the marginal contribution is not
+  // meaningful for ranking — the candidate can't be added without swapping.
+  if (basket.items.length >= 10) {
+    return null;
+  }
+
+  const baseSlots = basket.items.map((basketItem) => toBasketSlotContext(basketItem.inventoryItem));
+  const candidateSlot: BasketSlotContext = {
+    inventoryItemId: candidate.id,
+    collection: candidate.collection,
+    floatValue: candidate.floatValue,
+    rarity: candidate.rarity,
+  };
+
+  return computeMarginalContribution(baseSlots, candidateSlot, plan);
+}
+
+async function loadLiquiditySignal(
+  marketHashName: string,
+  excludeId: string,
+): Promise<LiquiditySignal> {
+  const since = new Date(Date.now() - LIQUIDITY_DENSITY_WINDOW_MS);
+  const observationCount = await db.candidateListing.count({
+    where: {
+      marketHashName,
+      id: { not: excludeId },
+      lastSeenAt: { gte: since },
+    },
+  });
+
+  return { observationCount };
 }
 
 function toBasketSlotContext(item: {

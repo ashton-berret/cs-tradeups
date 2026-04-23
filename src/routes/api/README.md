@@ -96,6 +96,10 @@ don't check it into the repo.
 - `POST /api/candidates/[id]/buy`
 - `POST /api/candidates/[id]/reevaluate`
 - `POST /api/candidates/reevaluate-open`
+- `POST /api/candidates/refresh-stale`
+- `POST /api/candidates/bulk/status`
+- `POST /api/candidates/bulk/delete`
+- `POST /api/candidates/bulk/reevaluate`
 
 ### Inventory
 
@@ -127,6 +131,7 @@ don't check it into the repo.
 - `PATCH  /api/tradeups/baskets/[id]`
 - `DELETE /api/tradeups/baskets/[id]`
 - `POST   /api/tradeups/baskets/[id]/items`
+- `POST   /api/tradeups/baskets/[id]/items/bulk`
 - `DELETE /api/tradeups/baskets/[id]/items/[inventoryItemId]`
 - `PATCH  /api/tradeups/baskets/[id]/items/reorder`
 - `POST   /api/tradeups/baskets/[id]/ready`

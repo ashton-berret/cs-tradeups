@@ -99,6 +99,94 @@ export const actions: Actions = {
 		}
 	},
 
+	unpin: async ({ request, fetch }) => {
+		const form = await request.formData();
+		const id = field(form, 'id');
+		const values = valuesFrom(form);
+		if (!id) return fail(400, { error: 'Candidate id is required.', values });
+
+		try {
+			await apiFetch<CandidateDTO>(fetch, `/api/candidates/${id}`, {
+				method: 'PATCH',
+				body: JSON.stringify({ pinnedByUser: false })
+			});
+			return { success: 'Candidate unpinned and re-evaluated.' };
+		} catch (err) {
+			return actionError(err, values);
+		}
+	},
+
+	refreshStale: async ({ fetch }) => {
+		try {
+			const result = await apiFetch<{ count: number }>(fetch, '/api/candidates/refresh-stale', {
+				method: 'POST',
+				body: JSON.stringify({})
+			});
+			return { success: `Refreshed ${result.count} stale candidate${result.count === 1 ? '' : 's'}.` };
+		} catch (err) {
+			return actionError(err, {});
+		}
+	},
+
+	bulkStatus: async ({ request, fetch }) => {
+		const form = await request.formData();
+		const values = valuesFrom(form);
+		const ids = form.getAll('ids').filter((value): value is string => typeof value === 'string');
+		const status = field(form, 'status');
+		if (ids.length === 0) return fail(400, { error: 'Select at least one candidate.', values });
+		if (!status) return fail(400, { error: 'Status is required.', values });
+
+		try {
+			const result = await apiFetch<{ count: number }>(fetch, '/api/candidates/bulk/status', {
+				method: 'POST',
+				body: JSON.stringify({ ids, status })
+			});
+			return { success: `Updated ${result.count} candidate${result.count === 1 ? '' : 's'}.` };
+		} catch (err) {
+			return actionError(err, values);
+		}
+	},
+
+	bulkDelete: async ({ request, fetch }) => {
+		const form = await request.formData();
+		const values = valuesFrom(form);
+		const ids = form.getAll('ids').filter((value): value is string => typeof value === 'string');
+		if (ids.length === 0) return fail(400, { error: 'Select at least one candidate.', values });
+
+		try {
+			const result = await apiFetch<{ count: number }>(fetch, '/api/candidates/bulk/delete', {
+				method: 'POST',
+				body: JSON.stringify({ ids })
+			});
+			return { success: `Deleted ${result.count} candidate${result.count === 1 ? '' : 's'}.` };
+		} catch (err) {
+			return actionError(err, values);
+		}
+	},
+
+	bulkReevaluate: async ({ request, fetch }) => {
+		const form = await request.formData();
+		const values = valuesFrom(form);
+		const ids = form.getAll('ids').filter((value): value is string => typeof value === 'string');
+		if (ids.length === 0) return fail(400, { error: 'Select at least one candidate.', values });
+
+		try {
+			const result = await apiFetch<{ processed: number; errors: { id: string; message: string }[] }>(
+				fetch,
+				'/api/candidates/bulk/reevaluate',
+				{ method: 'POST', body: JSON.stringify({ ids }) }
+			);
+			if (result.errors.length > 0) {
+				return {
+					success: `Re-evaluated ${result.processed} candidate${result.processed === 1 ? '' : 's'}; ${result.errors.length} failed.`
+				};
+			}
+			return { success: `Re-evaluated ${result.processed} candidate${result.processed === 1 ? '' : 's'}.` };
+		} catch (err) {
+			return actionError(err, values);
+		}
+	},
+
 	create: async ({ request, fetch }) => {
 		const form = await request.formData();
 		const values = valuesFrom(form);

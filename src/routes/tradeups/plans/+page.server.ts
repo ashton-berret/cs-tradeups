@@ -35,6 +35,7 @@ export const actions: Actions = {
 					minProfitThreshold: numberField(form, 'minProfitThreshold'),
 					minProfitPctThreshold: numberField(form, 'minProfitPctThreshold'),
 					minLiquidityScore: numberField(form, 'minLiquidityScore'),
+					minCompositeScore: numberField(form, 'minCompositeScore'),
 					notes: field(form, 'notes'),
 					rules: [ruleBody(form, '')].filter(hasRuleFields),
 					outcomeItems: [outcomeBody(form, '')].filter(hasOutcomeFields)
@@ -61,6 +62,7 @@ export const actions: Actions = {
 					minProfitThreshold: numberField(form, 'minProfitThreshold'),
 					minProfitPctThreshold: numberField(form, 'minProfitPctThreshold'),
 					minLiquidityScore: numberField(form, 'minLiquidityScore'),
+					minCompositeScore: numberField(form, 'minCompositeScore'),
 					notes: field(form, 'notes')
 				})
 			});

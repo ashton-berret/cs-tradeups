@@ -34,6 +34,7 @@ import { toDecimal, toDecimalOrNull, toNumber } from '$lib/server/utils/decimal'
 import { findDuplicateCandidate, mergeDuplicate, classifyStaleness } from './duplicateDetection';
 import { normalizeExtensionPayload } from './normalization';
 import { evaluateCandidate } from '$lib/server/tradeups/evaluation/evaluationService';
+import { classifyEvaluationAge, cutoffDate } from './reevaluationPolicy';
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -131,14 +132,54 @@ export function reevaluateCandidate(id: string): Promise<CandidateEvaluation> {
 }
 
 /**
+ * Bulk-set a user-picked status on multiple candidates. Engine-owned statuses
+ * (BOUGHT/DUPLICATE/INVALID) are rejected at the schema layer.
+ *
+ * Atomic. When `pinnedByUser` is true (the default for the HTTP endpoint),
+ * rows are pinned so the engine doesn't flip them on the next re-eval.
+ */
+export function bulkSetCandidateStatus(
+  ids: string[],
+  status: CandidateDecisionStatus,
+  pinnedByUser: boolean,
+): Promise<{ count: number }> {
+  return bulkSetCandidateStatusImpl(ids, status, pinnedByUser);
+}
+
+/**
+ * Bulk-delete candidates. Rejects the whole batch if any id has linked
+ * inventory — the caller gets a 409 and the full list of blocking ids.
+ */
+export function bulkDeleteCandidates(ids: string[]): Promise<{ count: number }> {
+  return bulkDeleteCandidatesImpl(ids);
+}
+
+/**
+ * Bulk re-evaluate specific candidates by id. Non-atomic: returns processed
+ * count and any per-row errors. Use `reevaluateOpenCandidates` when the
+ * caller wants "all open," not a specific set.
+ */
+export function bulkReevaluateCandidates(
+  ids: string[],
+): Promise<{ processed: number; errors: { id: string; message: string }[] }> {
+  return bulkReevaluateCandidatesImpl(ids);
+}
+
+/**
  * Bulk re-evaluate every candidate whose status is still open (WATCHING or
  * GOOD_BUY). Returns the number of rows refreshed.
+ *
+ * Pass `olderThanMs` to restrict to rows whose `evaluationRefreshedAt` is
+ * older than the given window (or null). Omitted ⇒ all open candidates,
+ * matching the pre-Phase-5 behavior.
  *
  * Exposed primarily as a manual escape hatch (e.g., "Re-score all" button in
  * the candidates page) in case eager fan-out missed something.
  */
-export function reevaluateOpenCandidates(): Promise<{ count: number }> {
-  return reevaluateOpenCandidatesImpl();
+export function reevaluateOpenCandidates(
+  opts?: { olderThanMs?: number },
+): Promise<{ count: number }> {
+  return reevaluateOpenCandidatesImpl(opts);
 }
 
 // ---------------------------------------------------------------------------
@@ -174,8 +215,12 @@ export function toCandidateDTO(row: CandidateListing): CandidateDTO {
     marginalBasketValue: toNumber(row.marginalBasketValue),
     matchedPlanId: row.matchedPlanId,
     timesSeen: row.timesSeen,
+    mergeCount: row.mergeCount,
     lastSeenAt: row.lastSeenAt,
     staleness: classifyStaleness(row.lastSeenAt),
+    evaluationRefreshedAt: row.evaluationRefreshedAt,
+    evaluationAge: classifyEvaluationAge(row.evaluationRefreshedAt),
+    pinnedByUser: row.pinnedByUser,
     notes: row.notes,
   };
 }
@@ -229,10 +274,12 @@ async function listCandidatesImpl(
 
 async function createCandidateImpl(input: CreateCandidateInput): Promise<CandidateDTO> {
   const duplicate = await findDuplicateCandidate(input);
-  const row = duplicate ? await mergeDuplicate(duplicate.id, input) : await createCandidateRow(input);
+  const rowId = duplicate
+    ? (await mergeDuplicate(duplicate.id, input)).candidate.id
+    : (await createCandidateRow(input)).id;
 
-  await evaluateCandidate(row.id);
-  const evaluated = await db.candidateListing.findUniqueOrThrow({ where: { id: row.id } });
+  await evaluateCandidate(rowId);
+  const evaluated = await db.candidateListing.findUniqueOrThrow({ where: { id: rowId } });
   return toCandidateDTO(evaluated);
 }
 
@@ -245,12 +292,12 @@ async function ingestExtensionCandidateImpl(
     rawPayload: payload as Prisma.InputJsonValue,
   };
   const duplicate = await findDuplicateCandidate(input);
-  const row = duplicate
-    ? await mergeDuplicate(duplicate.id, inputWithRaw)
-    : await createCandidateRow(input, payload as Prisma.InputJsonValue);
+  const rowId = duplicate
+    ? (await mergeDuplicate(duplicate.id, inputWithRaw)).candidate.id
+    : (await createCandidateRow(input, payload as Prisma.InputJsonValue)).id;
 
-  await evaluateCandidate(row.id);
-  const evaluated = await db.candidateListing.findUniqueOrThrow({ where: { id: row.id } });
+  await evaluateCandidate(rowId);
+  const evaluated = await db.candidateListing.findUniqueOrThrow({ where: { id: rowId } });
 
   return { candidate: toCandidateDTO(evaluated), wasDuplicate: duplicate != null };
 }
@@ -263,13 +310,34 @@ async function updateCandidateImpl(
     throw new Error(`Candidate status ${input.status} cannot be set manually`);
   }
 
+  // Pin semantics:
+  //   - caller sets a status without specifying pin → pin by default so the
+  //     engine doesn't overwrite the user's call.
+  //   - caller passes `pinnedByUser: false` explicitly → unpin. If unpin
+  //     happens without a status change, re-run evaluation so the candidate
+  //     returns to engine-driven status immediately.
+  const explicitUnpin = input.pinnedByUser === false && input.status === undefined;
+  const resolvedPinned =
+    input.pinnedByUser !== undefined
+      ? input.pinnedByUser
+      : input.status !== undefined
+        ? true
+        : undefined;
+
   const row = await db.candidateListing.update({
     where: { id },
     data: {
       status: input.status,
       notes: input.notes,
+      pinnedByUser: resolvedPinned,
     },
   });
+
+  if (explicitUnpin) {
+    await evaluateCandidate(id);
+    const refreshed = await db.candidateListing.findUniqueOrThrow({ where: { id } });
+    return toCandidateDTO(refreshed);
+  }
 
   return toCandidateDTO(row);
 }
@@ -328,9 +396,70 @@ async function deleteCandidateImpl(id: string): Promise<void> {
   await db.candidateListing.delete({ where: { id } });
 }
 
-async function reevaluateOpenCandidatesImpl(): Promise<{ count: number }> {
+async function bulkSetCandidateStatusImpl(
+  ids: string[],
+  status: CandidateDecisionStatus,
+  pinnedByUser: boolean,
+): Promise<{ count: number }> {
+  const result = await db.candidateListing.updateMany({
+    where: { id: { in: ids } },
+    data: { status, pinnedByUser },
+  });
+
+  return { count: result.count };
+}
+
+async function bulkDeleteCandidatesImpl(ids: string[]): Promise<{ count: number }> {
+  const blocking = await db.inventoryItem.findMany({
+    where: { candidateId: { in: ids } },
+    select: { candidateId: true },
+  });
+
+  if (blocking.length > 0) {
+    const blockedIds = Array.from(new Set(blocking.map((row) => row.candidateId).filter(Boolean)));
+    throw new Error(`Cannot delete candidates linked to inventory: ${blockedIds.join(', ')}`);
+  }
+
+  const result = await db.candidateListing.deleteMany({ where: { id: { in: ids } } });
+  return { count: result.count };
+}
+
+async function bulkReevaluateCandidatesImpl(
+  ids: string[],
+): Promise<{ processed: number; errors: { id: string; message: string }[] }> {
+  const errors: { id: string; message: string }[] = [];
+  let processed = 0;
+
+  for (const id of ids) {
+    try {
+      await evaluateCandidate(id);
+      processed += 1;
+    } catch (err) {
+      errors.push({ id, message: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  return { processed, errors };
+}
+
+async function reevaluateOpenCandidatesImpl(
+  opts?: { olderThanMs?: number },
+): Promise<{ count: number }> {
+  const staleFilter =
+    opts?.olderThanMs != null
+      ? {
+          OR: [
+            { evaluationRefreshedAt: null },
+            { evaluationRefreshedAt: { lt: cutoffDate(opts.olderThanMs) } },
+          ],
+        }
+      : {};
+
   const rows = await db.candidateListing.findMany({
-    where: { status: { in: ['WATCHING', 'GOOD_BUY'] } },
+    where: {
+      status: { in: ['WATCHING', 'GOOD_BUY'] },
+      ...staleFilter,
+    },
     select: { id: true },
   });
 

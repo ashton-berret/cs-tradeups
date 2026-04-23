@@ -4,6 +4,7 @@ import type {
   extensionCandidateSchema,
   updateCandidateSchema,
   candidateFilterSchema,
+  refreshStaleCandidatesSchema,
 } from '$lib/schemas/candidate';
 import type {
   createInventoryItemSchema,
@@ -36,6 +37,7 @@ export type CreateCandidateInput = z.infer<typeof createCandidateSchema>;
 export type ExtensionCandidateInput = z.infer<typeof extensionCandidateSchema>;
 export type UpdateCandidateInput = z.infer<typeof updateCandidateSchema>;
 export type CandidateFilter = z.infer<typeof candidateFilterSchema>;
+export type RefreshStaleCandidatesInput = z.infer<typeof refreshStaleCandidatesSchema>;
 
 // -- Inventory --
 export type CreateInventoryItemInput = z.infer<typeof createInventoryItemSchema>;

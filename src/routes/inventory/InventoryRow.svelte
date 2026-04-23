@@ -7,13 +7,23 @@
 
 	type Props = {
 		row: InventoryRowVM;
+		checked?: boolean;
+		onselect?: (id: string, checked: boolean) => void;
 		onedit: (row: InventoryRowVM) => void;
 		ondelete: (row: InventoryRowVM) => void;
 	};
 
-	let { row, onedit, ondelete }: Props = $props();
+	let { row, checked = false, onselect, onedit, ondelete }: Props = $props();
 </script>
 
+<td class="px-4 py-3 align-top">
+	<input
+		type="checkbox"
+		checked={checked}
+		aria-label="Select {row.marketHashName}"
+		onchange={(event) => onselect?.(row.id, (event.target as HTMLInputElement).checked)}
+	/>
+</td>
 <td class="px-4 py-3">
 	<div class="font-medium text-[var(--color-text-primary)]">{row.marketHashName}</div>
 	<div class="mt-1 text-xs text-[var(--color-text-muted)]">

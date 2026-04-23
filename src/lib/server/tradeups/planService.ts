@@ -211,6 +211,7 @@ async function createPlanImpl(input: CreatePlanInput): Promise<PlanDTO> {
         minProfitThreshold: toDecimalOrNull(input.minProfitThreshold),
         minProfitPctThreshold: input.minProfitPctThreshold,
         minLiquidityScore: input.minLiquidityScore,
+        minCompositeScore: input.minCompositeScore,
         notes: input.notes,
         rules: { create: input.rules.map(planRuleCreateData) },
         outcomeItems: { create: input.outcomeItems.map(outcomeCreateData) },
@@ -231,7 +232,8 @@ async function updatePlanImpl(id: string, input: UpdatePlanInput): Promise<PlanD
     input.isActive != null ||
     input.minProfitThreshold != null ||
     input.minProfitPctThreshold != null ||
-    input.minLiquidityScore != null;
+    input.minLiquidityScore != null ||
+    input.minCompositeScore != null;
   const row = await db.tradeupPlan.update({
     where: { id },
     data: {
@@ -241,6 +243,7 @@ async function updatePlanImpl(id: string, input: UpdatePlanInput): Promise<PlanD
       minProfitThreshold: input.minProfitThreshold !== undefined ? toDecimalOrNull(input.minProfitThreshold) : undefined,
       minProfitPctThreshold: input.minProfitPctThreshold,
       minLiquidityScore: input.minLiquidityScore,
+      minCompositeScore: input.minCompositeScore,
       notes: input.notes,
     },
     include: planInclude,
@@ -428,6 +431,7 @@ function toPlanDTO(row: PlanWithRelations): PlanDTO {
     minProfitThreshold: toNumber(row.minProfitThreshold),
     minProfitPctThreshold: row.minProfitPctThreshold,
     minLiquidityScore: row.minLiquidityScore,
+    minCompositeScore: row.minCompositeScore,
     notes: row.notes,
     rules: row.rules.map(toPlanRuleDTO),
     outcomeItems: row.outcomeItems.map(toOutcomeItemDTO),

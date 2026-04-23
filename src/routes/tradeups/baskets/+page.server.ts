@@ -86,6 +86,44 @@ export const actions: Actions = {
 		}
 	},
 
+	bulkAddItems: async ({ request, fetch }) => {
+		const form = await request.formData();
+		const id = field(form, 'id');
+		const values = valuesFrom(form);
+		if (!id) return fail(400, { error: 'Basket id is required.', values });
+
+		const inventoryItemIds = form
+			.getAll('inventoryItemId')
+			.filter((value): value is string => typeof value === 'string');
+		const slotIndices = form
+			.getAll('slotIndex')
+			.filter((value): value is string => typeof value === 'string')
+			.map(Number);
+
+		if (inventoryItemIds.length === 0) {
+			return fail(400, { error: 'Select at least one inventory item.', values });
+		}
+
+		if (inventoryItemIds.length !== slotIndices.length) {
+			return fail(400, { error: 'Bulk item and slot counts do not match.', values });
+		}
+
+		try {
+			await apiFetch<BasketDTO>(fetch, `/api/tradeups/baskets/${id}/items/bulk`, {
+				method: 'POST',
+				body: JSON.stringify({
+					items: inventoryItemIds.map((inventoryItemId, index) => ({
+						inventoryItemId,
+						slotIndex: slotIndices[index]
+					}))
+				})
+			});
+			return { success: `Added ${inventoryItemIds.length} item${inventoryItemIds.length === 1 ? '' : 's'} to basket.` };
+		} catch (err) {
+			return actionError(err, values);
+		}
+	},
+
 	removeItem: async ({ request, fetch }) => {
 		const form = await request.formData();
 		const id = field(form, 'id');

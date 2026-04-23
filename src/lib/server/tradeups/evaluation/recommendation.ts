@@ -4,27 +4,26 @@
 // liquidity, match result) and maps them to a CandidateDecisionStatus the
 // user sees in the queue.
 //
-// Mapping rules (Phase 2):
+// Mapping rules:
 //   - no matched plan                                    -> INVALID
 //   - matched plan but expectedProfit < 0                -> PASSED
 //   - expectedProfit below plan.minProfitThreshold       -> PASSED
 //   - expectedProfitPct below plan.minProfitPctThreshold -> PASSED
-//   - quality * liquidity below a global floor           -> WATCHING
+//   - liquidity below plan.minLiquidityScore             -> WATCHING
+//   - quality * liquidity below plan.minCompositeScore
+//     (fallback: DEFAULT_MIN_COMPOSITE_SCORE from tuning.ts) -> WATCHING
 //   - otherwise                                          -> GOOD_BUY
 //
-// DUPLICATE is set by the ingestion path (duplicateDetection) before
-// evaluation runs; this module never returns DUPLICATE.
-// BOUGHT is set by candidateService.markBought; not returned here either.
-//
-// User-applied PASSED / WATCHING via the UI are preserved: the service
-// layer only overwrites status when re-evaluation produces GOOD_BUY or
-// INVALID. This keeps the user in control of subjective calls.
+// Pin behavior:
+//   - `previousPinnedByUser` overrides recommendation unless the raw output is
+//     INVALID (plan no longer matches — the pin is no longer meaningful).
+//   - BOUGHT / DUPLICATE are engine-locked states and are preserved even
+//     without an explicit pin.
 
 import type { TradeupPlan } from '@prisma/client';
 import type { CandidateDecisionStatus } from '$lib/types/enums';
 import { toNumber } from '$lib/server/utils/decimal';
-
-const MIN_COMPOSITE_SCORE = 0.25;
+import { DEFAULT_MIN_COMPOSITE_SCORE } from './tuning';
 
 export interface RecommendationInput {
   plan: TradeupPlan | null;
@@ -33,23 +32,27 @@ export interface RecommendationInput {
   qualityScore: number;
   liquidityScore: number;
   previousStatus: CandidateDecisionStatus;
+  previousPinnedByUser: boolean;
 }
 
 /**
- * Derive the next recommendation status. Preserves user-applied PASSED /
- * WATCHING unless the evaluation flips to INVALID (i.e., the plan no longer
- * matches at all — the old status is no longer meaningful).
+ * Derive the next recommendation status. Honors user pins and the engine-
+ * locked BOUGHT/DUPLICATE states.
  */
 export function deriveRecommendation(
   input: RecommendationInput,
 ): CandidateDecisionStatus {
   const raw = deriveRawRecommendation(input);
 
-  if (raw === 'INVALID' || raw === 'GOOD_BUY') {
-    return raw;
+  if (input.previousStatus === 'BOUGHT' || input.previousStatus === 'DUPLICATE') {
+    return input.previousStatus;
   }
 
-  if (input.previousStatus === 'PASSED' || input.previousStatus === 'WATCHING') {
+  if (raw === 'INVALID') {
+    return 'INVALID';
+  }
+
+  if (input.previousPinnedByUser) {
     return input.previousStatus;
   }
 
@@ -93,7 +96,8 @@ function deriveRawRecommendation(input: RecommendationInput): CandidateDecisionS
     return 'WATCHING';
   }
 
-  if (qualityScore * liquidityScore < MIN_COMPOSITE_SCORE) {
+  const compositeFloor = plan.minCompositeScore ?? DEFAULT_MIN_COMPOSITE_SCORE;
+  if (qualityScore * liquidityScore < compositeFloor) {
     return 'WATCHING';
   }
 

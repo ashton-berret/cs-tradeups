@@ -52,9 +52,20 @@ export const extensionCandidateSchema = z
   .passthrough(); // allow unknown fields from the extension
 
 // Status/notes update (PATCH /api/candidates/[id])
+// `pinnedByUser` is optional; if the caller sets a status without it, the
+// service pins the row by default so engine re-evaluations preserve the
+// user's call. Callers that explicitly unpin (revert to engine control)
+// pass `pinnedByUser: false`.
 export const updateCandidateSchema = z.object({
   status: candidateDecisionStatusSchema.optional(),
+  pinnedByUser: z.boolean().optional(),
   notes: z.string().optional(),
+});
+
+// Manual stale-refresh trigger (POST /api/candidates/refresh-stale)
+// Optional window override; defaults to reevaluationPolicy.STALE_AFTER_MS.
+export const refreshStaleCandidatesSchema = z.object({
+  olderThanMs: z.number().int().positive().optional(),
 });
 
 // Query filter for candidate list
@@ -70,7 +81,14 @@ export const candidateFilterSchema = z
     maxPrice: moneySchema.optional(),
     search: z.string().optional(),
     sortBy: z
-      .enum(['createdAt', 'listPrice', 'floatValue', 'qualityScore', 'expectedProfit'])
+      .enum([
+        'createdAt',
+        'listPrice',
+        'floatValue',
+        'qualityScore',
+        'expectedProfit',
+        'marginalBasketValue',
+      ])
       .default('createdAt'),
     sortDir: sortDirectionSchema,
   })

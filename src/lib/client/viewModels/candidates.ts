@@ -1,11 +1,17 @@
 import type { CandidateFilter } from '$lib/types/domain';
-import type { CandidateDTO, PlanDTO, StalenessLevel } from '$lib/types/services';
+import type {
+	CandidateDTO,
+	EvaluationAgeLevel,
+	PlanDTO,
+	StalenessLevel
+} from '$lib/types/services';
 import { EXTERIOR_LABELS, RARITY_LABELS } from '$lib/types/enums';
 
 export type CandidateRowVM = CandidateDTO & {
 	matchedPlanName: string | null;
 	canBuy: boolean;
 	stalenessLabel: string;
+	evaluationAgeLabel: string;
 	rarityLabel: string;
 	exteriorLabel: string;
 };
@@ -17,6 +23,12 @@ const stalenessLabels: Record<StalenessLevel, string> = {
 	COLD: 'Cold'
 };
 
+const evaluationAgeLabels: Record<EvaluationAgeLevel, string> = {
+	FRESH: 'Eval fresh',
+	AGING: 'Eval aging',
+	STALE: 'Eval stale'
+};
+
 export function toCandidateRows(candidates: CandidateDTO[], activePlans: PlanDTO[]): CandidateRowVM[] {
 	const planNames = new Map(activePlans.map((plan) => [plan.id, plan.name]));
 
@@ -25,6 +37,7 @@ export function toCandidateRows(candidates: CandidateDTO[], activePlans: PlanDTO
 		matchedPlanName: candidate.matchedPlanId ? (planNames.get(candidate.matchedPlanId) ?? null) : null,
 		canBuy: candidate.status !== 'BOUGHT' && candidate.status !== 'INVALID',
 		stalenessLabel: stalenessLabels[candidate.staleness],
+		evaluationAgeLabel: evaluationAgeLabels[candidate.evaluationAge],
 		rarityLabel: candidate.rarity ? RARITY_LABELS[candidate.rarity] : '—',
 		exteriorLabel: candidate.exterior ? EXTERIOR_LABELS[candidate.exterior] : '—'
 	}));

@@ -57,6 +57,8 @@
 			</div>
 			<Input name="minProfitThreshold" type="number" step="0.01" min="0" label="Min profit" />
 			<Input name="minProfitPctThreshold" type="number" step="0.01" label="Min profit %" />
+			<Input name="minLiquidityScore" type="number" step="0.01" min="0" max="1" label="Min liquidity" />
+			<Input name="minCompositeScore" type="number" step="0.01" min="0" max="1" label="Min composite" />
 		</div>
 		<textarea name="description" rows="2" placeholder="Description" class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm"></textarea>
 
