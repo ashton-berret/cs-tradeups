@@ -2,8 +2,8 @@
 
 ## Status Snapshot
 
-**Project Status:** Phase 4 operator UI implemented (typecheck clean; build blocked only by known Windows sandbox EPERM); Phases 0-3 complete
-**Last Updated:** 2026-04-22
+**Project Status:** Phase 6 MVP implemented and verified; Phases 0-6 complete
+**Last Updated:** 2026-04-23
 **Plan Reference:** See `docs/PLAN.md`
 
 ---
@@ -38,15 +38,19 @@ What currently exists:
   query coercion, shared error translation, and extension shared-secret
   auth.
 - API route documentation in `src/routes/api/README.md`.
+- Typed service errors for expected service-layer failures.
+- Root-level `bun test` starter suite for pure evaluation, duplicate
+  detection, CSV, and basket-readiness logic.
+- CSV export endpoints for executions and expected-vs-realized reporting.
+- ECharts-powered dashboard charts with table fallbacks.
 
 What does not exist yet:
 
 - Chrome extension integration code in this repo. The ingestion endpoint
   exists, but the bridge from the third-party CS2 Trader extension is not
   implemented here.
-- Automated tests beyond Svelte type checking and build/dev-server smoke
-  verification.
-- ECharts or chart UI.
+- Database integration tests and Svelte component tests.
+- Chrome extension bridge implementation code.
 
 ---
 
@@ -189,6 +193,18 @@ Resolved:
 - **Basket metric recomputation.** Basket mutations recompute metrics
   eagerly inside the same transaction.
 - **Execution creation.** READY-to-EXECUTED transition is atomic.
+- **Price-age re-evaluation.** Manual stale-refresh endpoint and
+  `evaluationRefreshedAt` tracking shipped in Phase 5.
+- **Plan-aware inventory eligibility endpoint.**
+  `GET /api/inventory/eligible?planId=...` shipped in Phase 6 and the basket
+  builder uses it directly.
+- **Typed service errors.** Expected service failures now throw typed
+  `HttpError` subclasses; the substring classifier remains only as a legacy
+  fallback.
+- **Automated starter tests.** `bun test tests/` covers pure decision logic
+  for evaluation, scoring, duplicate detection, CSV, and readiness.
+- **Dashboard charting and CSV reporting.** ECharts dashboard charts and the
+  two scoped CSV exports shipped in Phase 6.
 - **Audit/event log.** Deferred; live analytics read current rows instead of
   an event table for now.
 
@@ -200,49 +216,41 @@ Still unresolved:
   does not project output float into per-skin price tiers. Tracked with
   TODOs in `src/lib/server/utils/float.ts` and
   `src/lib/server/tradeups/evaluation/scoring.ts`.
-- **Liquidity data source.** `computeLiquidityScore` is a 0.5 stub until a
-  listing-volume signal is available.
-- **Price-age re-evaluation.** Stored evaluations can go stale as prices
-  move. Options: time-based sweep, or on-view recompute when `lastSeenAt`
-  is older than a threshold.
+- **Real marketplace-volume liquidity signal.** `computeLiquidityScore` uses
+  the Phase 5 density proxy until a listing-volume signal is available.
 - **Extension bridge mechanism.** The API endpoint exists, but the local
   mechanism that extracts data from the third-party extension into this app
   still needs to be chosen.
-- **Plan-aware inventory eligibility endpoint.** `GET /api/inventory`
-  currently supports `availableForBasket=true` as a held-item filter. The
-  service has plan-aware eligibility, but the HTTP API does not yet expose a
-  `planId`-aware eligibility route.
-- **Typed service errors.** Routes classify plain service `Error` messages
-  by substring. Typed `HttpError` classes exist for a future migration.
 - **Notifications beyond queue visibility.** MVP likely skips; revisit.
 
 ---
 
 ## Immediate Next Steps
 
-The next implementation slice should move into Phase 5 workflow refinement:
+Phase 6 completes the scoped MVP. The next implementation slice should be
+driven by real operator usage. Likely candidates:
 
-1. Exercise the Phase 4 UI against the seeded and real local workflow data.
-2. Refine duplicate suppression and price-age re-evaluation behavior.
-3. Add basket-aware ranking and recommendation threshold tuning.
-4. Revisit the plan-aware inventory eligibility endpoint once builder usage
-   proves the workaround insufficient.
+1. Build the Chrome extension bridge mechanism.
+2. Replace the density-based liquidity proxy with a real market-volume signal.
+3. Add database integration tests and Svelte component tests if regressions
+   appear in those layers.
+4. Revisit per-skin float ranges when the input/output skin catalog exists.
 
 ---
 
 ## Risks
 
-- It is easy to overbuild the scoring engine before the basic operator UI
-  exists.
 - It is easy to make the extension bridge too loose and pay for that later
   in normalization complexity.
 - It is easy to let dashboard ideas outrun the quality of stored
   operational data.
-- Current API error classification is intentionally pragmatic and should be
-  migrated to typed service errors before broader test coverage.
+- The starter test suite is pure-logic only; Prisma query regressions still
+  need manual verification or future integration tests.
+- The typed-error substring classifier still exists as a fallback and should
+  be removed after the MVP has soaked.
 
-The correct bias right now is to build the manual workflow UI against the
-verified API, then deepen recommendation quality.
+The correct bias after MVP is to ingest real data, observe workflow gaps, and
+only then deepen analytics or scoring complexity.
 
 ---
 
