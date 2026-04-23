@@ -30,6 +30,7 @@ import type {
   ItemRarity,
 } from '$lib/types/enums';
 import { db } from '$lib/server/db/client';
+import { ConflictError, NotFoundError } from '$lib/server/http/errors';
 import { toDecimal, toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
 import { findDuplicateCandidate, mergeDuplicate, classifyStaleness } from './duplicateDetection';
 import { normalizeExtensionPayload } from './normalization';
@@ -307,7 +308,7 @@ async function updateCandidateImpl(
   input: UpdateCandidateInput,
 ): Promise<CandidateDTO> {
   if (input.status && ['BOUGHT', 'DUPLICATE', 'INVALID'].includes(input.status)) {
-    throw new Error(`Candidate status ${input.status} cannot be set manually`);
+    throw new ConflictError(`Candidate status ${input.status} cannot be set manually`);
   }
 
   // Pin semantics:
@@ -350,7 +351,7 @@ async function markBoughtImpl(
     const candidate = await tx.candidateListing.findUnique({ where: { id } });
 
     if (!candidate) {
-      throw new Error(`Candidate not found: ${id}`);
+      throw new NotFoundError(`Candidate not found: ${id}`);
     }
 
     const inventoryItem = await tx.inventoryItem.create({
@@ -390,7 +391,7 @@ async function deleteCandidateImpl(id: string): Promise<void> {
   const linkedInventory = await db.inventoryItem.count({ where: { candidateId: id } });
 
   if (linkedInventory > 0) {
-    throw new Error('Cannot delete a candidate that is linked to inventory');
+    throw new ConflictError('Cannot delete a candidate that is linked to inventory');
   }
 
   await db.candidateListing.delete({ where: { id } });
@@ -417,7 +418,7 @@ async function bulkDeleteCandidatesImpl(ids: string[]): Promise<{ count: number 
 
   if (blocking.length > 0) {
     const blockedIds = Array.from(new Set(blocking.map((row) => row.candidateId).filter(Boolean)));
-    throw new Error(`Cannot delete candidates linked to inventory: ${blockedIds.join(', ')}`);
+    throw new ConflictError(`Cannot delete candidates linked to inventory: ${blockedIds.join(', ')}`);
   }
 
   const result = await db.candidateListing.deleteMany({ where: { id: { in: ids } } });
