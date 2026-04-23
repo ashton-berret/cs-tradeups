@@ -27,6 +27,7 @@ import type { PlanDTO, PlanRuleDTO, OutcomeItemDTO } from '$lib/types/services';
 import type { Prisma, TradeupOutcomeItem, TradeupPlan, TradeupPlanRule } from '@prisma/client';
 import type { ItemExterior, ItemRarity } from '$lib/types/enums';
 import { db } from '$lib/server/db/client';
+import { ConflictError, NotFoundError } from '$lib/server/http/errors';
 import { toDecimal, toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
 import { reevaluateCandidate } from '$lib/server/candidates/candidateService';
 
@@ -263,7 +264,7 @@ async function deletePlanImpl(id: string): Promise<void> {
   ]);
 
   if (basketCount > 0 || executionCount > 0) {
-    throw new Error('Cannot delete a plan that has baskets or executions');
+    throw new ConflictError('Cannot delete a plan that has baskets or executions');
   }
 
   await db.tradeupPlan.delete({ where: { id } });
@@ -282,7 +283,7 @@ async function updatePlanRuleImpl(ruleId: string, rule: PlanRuleInput): Promise<
   const existing = await db.tradeupPlanRule.findUnique({ where: { id: ruleId } });
 
   if (!existing) {
-    throw new Error(`Plan rule not found: ${ruleId}`);
+    throw new NotFoundError(`Plan rule not found: ${ruleId}`);
   }
 
   const updated = await db.tradeupPlanRule.update({
@@ -298,7 +299,7 @@ async function removePlanRuleImpl(ruleId: string): Promise<void> {
   const existing = await db.tradeupPlanRule.findUnique({ where: { id: ruleId } });
 
   if (!existing) {
-    throw new Error(`Plan rule not found: ${ruleId}`);
+    throw new NotFoundError(`Plan rule not found: ${ruleId}`);
   }
 
   await db.tradeupPlanRule.delete({ where: { id: ruleId } });
@@ -309,7 +310,7 @@ async function addOutcomeItemImpl(planId: string, outcome: OutcomeItemInput): Pr
   const plan = await db.tradeupPlan.findUnique({ where: { id: planId } });
 
   if (!plan) {
-    throw new Error(`Plan not found: ${planId}`);
+    throw new NotFoundError(`Plan not found: ${planId}`);
   }
 
   validateOutcomeRarity(plan.targetRarity, outcome);
@@ -329,7 +330,7 @@ async function updateOutcomeItemImpl(outcomeId: string, outcome: OutcomeItemInpu
   });
 
   if (!existing) {
-    throw new Error(`Outcome item not found: ${outcomeId}`);
+    throw new NotFoundError(`Outcome item not found: ${outcomeId}`);
   }
 
   validateOutcomeRarity(existing.plan.targetRarity, outcome);
@@ -347,7 +348,7 @@ async function removeOutcomeItemImpl(outcomeId: string): Promise<void> {
   const existing = await db.tradeupOutcomeItem.findUnique({ where: { id: outcomeId } });
 
   if (!existing) {
-    throw new Error(`Outcome item not found: ${outcomeId}`);
+    throw new NotFoundError(`Outcome item not found: ${outcomeId}`);
   }
 
   await db.tradeupOutcomeItem.delete({ where: { id: outcomeId } });
@@ -358,7 +359,7 @@ async function reevaluateAllForPlanImpl(planId: string): Promise<{ count: number
   const plan = await db.tradeupPlan.findUnique({ where: { id: planId }, include: { rules: true } });
 
   if (!plan) {
-    throw new Error(`Plan not found: ${planId}`);
+    throw new NotFoundError(`Plan not found: ${planId}`);
   }
 
   const ruleCollections = Array.from(
@@ -414,7 +415,7 @@ function outcomeCreateData(outcome: OutcomeItemInput): Omit<Prisma.TradeupOutcom
 
 function validateOutcomeRarity(targetRarity: string, outcome: OutcomeItemInput): void {
   if (outcome.rarity !== targetRarity) {
-    throw new Error('Outcome rarity must match the plan target rarity');
+    throw new ConflictError('Outcome rarity must match the plan target rarity');
   }
 }
 
