@@ -32,6 +32,7 @@ import type { ExecutionDTO } from '$lib/types/services';
 import type { Prisma, TradeupExecution } from '@prisma/client';
 import type { ItemExterior } from '$lib/types/enums';
 import { db } from '$lib/server/db/client';
+import { ConflictError, NotFoundError } from '$lib/server/http/errors';
 import { toDecimal, toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
 import { percentChange, roundMoney } from '$lib/server/utils/money';
 
@@ -153,20 +154,20 @@ async function createExecutionImpl(input: CreateExecutionInput): Promise<Executi
     });
 
     if (!basket) {
-      throw new Error(`Basket not found: ${input.basketId}`);
+      throw new NotFoundError(`Basket not found: ${input.basketId}`);
     }
 
     if (basket.status !== 'READY') {
-      throw new Error('Basket must be READY before execution');
+      throw new ConflictError('Basket must be READY before execution');
     }
 
     if (basket.items.length !== 10) {
-      throw new Error('Execution requires exactly 10 basket items');
+      throw new ConflictError('Execution requires exactly 10 basket items');
     }
 
     const moved = basket.items.find((item) => item.inventoryItem.status !== 'RESERVED_FOR_BASKET');
     if (moved) {
-      throw new Error('Basket inventory has moved out of RESERVED_FOR_BASKET');
+      throw new ConflictError('Basket inventory has moved out of RESERVED_FOR_BASKET');
     }
 
     const inputCost = toNumber(basket.totalCost) ?? 0;
@@ -206,7 +207,7 @@ async function recordSaleImpl(
   const execution = await db.tradeupExecution.findUnique({ where: { id: executionId } });
 
   if (!execution) {
-    throw new Error(`Execution not found: ${executionId}`);
+    throw new NotFoundError(`Execution not found: ${executionId}`);
   }
 
   const inputCost = toNumber(execution.inputCost) ?? 0;
