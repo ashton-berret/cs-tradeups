@@ -6,6 +6,7 @@
 	import Money from '$lib/components/Money.svelte';
 	import Percent from '$lib/components/Percent.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
+	import { ITEM_RARITIES } from '$lib/types/enums';
 	import type { PlanCardVM } from '$lib/client/viewModels/plans';
 	import RuleEditor from './RuleEditor.svelte';
 	import OutcomeEditor from './OutcomeEditor.svelte';
@@ -40,15 +41,33 @@
 		<input type="hidden" name="id" value={vm.plan.id} />
 		<div class="grid grid-cols-2 gap-3 md:grid-cols-4">
 			<Input name="name" label="Name" value={vm.plan.name} required />
+			<div>
+				<label for={`plan-input-rarity-${vm.plan.id}`} class="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]">Input rarity</label>
+				<select id={`plan-input-rarity-${vm.plan.id}`} name="inputRarity" value={vm.plan.inputRarity} class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">
+					{#each ITEM_RARITIES as rarity}
+						<option value={rarity}>{rarity.replaceAll('_', ' ')}</option>
+					{/each}
+				</select>
+			</div>
+			<div>
+				<label for={`plan-target-rarity-${vm.plan.id}`} class="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]">Target rarity</label>
+				<select id={`plan-target-rarity-${vm.plan.id}`} name="targetRarity" value={vm.plan.targetRarity} class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">
+					{#each ITEM_RARITIES as rarity}
+						<option value={rarity}>{rarity.replaceAll('_', ' ')}</option>
+					{/each}
+				</select>
+			</div>
 			<Input name="minProfitThreshold" type="number" step="0.01" min="0" label="Min profit" value={vm.plan.minProfitThreshold ?? ''} />
 			<Input name="minProfitPctThreshold" type="number" step="0.01" label="Min profit %" value={vm.plan.minProfitPctThreshold ?? ''} />
 			<Input name="minLiquidityScore" type="number" step="0.01" min="0" max="1" label="Min liquidity" value={vm.plan.minLiquidityScore ?? ''} />
+			<Input name="minCompositeScore" type="number" step="0.01" min="0" max="1" label="Min composite" value={vm.plan.minCompositeScore ?? ''} />
 		</div>
 		<label class="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
 			<input type="checkbox" name="isActive" checked={vm.plan.isActive} />
 			Active
 		</label>
-		<textarea name="notes" rows="2" class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">{vm.plan.notes ?? ''}</textarea>
+		<textarea name="description" rows="2" placeholder="Description" class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">{vm.plan.description ?? ''}</textarea>
+		<textarea name="notes" rows="2" placeholder="Notes" class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">{vm.plan.notes ?? ''}</textarea>
 		<div class="flex justify-end">
 			<Button type="submit" size="sm" variant="secondary">Save metadata</Button>
 		</div>

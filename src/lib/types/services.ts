@@ -238,10 +238,50 @@ export interface PlanMatch {
   maxBuyPrice: number | null;
 }
 
+export type RuleFailureCode =
+  | 'RARITY'
+  | 'COLLECTION'
+  | 'EXTERIOR'
+  | 'FLOAT_REQUIRED'
+  | 'FLOAT_RANGE'
+  | 'MAX_BUY_PRICE';
+
+export interface RuleFailureDiagnostic {
+  code: RuleFailureCode;
+  expected?: string | number | null;
+  actual?: string | number | null;
+}
+
+export interface RuleMatchDiagnostic {
+  ruleId: string;
+  accepted: boolean;
+  fitScore: number;
+  failures: RuleFailureDiagnostic[];
+}
+
+export type PlanFailureCode = 'INPUT_RARITY_MISMATCH' | 'NO_RULE_MATCH';
+
+export interface PlanFailureDiagnostic {
+  code: PlanFailureCode;
+  expected?: string | number | null;
+  actual?: string | number | null;
+}
+
+export interface CandidatePlanDiagnostic {
+  planId: string;
+  planName: string;
+  matched: boolean;
+  selectedRuleId: string | null;
+  failures: PlanFailureDiagnostic[];
+  ruleDiagnostics: RuleMatchDiagnostic[];
+  candidateCollectionOutcomeCount: number;
+}
+
 export interface CandidateEvaluation {
   candidateId: string;
   matchedPlanId: string | null;
   allMatches: PlanMatch[];
+  diagnostics: CandidatePlanDiagnostic[];
   qualityScore: number;
   liquidityScore: number;
   expectedProfit: number | null;

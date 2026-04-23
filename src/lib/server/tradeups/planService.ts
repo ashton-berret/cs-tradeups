@@ -25,7 +25,7 @@ import type {
 } from '$lib/types/domain';
 import type { PlanDTO, PlanRuleDTO, OutcomeItemDTO } from '$lib/types/services';
 import type { Prisma, TradeupOutcomeItem, TradeupPlan, TradeupPlanRule } from '@prisma/client';
-import type { ItemExterior, ItemRarity } from '$lib/types/enums';
+import { RARITY_TIER, type ItemExterior, type ItemRarity } from '$lib/types/enums';
 import { db } from '$lib/server/db/client';
 import { ConflictError, NotFoundError } from '$lib/server/http/errors';
 import { toDecimal, toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
@@ -229,7 +229,32 @@ async function createPlanImpl(input: CreatePlanInput): Promise<PlanDTO> {
 }
 
 async function updatePlanImpl(id: string, input: UpdatePlanInput): Promise<PlanDTO> {
+  const existing = await db.tradeupPlan.findUnique({
+    where: { id },
+    include: { outcomeItems: true },
+  });
+
+  if (!existing) {
+    throw new NotFoundError(`Plan not found: ${id}`);
+  }
+
+  const nextInputRarity = input.inputRarity ?? (existing.inputRarity as ItemRarity);
+  const nextTargetRarity = input.targetRarity ?? (existing.targetRarity as ItemRarity);
+
+  if (RARITY_TIER[nextTargetRarity] !== RARITY_TIER[nextInputRarity] + 1) {
+    throw new ConflictError('targetRarity must be exactly one tier above inputRarity');
+  }
+
+  if (input.targetRarity != null) {
+    const mismatchedOutcomes = existing.outcomeItems.filter((outcome) => outcome.rarity !== nextTargetRarity);
+    if (mismatchedOutcomes.length > 0) {
+      throw new ConflictError('Cannot change target rarity while existing outcomes use the previous target rarity');
+    }
+  }
+
   const scoringRelevant =
+    input.inputRarity != null ||
+    input.targetRarity != null ||
     input.isActive != null ||
     input.minProfitThreshold != null ||
     input.minProfitPctThreshold != null ||
@@ -240,6 +265,8 @@ async function updatePlanImpl(id: string, input: UpdatePlanInput): Promise<PlanD
     data: {
       name: input.name,
       description: input.description,
+      inputRarity: input.inputRarity,
+      targetRarity: input.targetRarity,
       isActive: input.isActive,
       minProfitThreshold: input.minProfitThreshold !== undefined ? toDecimalOrNull(input.minProfitThreshold) : undefined,
       minProfitPctThreshold: input.minProfitPctThreshold,
@@ -370,7 +397,7 @@ async function reevaluateAllForPlanImpl(planId: string): Promise<{ count: number
       OR: [
         { matchedPlanId: planId },
         {
-          status: { in: ['WATCHING', 'GOOD_BUY'] },
+          status: { notIn: ['BOUGHT', 'DUPLICATE'] },
           rarity: plan.inputRarity,
           ...(ruleCollections.length > 0 ? { collection: { in: ruleCollections } } : {}),
         },

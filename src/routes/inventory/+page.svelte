@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/Button.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
@@ -50,9 +51,9 @@
 		checkedIds = new Set();
 	}
 
-	function hrefForPage(page: number) {
-		const params = new URLSearchParams(window.location.search);
-		params.set('page', String(page));
+	function hrefForPage(nextPage: number) {
+		const params = new URLSearchParams(page.url.searchParams);
+		params.set('page', String(nextPage));
 		return `?${params.toString()}`;
 	}
 

@@ -64,13 +64,22 @@ export const createPlanSchema = z
 export const updatePlanSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
+  inputRarity: itemRaritySchema.optional(),
+  targetRarity: itemRaritySchema.optional(),
   isActive: z.boolean().optional(),
   minProfitThreshold: moneySchema.optional(),
   minProfitPctThreshold: z.number().optional(),
   minLiquidityScore: z.number().min(0).max(1).optional(),
   minCompositeScore: z.number().min(0).max(1).optional(),
   notes: z.string().optional(),
-});
+}).refine(
+  (d) =>
+    (d.inputRarity == null && d.targetRarity == null) ||
+    (d.inputRarity != null &&
+      d.targetRarity != null &&
+      RARITY_TIER[d.targetRarity] === RARITY_TIER[d.inputRarity] + 1),
+  { message: 'targetRarity must be exactly one tier above inputRarity' },
+);
 
 // Query filter for plan list
 export const planFilterSchema = z

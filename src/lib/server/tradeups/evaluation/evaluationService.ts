@@ -39,7 +39,12 @@ import {
 import { deriveRecommendation } from './recommendation';
 import { computeLiquidityScore, computeQualityScore, type LiquiditySignal } from './scoring';
 import { LIQUIDITY_DENSITY_WINDOW_MS } from './tuning';
-import { matchCandidateToPlans, pickBestMatch, toCandidateLike } from './ruleMatching';
+import {
+  diagnoseCandidateAgainstPlans,
+  matchCandidateToPlans,
+  pickBestMatch,
+  toCandidateLike,
+} from './ruleMatching';
 import { basketReadinessIssues } from './readiness';
 
 /**
@@ -118,6 +123,7 @@ async function evaluateCandidateImpl(candidateId: string): Promise<CandidateEval
   });
   const candidateLike = toCandidateLike(candidate);
   const allMatches = matchCandidateToPlans(candidateLike, plans);
+  const diagnostics = diagnoseCandidateAgainstPlans(candidateLike, plans);
   const bestMatch = pickBestMatch(allMatches);
   const plan = bestMatch ? plans.find((item) => item.id === bestMatch.planId) ?? null : null;
   const candidateEV = plan ? computeCandidateEV(candidate.collection, plan) : null;
@@ -169,6 +175,7 @@ async function evaluateCandidateImpl(candidateId: string): Promise<CandidateEval
     candidateId: candidate.id,
     matchedPlanId: plan?.id ?? null,
     allMatches,
+    diagnostics,
     qualityScore,
     liquidityScore,
     expectedProfit,

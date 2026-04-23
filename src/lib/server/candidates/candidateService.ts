@@ -32,8 +32,13 @@ import type {
 import { db } from '$lib/server/db/client';
 import { ConflictError, NotFoundError } from '$lib/server/http/errors';
 import { toDecimal, toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
-import { findDuplicateCandidate, mergeDuplicate, classifyStaleness } from './duplicateDetection';
-import { normalizeExtensionPayload } from './normalization';
+import {
+  findDuplicateCandidate,
+  findDuplicateCandidateMatch,
+  mergeDuplicate,
+  classifyStaleness,
+} from './duplicateDetection';
+import { normalizeExtensionPayload, type NormalizationWarning } from './normalization';
 import { evaluateCandidate } from '$lib/server/tradeups/evaluation/evaluationService';
 import { classifyEvaluationAge, cutoffDate } from './reevaluationPolicy';
 
@@ -80,7 +85,26 @@ export function createCandidate(input: CreateCandidateInput): Promise<CandidateD
  */
 export function ingestExtensionCandidate(
   payload: ExtensionCandidateInput,
-): Promise<{ candidate: CandidateDTO; wasDuplicate: boolean }> {
+): Promise<{
+  candidate: CandidateDTO;
+  wasDuplicate: boolean;
+  warnings: NormalizationWarning[];
+  duplicate:
+    | {
+        reason: 'LISTING_ID' | 'LISTING_URL' | 'MARKET_HASH_NAME_FLOAT_PRICE';
+        candidateId: string;
+        oldListPrice: number;
+        newListPrice: number;
+        priceChanged: boolean;
+        previousStatus: CandidateDecisionStatus;
+        previousTimesSeen: number;
+        currentTimesSeen: number;
+        previousMergeCount: number;
+        currentMergeCount: number;
+      }
+    | null;
+  evaluation: CandidateEvaluation;
+}> {
   return ingestExtensionCandidateImpl(payload);
 }
 
@@ -286,21 +310,67 @@ async function createCandidateImpl(input: CreateCandidateInput): Promise<Candida
 
 async function ingestExtensionCandidateImpl(
   payload: ExtensionCandidateInput,
-): Promise<{ candidate: CandidateDTO; wasDuplicate: boolean }> {
-  const { input } = normalizeExtensionPayload(payload);
+): Promise<{
+  candidate: CandidateDTO;
+  wasDuplicate: boolean;
+  warnings: NormalizationWarning[];
+  duplicate:
+    | {
+        reason: 'LISTING_ID' | 'LISTING_URL' | 'MARKET_HASH_NAME_FLOAT_PRICE';
+        candidateId: string;
+        oldListPrice: number;
+        newListPrice: number;
+        priceChanged: boolean;
+        previousStatus: CandidateDecisionStatus;
+        previousTimesSeen: number;
+        currentTimesSeen: number;
+        previousMergeCount: number;
+        currentMergeCount: number;
+      }
+    | null;
+  evaluation: CandidateEvaluation;
+}> {
+  const { input, warnings } = normalizeExtensionPayload(payload);
   const inputWithRaw = {
     ...input,
     rawPayload: payload as Prisma.InputJsonValue,
   };
-  const duplicate = await findDuplicateCandidate(input);
-  const rowId = duplicate
-    ? (await mergeDuplicate(duplicate.id, inputWithRaw)).candidate.id
+  const duplicateMatch = await findDuplicateCandidateMatch(input);
+  const duplicate = duplicateMatch?.candidate ?? null;
+  const previousStatus = duplicate?.status as CandidateDecisionStatus | undefined;
+  const previousTimesSeen = duplicate?.timesSeen ?? 0;
+  const previousMergeCount = duplicate?.mergeCount ?? 0;
+  const mergeResult = duplicate
+    ? await mergeDuplicate(duplicate.id, inputWithRaw)
+    : null;
+  const rowId = mergeResult
+    ? mergeResult.candidate.id
     : (await createCandidateRow(input, payload as Prisma.InputJsonValue)).id;
 
-  await evaluateCandidate(rowId);
+  const evaluation = await evaluateCandidate(rowId);
   const evaluated = await db.candidateListing.findUniqueOrThrow({ where: { id: rowId } });
 
-  return { candidate: toCandidateDTO(evaluated), wasDuplicate: duplicate != null };
+  return {
+    candidate: toCandidateDTO(evaluated),
+    wasDuplicate: duplicate != null,
+    warnings,
+    duplicate:
+      duplicate && duplicateMatch && mergeResult && previousStatus
+        ? {
+            reason: duplicateMatch.reason,
+            candidateId: duplicate.id,
+            oldListPrice: mergeResult.oldListPrice,
+            newListPrice: input.listPrice,
+            priceChanged: mergeResult.priceChanged,
+            previousStatus,
+            previousTimesSeen,
+            currentTimesSeen: evaluated.timesSeen,
+            previousMergeCount,
+            currentMergeCount: evaluated.mergeCount,
+          }
+        : null,
+    evaluation,
+  };
 }
 
 async function updateCandidateImpl(

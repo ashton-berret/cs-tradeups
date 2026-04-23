@@ -10,7 +10,7 @@
 
 ## Current Reality
 
-As of 2026-04-22, this repository has a Bun-managed SvelteKit app with a
+As of 2026-04-23, this repository has a Bun-managed SvelteKit app with a
 local SQLite database, a real service layer, and a thin SvelteKit API layer
 around the services.
 
@@ -43,14 +43,19 @@ What currently exists:
   detection, CSV, and basket-readiness logic.
 - CSV export endpoints for executions and expected-vs-realized reporting.
 - ECharts-powered dashboard charts with table fallbacks.
+- A local companion browser bridge under `tools/steam-market-bridge/` that
+  extracts Steam Market listing rows, posts them to
+  `POST /api/extension/candidates`, and now shows inline request/response
+  diagnostics for ingestion and evaluation.
+- Candidate ingestion diagnostics for duplicate reasoning, normalization
+  warnings, and per-plan rule-match failures.
+- Plan editor help text plus editable plan-rarity metadata in the plan card
+  update flow.
 
 What does not exist yet:
 
-- Chrome extension integration code in this repo. The ingestion endpoint
-  exists, but the bridge from the third-party CS2 Trader extension is not
-  implemented here.
 - Database integration tests and Svelte component tests.
-- Chrome extension bridge implementation code.
+- Automated end-to-end browser coverage for the companion bridge.
 
 ---
 
@@ -218,9 +223,10 @@ Still unresolved:
   `src/lib/server/tradeups/evaluation/scoring.ts`.
 - **Real marketplace-volume liquidity signal.** `computeLiquidityScore` uses
   the Phase 5 density proxy until a listing-volume signal is available.
-- **Extension bridge mechanism.** The API endpoint exists, but the local
-  mechanism that extracts data from the third-party extension into this app
-  still needs to be chosen.
+- **Bridge hardening on real-market usage.** The local companion extension
+  now exists, but real usage still needs to validate selector durability,
+  inspect-link extraction quality, and whether richer operator logging is
+  needed.
 - **Notifications beyond queue visibility.** MVP likely skips; revisit.
 
 ---
@@ -230,7 +236,8 @@ Still unresolved:
 Phase 6 completes the scoped MVP. The next implementation slice should be
 driven by real operator usage. Likely candidates:
 
-1. Build the Chrome extension bridge mechanism.
+1. Run real-market ingestion through the companion bridge and tighten any
+   remaining extraction/matching edge cases.
 2. Replace the density-based liquidity proxy with a real market-volume signal.
 3. Add database integration tests and Svelte component tests if regressions
    appear in those layers.
@@ -336,6 +343,31 @@ only then deepen analytics or scoring complexity.
   deprecated legacy fallback.
 - New endpoints: none. New dependencies: none. New files: none.
 - Verified `bun run check` after each service migration.
+
+### 2026-04-23 (Post-Phase 6 extension bridge and plan-debugging follow-up)
+
+- Added a local MV3 companion extension under `tools/steam-market-bridge/`
+  with an options page, Steam page extraction, and POST relay to
+  `POST /api/extension/candidates`.
+- Hardened bridge ingestion by stripping null optional fields, normalizing
+  currency handling, and exposing inline debug details for extracted payloads
+  and server responses.
+- Added server-side ingestion diagnostics for duplicate-match reasons,
+  normalization warnings, and per-plan rule failure breakdowns when a
+  candidate evaluates to `INVALID`.
+- Fixed duplicate detection so Steam Market page URLs are not treated as
+  row-unique listing identifiers.
+- Fixed SSR pagination link generation on candidates, inventory, plans,
+  baskets, and executions by removing `window.location.search` usage from
+  server-rendered paths.
+- Fixed plan metadata updates so `inputRarity`, `targetRarity`,
+  `description`, and `minCompositeScore` persist correctly, and widened plan
+  re-evaluation fan-out so previously `INVALID` candidates are reconsidered
+  after plan changes.
+- New endpoints: none. New dependencies: none. New files:
+  `tools/steam-market-bridge/**`.
+- Verified `bun run check` plus targeted duplicate-detection tests after the
+  bridge/debugging fixes.
 
 ### 2026-04-22 (Phase 4 candidates UI)
 

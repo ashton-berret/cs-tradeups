@@ -22,7 +22,7 @@ import type { StalenessLevel } from '$lib/types/services';
 import { db } from '$lib/server/db/client';
 import { FLOAT_EPSILON } from '$lib/server/utils/float';
 import { toDecimal, toNumber } from '$lib/server/utils/decimal';
-import { normalizeListingUrl } from '$lib/server/utils/url';
+import { isAuthoritativeListingUrl, normalizeListingUrl } from '$lib/server/utils/url';
 
 export const MONEY_EPSILON = 0.01;
 // Relative tolerance for price-match. Accept cents-level drift on low prices,
@@ -38,6 +38,11 @@ export interface MergeResult {
   oldListPrice: number;
 }
 
+export interface DuplicateCandidateMatch {
+  candidate: CandidateListing;
+  reason: 'LISTING_ID' | 'LISTING_URL' | 'MARKET_HASH_NAME_FLOAT_PRICE';
+}
+
 /**
  * Find an existing candidate row that should be treated as the same listing
  * as the incoming input. Returns null when no duplicate is found.
@@ -49,6 +54,12 @@ export function findDuplicateCandidate(
   input: CreateCandidateInput,
 ): Promise<CandidateListing | null> {
   return findDuplicateCandidateImpl(input);
+}
+
+export function findDuplicateCandidateMatch(
+  input: CreateCandidateInput,
+): Promise<DuplicateCandidateMatch | null> {
+  return findDuplicateCandidateMatchImpl(input);
 }
 
 /**
@@ -131,6 +142,12 @@ async function mergeDuplicateImpl(
 async function findDuplicateCandidateImpl(
   input: CreateCandidateInput,
 ): Promise<CandidateListing | null> {
+  return (await findDuplicateCandidateMatchImpl(input))?.candidate ?? null;
+}
+
+async function findDuplicateCandidateMatchImpl(
+  input: CreateCandidateInput,
+): Promise<DuplicateCandidateMatch | null> {
   if (input.listingId) {
     const authoritative = await db.candidateListing.findFirst({
       where: { listingId: input.listingId },
@@ -138,15 +155,15 @@ async function findDuplicateCandidateImpl(
     });
 
     if (authoritative) {
-      return authoritative;
+      return { candidate: authoritative, reason: 'LISTING_ID' };
     }
   }
 
   const normalizedUrl = normalizeListingUrl(input.listingUrl);
-  if (normalizedUrl) {
+  if (normalizedUrl && isAuthoritativeListingUrl(input.listingUrl)) {
     const urlMatch = await findUrlMatch(normalizedUrl);
     if (urlMatch) {
-      return urlMatch;
+      return { candidate: urlMatch, reason: 'LISTING_URL' };
     }
   }
 
@@ -164,15 +181,18 @@ async function findDuplicateCandidateImpl(
     take: 25,
   });
 
-  return (
+  const fuzzyMatch =
     candidates.find((candidate) => {
       if (candidate.floatValue == null || input.floatValue == null) {
         return candidate.floatValue == null && input.floatValue == null;
       }
 
       return Math.abs(candidate.floatValue - input.floatValue) <= FLOAT_EPSILON;
-    }) ?? null
-  );
+    }) ?? null;
+
+  return fuzzyMatch
+    ? { candidate: fuzzyMatch, reason: 'MARKET_HASH_NAME_FLOAT_PRICE' }
+    : null;
 }
 
 async function findUrlMatch(normalizedUrl: string): Promise<CandidateListing | null> {

@@ -17,7 +17,7 @@ import type {
   TradeupPlan,
   TradeupPlanRule,
 } from '@prisma/client';
-import type { PlanMatch } from '$lib/types/services';
+import type { CandidatePlanDiagnostic, PlanMatch, RuleFailureDiagnostic, RuleMatchDiagnostic } from '$lib/types/services';
 import { toNumber } from '$lib/server/utils/decimal';
 import { isWithinFloatRange } from '$lib/server/utils/float';
 
@@ -104,47 +104,7 @@ export function matchCandidateToPlan(
   candidate: CandidateLike,
   plan: TradeupPlan & { rules: TradeupPlanRule[] },
 ): PlanMatch | null {
-  if (candidate.rarity !== plan.inputRarity) {
-    return null;
-  }
-
-  if (plan.rules.length === 0) {
-    return {
-      planId: plan.id,
-      ruleId: null,
-      fitScore: 0.5,
-      preferred: false,
-      maxBuyPrice: null,
-    };
-  }
-
-  const matches = plan.rules
-    .map((rule) => ({
-      rule,
-      fitScore: ruleFitScore(candidate, rule),
-    }))
-    .filter((match) => match.fitScore > 0)
-    .sort((a, b) => {
-      if (b.fitScore !== a.fitScore) return b.fitScore - a.fitScore;
-      if (b.rule.priority !== a.rule.priority) return b.rule.priority - a.rule.priority;
-      if (Number(b.rule.isPreferred) !== Number(a.rule.isPreferred)) {
-        return Number(b.rule.isPreferred) - Number(a.rule.isPreferred);
-      }
-      return a.rule.id.localeCompare(b.rule.id);
-    });
-
-  const best = matches[0];
-  if (!best) {
-    return null;
-  }
-
-  return {
-    planId: plan.id,
-    ruleId: best.rule.id,
-    fitScore: best.fitScore,
-    preferred: best.rule.isPreferred,
-    maxBuyPrice: toNumber(best.rule.maxBuyPrice),
-  };
+  return diagnoseCandidateAgainstPlan(candidate, plan).match;
 }
 
 /**
@@ -170,6 +130,94 @@ export function pickBestMatch(matches: PlanMatch[]): PlanMatch | null {
   return [...matches].sort(compareMatches)[0] ?? null;
 }
 
+export function diagnoseCandidateAgainstPlans(
+  candidate: CandidateLike,
+  plans: Array<TradeupPlan & { rules: TradeupPlanRule[]; outcomeItems?: Array<{ collection: string }> }>,
+): CandidatePlanDiagnostic[] {
+  return plans.map((plan) => diagnoseCandidateAgainstPlan(candidate, plan).diagnostic);
+}
+
+export function diagnoseCandidateAgainstPlan(
+  candidate: CandidateLike,
+  plan: TradeupPlan & { rules: TradeupPlanRule[]; outcomeItems?: Array<{ collection: string }> },
+): { match: PlanMatch | null; diagnostic: CandidatePlanDiagnostic } {
+  if (candidate.rarity !== plan.inputRarity) {
+    return {
+      match: null,
+      diagnostic: {
+        planId: plan.id,
+        planName: plan.name,
+        matched: false,
+        selectedRuleId: null,
+        failures: [
+          {
+            code: 'INPUT_RARITY_MISMATCH',
+            expected: plan.inputRarity,
+            actual: candidate.rarity,
+          },
+        ],
+        ruleDiagnostics: [],
+        candidateCollectionOutcomeCount: countOutcomesForCollection(plan.outcomeItems, candidate.collection),
+      },
+    };
+  }
+
+  if (plan.rules.length === 0) {
+    return {
+      match: {
+        planId: plan.id,
+        ruleId: null,
+        fitScore: 0.5,
+        preferred: false,
+        maxBuyPrice: null,
+      },
+      diagnostic: {
+        planId: plan.id,
+        planName: plan.name,
+        matched: true,
+        selectedRuleId: null,
+        failures: [],
+        ruleDiagnostics: [],
+        candidateCollectionOutcomeCount: countOutcomesForCollection(plan.outcomeItems, candidate.collection),
+      },
+    };
+  }
+
+  const diagnostics = plan.rules.map((rule) => diagnoseRule(candidate, rule));
+  const accepted = diagnostics
+    .filter((entry) => entry.accepted)
+    .sort((a, b) => compareRuleMatches(a, b));
+
+  const best = accepted[0];
+  const match = best
+    ? {
+        planId: plan.id,
+        ruleId: best.rule.id,
+        fitScore: best.fitScore,
+        preferred: best.rule.isPreferred,
+        maxBuyPrice: toNumber(best.rule.maxBuyPrice),
+      }
+    : null;
+
+  return {
+    match,
+    diagnostic: {
+      planId: plan.id,
+      planName: plan.name,
+      matched: best != null,
+      selectedRuleId: best?.rule.id ?? null,
+      failures: best ? [] : [{ code: 'NO_RULE_MATCH' }],
+      ruleDiagnostics: diagnostics.map(({ rule, accepted, fitScore, failures }) => ({
+        ruleId: rule.id,
+        accepted,
+        fitScore,
+        failures,
+      })),
+      candidateCollectionOutcomeCount: countOutcomesForCollection(plan.outcomeItems, candidate.collection),
+    },
+  };
+}
+
 function compareMatches(a: PlanMatch, b: PlanMatch): number {
   if (b.fitScore !== a.fitScore) return b.fitScore - a.fitScore;
   if (Number(b.preferred) !== Number(a.preferred)) return Number(b.preferred) - Number(a.preferred);
@@ -179,6 +227,76 @@ function compareMatches(a: PlanMatch, b: PlanMatch): number {
   if (aMax !== bMax) return aMax - bMax;
 
   return a.planId.localeCompare(b.planId);
+}
+
+function compareRuleMatches(
+  a: { rule: TradeupPlanRule; fitScore: number },
+  b: { rule: TradeupPlanRule; fitScore: number },
+): number {
+  if (b.fitScore !== a.fitScore) return b.fitScore - a.fitScore;
+  if (b.rule.priority !== a.rule.priority) return b.rule.priority - a.rule.priority;
+  if (Number(b.rule.isPreferred) !== Number(a.rule.isPreferred)) {
+    return Number(b.rule.isPreferred) - Number(a.rule.isPreferred);
+  }
+  return a.rule.id.localeCompare(b.rule.id);
+}
+
+function diagnoseRule(
+  candidate: CandidateLike,
+  rule: TradeupPlanRule,
+): { rule: TradeupPlanRule; accepted: boolean; fitScore: number; failures: RuleFailureDiagnostic[] } {
+  const failures: RuleFailureDiagnostic[] = [];
+
+  if (rule.rarity && candidate.rarity !== rule.rarity) {
+    failures.push({ code: 'RARITY', expected: rule.rarity, actual: candidate.rarity });
+  }
+
+  if (rule.collection && candidate.collection !== rule.collection) {
+    failures.push({ code: 'COLLECTION', expected: rule.collection, actual: candidate.collection });
+  }
+
+  if (rule.exterior && candidate.exterior !== rule.exterior) {
+    failures.push({ code: 'EXTERIOR', expected: rule.exterior, actual: candidate.exterior });
+  }
+
+  const hasFloatConstraint = rule.minFloat != null || rule.maxFloat != null;
+  if (hasFloatConstraint && candidate.floatValue == null) {
+    failures.push({ code: 'FLOAT_REQUIRED', expected: `${rule.minFloat ?? 0}-${rule.maxFloat ?? 1}`, actual: null });
+  } else if (
+    hasFloatConstraint &&
+    candidate.floatValue != null &&
+    !isWithinFloatRange(candidate.floatValue, rule.minFloat, rule.maxFloat)
+  ) {
+    failures.push({
+      code: 'FLOAT_RANGE',
+      expected: `${rule.minFloat ?? 0}-${rule.maxFloat ?? 1}`,
+      actual: candidate.floatValue,
+    });
+  }
+
+  const maxBuyPrice = toNumber(rule.maxBuyPrice);
+  if (maxBuyPrice != null && candidate.listPrice > maxBuyPrice) {
+    failures.push({ code: 'MAX_BUY_PRICE', expected: maxBuyPrice, actual: candidate.listPrice });
+  }
+
+  const accepted = failures.length === 0;
+  return {
+    rule,
+    accepted,
+    fitScore: accepted ? ruleFitScore(candidate, rule) : 0,
+    failures,
+  };
+}
+
+function countOutcomesForCollection(
+  outcomes: Array<{ collection: string }> | undefined,
+  collection: string | null,
+): number {
+  if (!outcomes || !collection) {
+    return 0;
+  }
+
+  return outcomes.filter((outcome) => outcome.collection === collection).length;
 }
 
 function boundedFloatFit(

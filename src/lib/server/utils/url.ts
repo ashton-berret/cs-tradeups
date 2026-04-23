@@ -49,3 +49,33 @@ export function normalizeListingUrl(input: string | null | undefined): string | 
 
   return url.toString();
 }
+
+/**
+ * Decide whether a listing URL is row-unique enough to use as a duplicate key.
+ *
+ * Steam Community Market listing pages are page-level URLs shared by every row
+ * on that item page, so they are not authoritative identifiers for a specific
+ * listing observation.
+ */
+export function isAuthoritativeListingUrl(input: string | null | undefined): boolean {
+  const normalized = normalizeListingUrl(input);
+  if (!normalized) {
+    return false;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(normalized);
+  } catch {
+    return false;
+  }
+
+  const host = url.host.toLowerCase();
+  const pathname = url.pathname.replace(/\/+$/, '');
+
+  if (host === 'steamcommunity.com' && pathname.startsWith('/market/listings/')) {
+    return false;
+  }
+
+  return true;
+}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import Button from '$lib/components/Button.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import DataTable from '$lib/components/DataTable.svelte';
@@ -22,9 +23,9 @@
 	const issueText = $derived(JSON.stringify(form?.issues ?? []));
 	const ruleError = $derived(issueText.includes('minFloat must be <= maxFloat') ? 'minFloat must be <= maxFloat' : null);
 
-	function hrefForPage(page: number) {
-		const params = new URLSearchParams(window.location.search);
-		params.set('page', String(page));
+	function hrefForPage(nextPage: number) {
+		const params = new URLSearchParams(page.url.searchParams);
+		params.set('page', String(nextPage));
 		return `?${params.toString()}`;
 	}
 

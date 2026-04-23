@@ -58,6 +58,8 @@ export const actions: Actions = {
 				body: JSON.stringify({
 					name: field(form, 'name'),
 					description: field(form, 'description'),
+					inputRarity: field(form, 'inputRarity'),
+					targetRarity: field(form, 'targetRarity'),
 					isActive: boolField(form, 'isActive'),
 					minProfitThreshold: numberField(form, 'minProfitThreshold'),
 					minProfitPctThreshold: numberField(form, 'minProfitPctThreshold'),

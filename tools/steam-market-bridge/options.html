@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>cs-tradeups Steam Market Bridge</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      h1 {
+        margin: 0 0 20px;
+        font-size: 20px;
+      }
+
+      form {
+        display: grid;
+        gap: 16px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 14px;
+      }
+
+      input {
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 10px 12px;
+        background: #020617;
+        color: #f8fafc;
+        font: inherit;
+      }
+
+      button {
+        width: fit-content;
+        border: 1px solid #64748b;
+        border-radius: 6px;
+        background: #111827;
+        color: #f8fafc;
+        padding: 10px 14px;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+        color: #cbd5e1;
+      }
+
+      #status {
+        min-height: 20px;
+        color: #86efac;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>cs-tradeups Steam Market Bridge</h1>
+      <form id="settings-form">
+        <label>
+          Local app URL
+          <input id="appBaseUrl" name="appBaseUrl" type="url" required placeholder="http://127.0.0.1:5173" />
+        </label>
+
+        <label>
+          Shared secret
+          <input id="sharedSecret" name="sharedSecret" type="password" required />
+        </label>
+
+        <button type="submit">Save</button>
+        <p id="status" aria-live="polite"></p>
+      </form>
+
+      <p>
+        Set the same secret in the app's <code>.env</code> as <code>EXTENSION_SHARED_SECRET</code>.
+        The bridge reads Steam listing data from the page, then posts it to
+        <code>/api/extension/candidates</code>.
+      </p>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
+  </html>

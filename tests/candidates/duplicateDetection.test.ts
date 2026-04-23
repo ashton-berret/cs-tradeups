@@ -55,15 +55,34 @@ describe('duplicate detection', () => {
     rows = [
       candidateRow({
         id: 'url-match',
-        listingUrl: 'https://steamcommunity.com/market/listings/730/Input%20Skin?filter=abc#fragment',
+        listingUrl: 'https://example.com/listings/input-skin?filter=abc#fragment',
       }),
     ];
 
     const duplicate = await findDuplicateCandidate(
-      candidateInput({ listingUrl: 'https://steamcommunity.com/market/listings/730/Input%20Skin?query=123' }),
+      candidateInput({ listingUrl: 'https://example.com/listings/input-skin?query=123' }),
     );
 
     expect(duplicate?.id).toBe('url-match');
+  });
+
+  it('does not treat steam market page URLs as authoritative duplicates', async () => {
+    rows = [
+      candidateRow({
+        id: 'steam-page-match-should-not-happen',
+        listingUrl: 'https://steamcommunity.com/market/listings/730/Input%20Skin',
+      }),
+    ];
+
+    const duplicate = await findDuplicateCandidate(
+      candidateInput({
+        listingUrl: 'https://steamcommunity.com/market/listings/730/Input%20Skin',
+        listingId: 'different-listing-id',
+        listPrice: 14,
+      }),
+    );
+
+    expect(duplicate).toBeNull();
   });
 
   it('matches price drift inside relative tolerance and rejects outside tolerance', async () => {
