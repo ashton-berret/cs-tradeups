@@ -86,6 +86,11 @@ don't check it into the repo.
 
 - `POST /api/extension/candidates`
 
+### Exports
+
+- `GET /api/exports/executions.csv`
+- `GET /api/exports/expected-vs-realized.csv`
+
 ### Candidates
 
 - `GET  /api/candidates`

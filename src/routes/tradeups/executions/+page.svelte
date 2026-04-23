@@ -46,7 +46,15 @@
 				Record completed contracts, their results, and eventual sales.
 			</p>
 		</div>
-		<Button onclick={() => (createOpen = true)}>Record execution</Button>
+		<div class="flex flex-wrap gap-2">
+			<a
+				href="/api/exports/executions.csv"
+				class="inline-flex items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-border-hover)] hover:bg-[var(--color-bg-surface-overlay)]"
+			>
+				Export CSV
+			</a>
+			<Button onclick={() => (createOpen = true)}>Record execution</Button>
+		</div>
 	</div>
 
 	{#if form?.error}

@@ -50,7 +50,15 @@
 		</div>
 
 		<div class="space-y-3">
-			<h2 class="text-lg font-semibold">Expected vs realized</h2>
+			<div class="flex flex-wrap items-center justify-between gap-2">
+				<h2 class="text-lg font-semibold">Expected vs realized</h2>
+				<a
+					href="/api/exports/expected-vs-realized.csv"
+					class="text-sm font-medium text-[var(--color-text-secondary)] underline hover:text-[var(--color-text-primary)]"
+				>
+					Export expected vs realized
+				</a>
+			</div>
 			<DataTable
 				columns={['Executed', 'Plan', 'Expected', 'Realized', 'Delta']}
 				rows={data.evRealized}

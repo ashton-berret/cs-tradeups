@@ -139,7 +139,7 @@ What does not exist yet:
 ### Phase 6: Quality And Decision Support
 
 - [ ] Workstream A: ECharts install and dashboard chart surfaces.
-- [ ] Workstream B: CSV export helpers.
+- [x] Workstream B: CSV export helpers.
 - [x] Workstream C: Plan-aware inventory eligibility endpoint.
 - [x] Workstream D: Typed service errors migration.
 - [x] Workstream E: Automated test coverage with `bun test`.
@@ -265,6 +265,20 @@ verified API, then deepen recommendation quality.
 ---
 
 ## Change Log
+
+### 2026-04-23 (Phase 6 workstream B CSV exports)
+
+- Added `src/lib/server/utils/csv.ts` with RFC 4180 escaping and
+  spreadsheet formula-injection prefixing for leading `=/+/@/-` cells.
+- Added `GET /api/exports/executions.csv` and
+  `GET /api/exports/expected-vs-realized.csv`.
+- Added export triggers on `/tradeups/executions` and `/dashboard`.
+- Added CSV helper unit coverage under `tests/utils/csv.test.ts`.
+- New endpoints: `GET /api/exports/executions.csv`,
+  `GET /api/exports/expected-vs-realized.csv`. New dependencies: none.
+  New files: CSV helper, export routes, and CSV helper test.
+- Verified `bun run check`, `bun run build`, `bun test tests/`,
+  `bun prisma migrate deploy`, and `bun prisma db seed`.
 
 ### 2026-04-23 (Phase 6 workstream C plan-aware inventory eligibility)
 
