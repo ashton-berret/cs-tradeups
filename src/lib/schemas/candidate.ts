@@ -47,6 +47,9 @@ export const extensionCandidateSchema = z
     listingUrl: z.string().optional(),
     listingId: z.string().optional(),
     pattern: z.number().int().optional(),
+    minFloat: floatValueSchema.optional(),
+    maxFloat: floatValueSchema.optional(),
+    paintIndex: z.number().int().nonnegative().optional(),
     currency: z.string().default('USD'),
   })
   .passthrough(); // allow unknown fields from the extension

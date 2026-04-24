@@ -37,6 +37,7 @@ import { percentChange, roundMoney, sumMoney } from '$lib/server/utils/money';
 import { toInventoryItemDTO } from '$lib/server/inventory/inventoryService';
 import { computeBasketEV, type BasketSlotContext } from './evaluation/expectedValue';
 import { evaluateBasket } from './evaluation/evaluationService';
+import { withCatalogOutcomeFloatRanges } from './evaluation/catalogOutcomes';
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -618,7 +619,8 @@ async function recomputeMetricsInTx(tx: TxClient, basketId: string): Promise<Bas
   const slots = inventoryItems.map(toBasketSlotContext);
   const totalCost = sumMoney(inventoryItems.map((item) => toNumber(item.purchasePrice)));
   const avgFloat = averageFloat(inventoryItems.map((item) => item.floatValue));
-  const ev = computeBasketEV(slots, basket.plan);
+  const projectedPlan = await withCatalogOutcomeFloatRanges(basket.plan);
+  const ev = computeBasketEV(slots, projectedPlan, { averageInputFloat: avgFloat });
   const expectedProfit = roundMoney(ev.totalEV - totalCost);
   const expectedProfitPct = percentChange(totalCost, ev.totalEV);
 
@@ -666,6 +668,7 @@ function validateBasketStatusTransition(
 function toBasketSlotContext(item: {
   id: string;
   collection: string | null;
+  catalogCollectionId?: string | null;
   exterior?: string | null;
   floatValue: number | null;
   rarity: string | null;
@@ -673,6 +676,7 @@ function toBasketSlotContext(item: {
   return {
     inventoryItemId: item.id,
     collection: item.collection,
+    catalogCollectionId: item.catalogCollectionId,
     exterior: item.exterior,
     floatValue: item.floatValue,
     rarity: item.rarity,

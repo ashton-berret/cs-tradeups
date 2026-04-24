@@ -6,7 +6,7 @@ import { isWithinFloatRange } from '$lib/server/utils/float';
 
 type ReadinessRule = Pick<
   TradeupPlanRule,
-  'collection' | 'rarity' | 'exterior' | 'minFloat' | 'maxFloat'
+  'collection' | 'catalogCollectionId' | 'rarity' | 'exterior' | 'minFloat' | 'maxFloat'
 >;
 
 export function basketReadinessIssues(
@@ -58,7 +58,11 @@ function matchesAnyRule(slot: BasketSlotContext, rules: ReadinessRule[]): boolea
       return false;
     }
 
-    if (rule.collection && slot.collection !== rule.collection) {
+    if (rule.catalogCollectionId) {
+      if (slot.catalogCollectionId !== rule.catalogCollectionId) {
+        return false;
+      }
+    } else if (rule.collection && slot.collection !== rule.collection) {
       return false;
     }
 

@@ -41,6 +41,7 @@ import {
 import { normalizeExtensionPayload, type NormalizationWarning } from './normalization';
 import { evaluateCandidate } from '$lib/server/tradeups/evaluation/evaluationService';
 import { classifyEvaluationAge, cutoffDate } from './reevaluationPolicy';
+import { resolveCatalogIdentity } from '$lib/server/catalog/linkage';
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -221,6 +222,10 @@ export function toCandidateDTO(row: CandidateListing): CandidateDTO {
     weaponName: row.weaponName,
     skinName: row.skinName,
     collection: row.collection,
+    catalogSkinId: row.catalogSkinId,
+    catalogCollectionId: row.catalogCollectionId,
+    catalogWeaponDefIndex: row.catalogWeaponDefIndex,
+    catalogPaintIndex: row.catalogPaintIndex,
     rarity: row.rarity as ItemRarity | null,
     exterior: row.exterior as ItemExterior | null,
     floatValue: row.floatValue,
@@ -424,14 +429,41 @@ async function markBoughtImpl(
       throw new NotFoundError(`Candidate not found: ${id}`);
     }
 
+    const catalogIdentity =
+      candidate.catalogSkinId != null
+        ? {
+            weaponName: candidate.weaponName,
+            skinName: candidate.skinName,
+            collection: candidate.collection,
+            catalogSkinId: candidate.catalogSkinId,
+            catalogCollectionId: candidate.catalogCollectionId,
+            catalogWeaponDefIndex: candidate.catalogWeaponDefIndex,
+            catalogPaintIndex: candidate.catalogPaintIndex,
+            rarity: candidate.rarity as ItemRarity | null,
+            exterior: candidate.exterior as ItemExterior | null,
+          }
+        : await resolveCatalogIdentity({
+            marketHashName: candidate.marketHashName,
+            weaponName: candidate.weaponName,
+            skinName: candidate.skinName,
+            collection: candidate.collection,
+            rarity: candidate.rarity as ItemRarity | null,
+            exterior: candidate.exterior as ItemExterior | null,
+            floatValue: candidate.floatValue,
+          });
+
     const inventoryItem = await tx.inventoryItem.create({
       data: {
         marketHashName: candidate.marketHashName,
-        weaponName: candidate.weaponName,
-        skinName: candidate.skinName,
-        collection: candidate.collection,
-        rarity: candidate.rarity,
-        exterior: candidate.exterior,
+        weaponName: catalogIdentity?.weaponName ?? candidate.weaponName,
+        skinName: catalogIdentity?.skinName ?? candidate.skinName,
+        collection: catalogIdentity?.collection ?? candidate.collection,
+        catalogSkinId: catalogIdentity?.catalogSkinId ?? candidate.catalogSkinId,
+        catalogCollectionId: catalogIdentity?.catalogCollectionId ?? candidate.catalogCollectionId,
+        catalogWeaponDefIndex: catalogIdentity?.catalogWeaponDefIndex ?? candidate.catalogWeaponDefIndex,
+        catalogPaintIndex: catalogIdentity?.catalogPaintIndex ?? candidate.catalogPaintIndex,
+        rarity: catalogIdentity?.rarity ?? candidate.rarity,
+        exterior: catalogIdentity?.exterior ?? candidate.exterior,
         floatValue: candidate.floatValue,
         pattern: candidate.pattern,
         inspectLink: candidate.inspectLink,
@@ -545,26 +577,7 @@ function createCandidateRow(
   input: CreateCandidateInput,
   rawPayload?: Prisma.InputJsonValue,
 ): Promise<CandidateListing> {
-  return db.candidateListing.create({
-    data: {
-      marketHashName: input.marketHashName,
-      weaponName: input.weaponName,
-      skinName: input.skinName,
-      collection: input.collection,
-      rarity: input.rarity,
-      exterior: input.exterior,
-      floatValue: input.floatValue,
-      pattern: input.pattern,
-      inspectLink: input.inspectLink,
-      listPrice: toDecimal(input.listPrice),
-      currency: input.currency,
-      listingUrl: input.listingUrl,
-      listingId: input.listingId,
-      source: input.source,
-      rawPayload,
-      notes: input.notes,
-    },
-  });
+  return createCatalogAwareCandidateRow(input, rawPayload);
 }
 
 function toInventoryItemDTO(row: InventoryItem): InventoryItemDTO {
@@ -576,6 +589,10 @@ function toInventoryItemDTO(row: InventoryItem): InventoryItemDTO {
     weaponName: row.weaponName,
     skinName: row.skinName,
     collection: row.collection,
+    catalogSkinId: row.catalogSkinId,
+    catalogCollectionId: row.catalogCollectionId,
+    catalogWeaponDefIndex: row.catalogWeaponDefIndex,
+    catalogPaintIndex: row.catalogPaintIndex,
     rarity: row.rarity as ItemRarity | null,
     exterior: row.exterior as ItemExterior | null,
     floatValue: row.floatValue,
@@ -590,4 +607,44 @@ function toInventoryItemDTO(row: InventoryItem): InventoryItemDTO {
     candidateId: row.candidateId,
     notes: row.notes,
   };
+}
+
+async function createCatalogAwareCandidateRow(
+  input: CreateCandidateInput,
+  rawPayload?: Prisma.InputJsonValue,
+): Promise<CandidateListing> {
+  const catalogIdentity = await resolveCatalogIdentity({
+    marketHashName: input.marketHashName,
+    weaponName: input.weaponName,
+    skinName: input.skinName,
+    collection: input.collection,
+    rarity: input.rarity ?? null,
+    exterior: input.exterior ?? null,
+    floatValue: input.floatValue ?? null,
+  });
+
+  return db.candidateListing.create({
+    data: {
+      marketHashName: input.marketHashName,
+      weaponName: catalogIdentity?.weaponName ?? input.weaponName,
+      skinName: catalogIdentity?.skinName ?? input.skinName,
+      collection: catalogIdentity?.collection ?? input.collection,
+      catalogSkinId: catalogIdentity?.catalogSkinId,
+      catalogCollectionId: catalogIdentity?.catalogCollectionId,
+      catalogWeaponDefIndex: catalogIdentity?.catalogWeaponDefIndex,
+      catalogPaintIndex: catalogIdentity?.catalogPaintIndex,
+      rarity: catalogIdentity?.rarity ?? input.rarity,
+      exterior: catalogIdentity?.exterior ?? input.exterior,
+      floatValue: input.floatValue,
+      pattern: input.pattern,
+      inspectLink: input.inspectLink,
+      listPrice: toDecimal(input.listPrice),
+      currency: input.currency,
+      listingUrl: input.listingUrl,
+      listingId: input.listingId,
+      source: input.source,
+      rawPayload,
+      notes: input.notes,
+    },
+  });
 }

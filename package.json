@@ -11,7 +11,10 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"test": "bun test tests/",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"catalog:inspect": "bunx tsx tools/cs2-catalog/import.ts --inspect",
+		"catalog:import": "bunx tsx tools/cs2-catalog/import.ts",
+		"catalog:backfill-db": "bunx tsx tools/cs2-catalog/backfill-db.ts"
 	},
 	"prisma": {
 		"seed": "bunx tsx prisma/seed.ts"

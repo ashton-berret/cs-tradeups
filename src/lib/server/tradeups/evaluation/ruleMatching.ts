@@ -23,6 +23,7 @@ import { isWithinFloatRange } from '$lib/server/utils/float';
 
 export interface CandidateLike {
   collection: string | null;
+  catalogCollectionId: string | null;
   rarity: string | null;
   exterior: string | null;
   floatValue: number | null;
@@ -39,6 +40,7 @@ export function toCandidateLike(
 ): CandidateLike {
   return {
     collection: row.collection,
+    catalogCollectionId: row.catalogCollectionId,
     rarity: row.rarity,
     exterior: row.exterior,
     floatValue: row.floatValue,
@@ -58,7 +60,11 @@ export function ruleFitScore(
     return 0;
   }
 
-  if (rule.collection && candidate.collection !== rule.collection) {
+  if (rule.catalogCollectionId) {
+    if (candidate.catalogCollectionId !== rule.catalogCollectionId) {
+      return 0;
+    }
+  } else if (rule.collection && candidate.collection !== rule.collection) {
     return 0;
   }
 
@@ -132,14 +138,14 @@ export function pickBestMatch(matches: PlanMatch[]): PlanMatch | null {
 
 export function diagnoseCandidateAgainstPlans(
   candidate: CandidateLike,
-  plans: Array<TradeupPlan & { rules: TradeupPlanRule[]; outcomeItems?: Array<{ collection: string }> }>,
+  plans: Array<TradeupPlan & { rules: TradeupPlanRule[]; outcomeItems?: Array<{ collection: string; catalogCollectionId?: string | null }> }>,
 ): CandidatePlanDiagnostic[] {
   return plans.map((plan) => diagnoseCandidateAgainstPlan(candidate, plan).diagnostic);
 }
 
 export function diagnoseCandidateAgainstPlan(
   candidate: CandidateLike,
-  plan: TradeupPlan & { rules: TradeupPlanRule[]; outcomeItems?: Array<{ collection: string }> },
+  plan: TradeupPlan & { rules: TradeupPlanRule[]; outcomeItems?: Array<{ collection: string; catalogCollectionId?: string | null }> },
 ): { match: PlanMatch | null; diagnostic: CandidatePlanDiagnostic } {
   if (candidate.rarity !== plan.inputRarity) {
     return {
@@ -157,7 +163,11 @@ export function diagnoseCandidateAgainstPlan(
           },
         ],
         ruleDiagnostics: [],
-        candidateCollectionOutcomeCount: countOutcomesForCollection(plan.outcomeItems, candidate.collection),
+        candidateCollectionOutcomeCount: countOutcomesForCollection(
+          plan.outcomeItems,
+          candidate.collection,
+          candidate.catalogCollectionId,
+        ),
       },
     };
   }
@@ -178,7 +188,11 @@ export function diagnoseCandidateAgainstPlan(
         selectedRuleId: null,
         failures: [],
         ruleDiagnostics: [],
-        candidateCollectionOutcomeCount: countOutcomesForCollection(plan.outcomeItems, candidate.collection),
+        candidateCollectionOutcomeCount: countOutcomesForCollection(
+          plan.outcomeItems,
+          candidate.collection,
+          candidate.catalogCollectionId,
+        ),
       },
     };
   }
@@ -213,7 +227,11 @@ export function diagnoseCandidateAgainstPlan(
         fitScore,
         failures,
       })),
-      candidateCollectionOutcomeCount: countOutcomesForCollection(plan.outcomeItems, candidate.collection),
+      candidateCollectionOutcomeCount: countOutcomesForCollection(
+        plan.outcomeItems,
+        candidate.collection,
+        candidate.catalogCollectionId,
+      ),
     },
   };
 }
@@ -251,7 +269,15 @@ function diagnoseRule(
     failures.push({ code: 'RARITY', expected: rule.rarity, actual: candidate.rarity });
   }
 
-  if (rule.collection && candidate.collection !== rule.collection) {
+  if (rule.catalogCollectionId) {
+    if (candidate.catalogCollectionId !== rule.catalogCollectionId) {
+      failures.push({
+        code: 'COLLECTION',
+        expected: rule.catalogCollectionId,
+        actual: candidate.catalogCollectionId,
+      });
+    }
+  } else if (rule.collection && candidate.collection !== rule.collection) {
     failures.push({ code: 'COLLECTION', expected: rule.collection, actual: candidate.collection });
   }
 
@@ -289,14 +315,21 @@ function diagnoseRule(
 }
 
 function countOutcomesForCollection(
-  outcomes: Array<{ collection: string }> | undefined,
+  outcomes: Array<{ collection: string; catalogCollectionId?: string | null }> | undefined,
   collection: string | null,
+  catalogCollectionId?: string | null,
 ): number {
-  if (!outcomes || !collection) {
+  if (!outcomes || (!collection && !catalogCollectionId)) {
     return 0;
   }
 
-  return outcomes.filter((outcome) => outcome.collection === collection).length;
+  return outcomes.filter((outcome) => {
+    if (catalogCollectionId && outcome.catalogCollectionId) {
+      return outcome.catalogCollectionId === catalogCollectionId;
+    }
+
+    return outcome.collection === collection;
+  }).length;
 }
 
 function boundedFloatFit(

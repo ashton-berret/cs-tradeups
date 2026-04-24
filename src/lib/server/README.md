@@ -10,6 +10,9 @@ the implementation home for Phase 2.
 server/
 ├─ db/
 │  └─ client.ts                    # Prisma singleton (exports `db`)
+├─ catalog/
+│  ├─ catalogService.ts            # static CS2 catalog snapshot loader
+│  └─ linkage.ts                   # candidate/inventory -> catalog matching
 ├─ utils/
 │  ├─ decimal.ts                   # Prisma.Decimal <-> number boundary
 │  ├─ money.ts                     # rounding + money arithmetic

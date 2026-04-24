@@ -9,9 +9,8 @@
 // price, and source are required.
 
 import type { CreateCandidateInput, ExtensionCandidateInput } from '$lib/types/domain';
-import type { ItemExterior } from '$lib/types/enums';
-import { EXTERIOR_LABELS } from '$lib/types/enums';
 import { exteriorForFloat } from '$lib/server/utils/float';
+import { exteriorFromLabel, parseMarketHashName } from '$lib/server/utils/marketHash';
 
 export interface NormalizationWarning {
   field: string;
@@ -47,7 +46,11 @@ export function normalizeExtensionPayload(
 
   const parsed = parseMarketHashName(marketHashName);
   const parsedExterior = exteriorFromLabel(parsed.exteriorLabel);
-  const floatExterior = payload.floatValue != null ? exteriorForFloat(payload.floatValue) : undefined;
+  const explicitExterior = payload.exterior ?? parsedExterior;
+  const suspiciousZeroFloat =
+    payload.floatValue === 0 && explicitExterior != null && explicitExterior !== 'FACTORY_NEW';
+  const normalizedFloatValue = suspiciousZeroFloat ? undefined : payload.floatValue;
+  const floatExterior = normalizedFloatValue != null ? exteriorForFloat(normalizedFloatValue) : undefined;
 
   if (!payload.weaponName && !parsed.weaponName) {
     warnings.push({ field: 'weaponName', reason: 'Unable to infer weapon from marketHashName' });
@@ -57,8 +60,56 @@ export function normalizeExtensionPayload(
     warnings.push({ field: 'skinName', reason: 'Unable to infer skin from marketHashName' });
   }
 
-  if (!payload.exterior && !parsedExterior && payload.floatValue == null) {
+  if (!payload.exterior && !parsedExterior && normalizedFloatValue == null) {
     warnings.push({ field: 'exterior', reason: 'Missing exterior and floatValue' });
+  }
+
+  if (suspiciousZeroFloat) {
+    warnings.push({
+      field: 'floatValue',
+      reason: `Dropped placeholder zero float because exterior ${explicitExterior} is not FACTORY_NEW`,
+    });
+  }
+
+  if (payload.exterior && parsedExterior && payload.exterior !== parsedExterior) {
+    warnings.push({
+      field: 'exterior',
+      reason: `Payload exterior ${payload.exterior} conflicts with marketHashName exterior ${parsedExterior}`,
+    });
+  }
+
+  if (payload.exterior && floatExterior && payload.exterior !== floatExterior) {
+    warnings.push({
+      field: 'exterior',
+      reason: `Payload exterior ${payload.exterior} conflicts with floatValue-derived exterior ${floatExterior}`,
+    });
+  }
+
+  if (!payload.exterior && parsedExterior && floatExterior && parsedExterior !== floatExterior) {
+    warnings.push({
+      field: 'exterior',
+      reason: `marketHashName exterior ${parsedExterior} conflicts with floatValue-derived exterior ${floatExterior}`,
+    });
+  }
+
+  if (payload.minFloat != null && payload.maxFloat != null && payload.minFloat > payload.maxFloat) {
+    warnings.push({ field: 'floatRange', reason: 'minFloat is greater than maxFloat' });
+  }
+
+  if (
+    normalizedFloatValue != null &&
+    payload.minFloat != null &&
+    normalizedFloatValue < payload.minFloat
+  ) {
+    warnings.push({ field: 'floatValue', reason: 'floatValue is below payload minFloat' });
+  }
+
+  if (
+    normalizedFloatValue != null &&
+    payload.maxFloat != null &&
+    normalizedFloatValue > payload.maxFloat
+  ) {
+    warnings.push({ field: 'floatValue', reason: 'floatValue is above payload maxFloat' });
   }
 
   const input: CreateCandidateInput = {
@@ -68,7 +119,7 @@ export function normalizeExtensionPayload(
     collection: cleanOptional(payload.collection),
     rarity: payload.rarity,
     exterior: payload.exterior ?? parsedExterior ?? floatExterior,
-    floatValue: payload.floatValue,
+    floatValue: normalizedFloatValue,
     pattern: payload.pattern,
     inspectLink: cleanOptional(payload.inspectLink),
     listPrice: payload.listPrice,
@@ -86,42 +137,7 @@ export function normalizeExtensionPayload(
  * `{ weaponName: 'AK-47', skinName: 'Slate', exterior: 'FIELD_TESTED' }`.
  * Returns partial fields; missing pieces stay undefined.
  */
-export function parseMarketHashName(marketHashName: string): {
-  weaponName?: string;
-  skinName?: string;
-  exteriorLabel?: string;
-} {
-  const trimmed = marketHashName.trim();
-  const match = /^(?<weapon>[^|()]+?)\s*\|\s*(?<skin>[^()]+?)(?:\s*\((?<exterior>[^)]+)\))?$/.exec(
-    trimmed,
-  );
-
-  if (!match?.groups) {
-    return {};
-  }
-
-  return {
-    weaponName: cleanOptional(match.groups.weapon),
-    skinName: cleanOptional(match.groups.skin),
-    exteriorLabel: cleanOptional(match.groups.exterior),
-  };
-}
-
 function cleanOptional(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
-}
-
-function exteriorFromLabel(label: string | undefined): ItemExterior | undefined {
-  if (!label) {
-    return undefined;
-  }
-
-  const normalized = label.toLowerCase().replace(/[-_\s]+/g, ' ');
-
-  return (Object.entries(EXTERIOR_LABELS) as Array<[ItemExterior, string]>).find(
-    ([key, value]) =>
-      value.toLowerCase().replace(/[-_\s]+/g, ' ') === normalized ||
-      key.toLowerCase().replace(/_/g, ' ') === normalized,
-  )?.[0];
 }

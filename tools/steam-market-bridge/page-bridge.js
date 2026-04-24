@@ -96,7 +96,7 @@
       throw new Error(`Steam price data not found for listing ${listingId}`);
     }
 
-    const inspectLink = resolveInspectLink(asset, listingInfo);
+    const inspectLink = resolveInspectLink(asset, listingInfo, listingId, block);
     const collection = resolveCollection(asset);
     const rarity = resolveRarity(asset);
     const exterior = resolveExterior(marketHashName, asset);
@@ -140,7 +140,7 @@
 
   function resolveListingBlock(listingId) {
     const nameNode = document.getElementById(`listing_${listingId}_name`);
-    return nameNode?.closest('.market_listing_item_name_block') || null;
+    return nameNode?.closest('.market_listing_row') || nameNode?.closest('.market_listing_item_name_block') || null;
   }
 
   function extractExtensionData(block) {
@@ -157,18 +157,26 @@
     const rowWrapper = block.querySelector('csfloat-item-row-wrapper');
     const rowRoot = rowWrapper?.shadowRoot || null;
     const floatBar = rowRoot?.querySelector('csfloat-float-bar') || null;
-    const combinedText = [rowRoot?.textContent, block.querySelector('.floatTechnical')?.textContent]
+    const combinedText = [
+      rowRoot?.textContent,
+      block.querySelector('.floatTechnical')?.textContent,
+      block.textContent,
+    ]
       .map(cleanText)
       .filter(Boolean)
       .join(' ');
 
     const floatValue =
-      parseNumber(floatBar?.getAttribute('float')) ??
-      parseNumber(findWithRegex(combinedText, /Float(?: Value)?:\s*([0-9.]+)/i));
-    const minFloat = parseNumber(floatBar?.getAttribute('minfloat'));
-    const maxFloat = parseNumber(floatBar?.getAttribute('maxfloat'));
-    const paintSeed = parseInteger(findWithRegex(combinedText, /Paint Seed:\s*(\d+)/i));
-    const paintIndex = parseInteger(findWithRegex(combinedText, /Paint Index:\s*(\d+)/i));
+      parseNumber(firstAttribute(floatBar, ['float', 'value', 'data-float'])) ??
+      parseNumber(findWithRegex(combinedText, /Float(?: Value)?:\s*((?:0|1)?\.\d+)/i));
+    const minFloat =
+      parseNumber(firstAttribute(floatBar, ['minfloat', 'min-float', 'min', 'data-min-float'])) ??
+      parseNumber(findWithRegex(combinedText, /(?:Min(?:imum)? Float|Float Min):\s*([0-9.]+)/i));
+    const maxFloat =
+      parseNumber(firstAttribute(floatBar, ['maxfloat', 'max-float', 'max', 'data-max-float'])) ??
+      parseNumber(findWithRegex(combinedText, /(?:Max(?:imum)? Float|Float Max):\s*([0-9.]+)/i));
+    const paintSeed = parseInteger(findWithRegex(combinedText, /(?:Paint Seed|Pattern):\s*(\d+)/i));
+    const paintIndex = parseInteger(findWithRegex(combinedText, /(?:Paint Index|Paintindex):\s*(\d+)/i));
 
     return {
       floatValue,
@@ -179,7 +187,12 @@
     };
   }
 
-  function resolveInspectLink(asset, listingInfo) {
+  function resolveInspectLink(asset, listingInfo, listingId, block) {
+    const domLink = resolveDomInspectLink(block);
+    if (domLink) {
+      return domLink;
+    }
+
     const template =
       asset?.market_actions?.find((entry) => /inspect/i.test(entry?.name || ''))?.link ||
       asset?.actions?.find((entry) => /inspect/i.test(entry?.name || ''))?.link ||
@@ -194,13 +207,14 @@
     const propertyMap = new Map(
       properties
         .filter((entry) => entry && entry.propertyid != null)
-        .map((entry) => [String(entry.propertyid), entry.string_value || entry.int_value || entry.float_value]),
+        .map((entry) => [String(entry.propertyid), entry.string_value ?? entry.int_value ?? entry.float_value]),
     );
 
     const replacements = {
-      '%listingid%': String(listingInfo?.listingid || ''),
+      '%listingid%': String(listingInfo?.listingid || listingId || ''),
       '%assetid%': String(asset?.id || listingInfo?.asset?.id || ''),
       '%contextid%': String(asset?.contextid || listingInfo?.asset?.contextid || ''),
+      '%appid%': String(asset?.appid || listingInfo?.asset?.appid || ''),
     };
 
     let resolved = template;
@@ -213,6 +227,22 @@
     });
 
     return resolved.includes('%') ? null : resolved;
+  }
+
+  function resolveDomInspectLink(block) {
+    if (!block) {
+      return null;
+    }
+
+    for (const link of block.querySelectorAll('a[href]')) {
+      const href = link.getAttribute('href') || '';
+      const text = cleanText(link.textContent) || '';
+      if (/inspect/i.test(text) || /csgo_econ_action_preview|rungame\/730/i.test(href)) {
+        return href;
+      }
+    }
+
+    return null;
   }
 
   function resolveCollection(asset) {
@@ -308,6 +338,21 @@
   function findWithRegex(value, pattern) {
     const match = pattern.exec(value || '');
     return match?.[1] || null;
+  }
+
+  function firstAttribute(node, names) {
+    if (!node) {
+      return null;
+    }
+
+    for (const name of names) {
+      const value = node.getAttribute(name);
+      if (value != null && value !== '') {
+        return value;
+      }
+    }
+
+    return null;
   }
 
   function parseNumber(value) {

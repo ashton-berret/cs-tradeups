@@ -1,6 +1,6 @@
 # Extension And Trade-Up Data Source Notes
 
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-24
 
 This note captures the current integration path for getting real candidate
 listings and external trade-up ideas into `cs-tradeups`.
@@ -24,20 +24,25 @@ Relevant facts:
 - The extension already has host access to Steam and its own pricing APIs,
   but not to this local app.
 
-Recommended bridge:
+Implemented bridge:
 
-1. Do **not** fork the whole CS2 Trader extension unless needed. It is large
-   and GPL-licensed.
-2. Build a tiny companion userscript/bookmarklet or local browser extension
-   that runs after CS2 Trader on Steam market pages.
-3. Read the enriched DOM/listing data that CS2 Trader already injects:
-   listing id, market hash name, inspect link, price, float, paint seed,
-   paint index, and listing URL.
-4. POST normalized candidates to this app's existing
-   `POST /api/extension/candidates` endpoint with `X-Extension-Secret`.
+- The repo now includes a local MV3 companion extension under
+  `tools/steam-market-bridge/`.
+- The bridge runs on Steam Market listing pages, reads Steam page globals and
+  float-enrichment DOM, then posts to `POST /api/extension/candidates` with
+  `X-Extension-Secret`.
+- It intentionally avoids forking CS2 Trader. The app remains independent
+  from CS2 Trader internals while benefiting from the float enrichment the
+  operator already uses.
+- The bridge sends listing id, market hash name, inspect link, price, float,
+  paint seed, paint index, min/max float when available, collection, rarity,
+  exterior, and listing URL.
+- Inline row diagnostics show request/response details and whether the saved
+  candidate was catalog-linked.
 
-This keeps `cs-tradeups` independent from CS2 Trader internals while still
-benefiting from the float enrichment the operator already uses.
+Remaining bridge work is real-market soak testing: selector durability,
+inspect-link extraction quality, and any additional operator logging needed
+after repeated live usage.
 
 ## Trade-Up Sources Worth Evaluating
 
@@ -74,11 +79,11 @@ extension-synced data should not be scraped without explicit permission.
 
 Prioritize these in order:
 
-1. Finish the local candidate pipeline and bulk workflow.
-2. Add a companion browser bridge for Steam market pages using CS2 Trader's
-   enriched DOM.
-3. Add a TradeUpLab draft-plan importer for strategy discovery.
-4. Only then evaluate direct marketplace/price APIs or authenticated data
+1. Run real Steam Market ingestion through the companion bridge and tighten
+   extraction/matching edge cases observed in live usage.
+2. Add a TradeUpLab draft-plan importer for strategy discovery if strategy
+   sourcing becomes the bottleneck.
+3. Only then evaluate direct marketplace/price APIs or authenticated data
    syncs.
 
 This keeps the system operator-controlled and avoids depending on unstable

@@ -1,7 +1,8 @@
 # Phase 4 Operator UI — Implementation Plan
 
-**Status:** Scaffolding outline only. No behavior implemented yet.
-**Last Updated:** 2026-04-22
+**Status:** Historical implementation plan. Phase 4 has been implemented; see
+`docs/PROGRESS.md` for current state.
+**Last Updated:** 2026-04-24
 **Scope:** `/dashboard`, `/candidates`, `/inventory`, `/tradeups/plans`,
 `/tradeups/baskets`, `/tradeups/executions`
 **Companion:** `docs/PLAN.md` (intended direction),

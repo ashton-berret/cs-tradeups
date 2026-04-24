@@ -37,4 +37,18 @@ describe('basket readiness', () => {
       itemId: 'item-0',
     });
   });
+
+  it('uses catalog collection ids for rule matching when available', () => {
+    const slots = Array.from({ length: 10 }, (_, index) =>
+      slot({
+        inventoryItemId: `item-${index}`,
+        collection: 'Renamed Alpha Collection',
+        catalogCollectionId: 'collection-alpha',
+      }),
+    );
+
+    expect(
+      basketReadinessIssues('MIL_SPEC', [rule({ collection: 'Alpha Collection', catalogCollectionId: 'collection-alpha' })], slots),
+    ).toEqual([]);
+  });
 });

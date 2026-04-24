@@ -3,14 +3,14 @@
 ## Status Snapshot
 
 **Project Status:** Phase 6 MVP implemented and verified; Phases 0-6 complete
-**Last Updated:** 2026-04-23
+**Last Updated:** 2026-04-24
 **Plan Reference:** See `docs/PLAN.md`
 
 ---
 
 ## Current Reality
 
-As of 2026-04-23, this repository has a Bun-managed SvelteKit app with a
+As of 2026-04-24, this repository has a Bun-managed SvelteKit app with a
 local SQLite database, a real service layer, and a thin SvelteKit API layer
 around the services.
 
@@ -46,16 +46,39 @@ What currently exists:
 - A local companion browser bridge under `tools/steam-market-bridge/` that
   extracts Steam Market listing rows, posts them to
   `POST /api/extension/candidates`, and now shows inline request/response
-  diagnostics for ingestion and evaluation.
+  diagnostics for ingestion and evaluation. The bridge now attaches to normal
+  Steam listing rows even when float enrichment is absent, tolerates several
+  CSFloat float-range attribute variants, preserves listing IDs when resolving
+  inspect links, and surfaces normalization warning counts inline.
 - Candidate ingestion diagnostics for duplicate reasoning, normalization
   warnings, and per-plan rule-match failures.
 - Plan editor help text plus editable plan-rarity metadata in the plan card
   update flow.
+- Static CS2 catalog pipeline sourced from the local game install:
+  VPK extraction, KeyValues normalization, committed snapshot output, and
+  read-only `/api/catalog` endpoints.
+- Candidate and inventory persistence now stores nullable catalog linkage
+  fields (`catalogSkinId`, `catalogCollectionId`,
+  `catalogWeaponDefIndex`, `catalogPaintIndex`) and a local backfill tool
+  can normalize existing rows against the catalog snapshot.
+- Trade-up plan outcomes now store nullable catalog linkage fields, plan
+  rules store nullable `catalogCollectionId`, and evaluation/readiness logic
+  prefers catalog collection IDs before falling back to legacy collection
+  strings.
+- Basket EV breakdowns project per-outcome output float/exterior from
+  catalog skin min/max ranges when an outcome has `catalogSkinId`.
+- Extension ingestion accepts typed float-enrichment metadata
+  (`minFloat`, `maxFloat`, `paintIndex`) and returns warnings for
+  contradictory extension metadata without rejecting the row.
+- The Steam Market bridge surfaces whether a saved candidate was catalog
+  linked or catalog unmatched in its inline row status.
 
 What does not exist yet:
 
-- Database integration tests and Svelte component tests.
+- Svelte component tests.
 - Automated end-to-end browser coverage for the companion bridge.
+- Dynamic marketplace price/volume tables. EV values remain plan-managed and
+  liquidity still uses the candidate-density proxy.
 
 ---
 
@@ -178,6 +201,11 @@ These decisions are currently stable enough to build against:
   closed with 503.
 - Ingestion model: third-party Chrome extension (CS2 Trader) provides
   candidate data; app adapts to its payload format.
+- Catalog model: the static CS2 catalog is a generated snapshot, not a
+  runtime database table. Dynamic rows store nullable catalog IDs only as
+  references into that snapshot.
+- Catalog matching model: prefer stable catalog collection IDs for matching
+  and EV grouping when present, with string fallbacks for legacy/manual rows.
 - Documentation model: `docs/PLAN.md` is intended architecture and roadmap;
   `docs/PROGRESS.md` is actual execution/state truth. Stale root handoff
   docs were removed to avoid competing instructions.
@@ -212,36 +240,92 @@ Resolved:
   two scoped CSV exports shipped in Phase 6.
 - **Audit/event log.** Deferred; live analytics read current rows instead of
   an event table for now.
+- **Catalog-aware EV and rule matching foundation.** Plan outcomes and rules
+  now persist nullable catalog identifiers, the backfill tool covers those
+  rows, and evaluation/readiness paths prefer stable collection IDs where
+  present.
+- **Per-output float projection.** Basket EV breakdowns now project output
+  float/exterior from catalog min/max ranges where catalog-linked outcomes
+  are available.
 
 Still unresolved:
 
-- **Per-weapon / per-skin float ranges.** Each skin has its own
-  `minFloat`/`maxFloat`, which narrows the effective exterior band for any
-  given output. Current EV uses outcome `estimatedMarketValue` as-is and
-  does not project output float into per-skin price tiers. Tracked with
-  TODOs in `src/lib/server/utils/float.ts` and
-  `src/lib/server/tradeups/evaluation/scoring.ts`.
+- **Catalog-priced EV by projected exterior.** EV still uses manually stored
+  outcome market values as-is; there is no dynamic price table to select a
+  different value for the projected exterior.
 - **Real marketplace-volume liquidity signal.** `computeLiquidityScore` uses
   the Phase 5 density proxy until a listing-volume signal is available.
 - **Bridge hardening on real-market usage.** The local companion extension
-  now exists, but real usage still needs to validate selector durability,
-  inspect-link extraction quality, and whether richer operator logging is
-  needed.
+  now has first-pass static hardening for missing float enrichment, listing
+  row ID extraction, inspect-link placeholder replacement, and float metadata
+  extraction drift. A true Chrome/Steam live-page smoke test still needs to
+  validate selector durability and catalog-linked versus catalog-unmatched
+  results against real listings.
 - **Notifications beyond queue visibility.** MVP likely skips; revisit.
 
 ---
 
 ## Immediate Next Steps
 
-Phase 6 completes the scoped MVP. The next implementation slice should be
-driven by real operator usage. Likely candidates:
+Phase 6 plus the catalog identity integration slice completes the scoped MVP
+foundation. The next session should focus on proving the real ingestion loop
+before adding pricing, marketplace ingestion, plan tuning, or unrelated UI.
 
-1. Run real-market ingestion through the companion bridge and tighten any
-   remaining extraction/matching edge cases.
-2. Replace the density-based liquidity proxy with a real market-volume signal.
-3. Add database integration tests and Svelte component tests if regressions
-   appear in those layers.
-4. Revisit per-skin float ranges when the input/output skin catalog exists.
+Recommended handoff order:
+
+1. **Live bridge smoke test.**
+   - Start the app with `EXTENSION_SHARED_SECRET` configured.
+   - Load `tools/steam-market-bridge/` as an unpacked Chrome extension.
+   - Open several real Steam Market CS2 listing pages with CS2 Trader /
+     CSFloat float enrichment enabled.
+   - Ingest a small sample across common cases: exact catalog match,
+     StatTrak/Souvenir prefix, missing float enrichment, missing inspect link,
+     and a duplicate listing.
+   - Record which rows save as catalog-linked versus catalog-unmatched.
+   - Remaining from the 2026-04-24 sandbox session: this was not completed
+     because the session could not load Chrome/Steam pages. Static extraction
+     failures found during code inspection were fixed and covered where they
+     touch server normalization.
+
+2. **Tighten bridge extraction based on observed failures.**
+   - Primary files: `tools/steam-market-bridge/page-bridge.js`,
+     `tools/steam-market-bridge/content.js`,
+     `src/lib/server/candidates/normalization.ts`,
+     `src/lib/server/catalog/linkage.ts`.
+   - Fix only concrete live failures: selector drift, wrong listing id,
+     bad inspect-link template replacement, bad collection/rarity/exterior
+     extraction, missing float fields, or misleading inline diagnostics.
+   - Keep ingestion permissive. Warnings are preferred over rejecting rows
+     unless the app cannot create a valid candidate.
+
+3. **Validate server-side persistence and evaluation after live ingestion.**
+   - Confirm new candidates have correct `catalogSkinId`,
+     `catalogCollectionId`, `catalogWeaponDefIndex`, and `catalogPaintIndex`
+     when a real catalog match exists.
+   - Confirm unmatched rows are legitimate extension/manual edge cases, not
+     catalog linker bugs.
+   - Re-run affected candidates with `POST /api/candidates/[id]/reevaluate`
+     or bulk open re-evaluation if plan/rule data changes.
+
+4. **Add regression coverage for any fixed edge case.**
+   - Prefer focused unit tests under `tests/catalog/`, `tests/candidates/`,
+     or `tests/evaluation/`.
+   - Run `bun test tests/` and `bun run check`.
+   - If Prisma schema changes are unavoidable, keep them nullable/additive,
+     regenerate Prisma Client, run `bunx prisma migrate deploy`, and update
+     this document.
+
+5. **Only after bridge/linkage confidence, choose the next larger slice.**
+   - Option A: replace density-based liquidity with a real market-volume
+     signal.
+   - Option B: add dynamic projected-exterior price support from a real price
+     table.
+   - Option C: add database integration tests if live ingestion exposes query
+     regressions.
+
+Do not invent catalog matches for fake seed/filler rows. Do not start
+marketplace price ingestion or plan-discovery import work until the live
+candidate ingestion loop is proven stable.
 
 ---
 
@@ -263,6 +347,63 @@ only then deepen analytics or scoring complexity.
 
 ## Verification Log
 
+### 2026-04-24
+
+- Added and applied the nullable plan catalog linkage migration.
+- Regenerated Prisma Client after the schema change.
+- Ran `bun run catalog:backfill-db`; current local DB matched 3/3 plan rules
+  and 4/4 plan outcomes, and the second run was idempotent with 0 updates.
+- `bun test tests/` passes with 26 tests.
+- `bun run check` passes with 0 errors and 0 warnings.
+- Added catalog-based output float/exterior projection in EV breakdowns and
+  extension float-enrichment diagnostics.
+- `bun test tests/` passes with 28 tests.
+- `bun run check` passes with 0 errors and 0 warnings.
+- Hardened the Steam Market bridge extraction path after code inspection:
+  normal listing rows now receive controls without requiring CSFloat DOM,
+  listing row IDs are accepted in addition to child name IDs, inspect-link
+  replacement falls back to the requested listing ID, CSFloat min/max/paint
+  metadata accepts more attribute/text variants, and inline success status
+  includes normalization warning counts.
+- Added a regression test for market-hash exterior versus float-derived
+  exterior conflicts during extension normalization.
+- `bun test tests/` passes with 29 tests.
+- `bun run check` passes with 0 errors and 0 warnings.
+- `node --check` passes for `page-bridge.js`, `content.js`,
+  `background.js`, and `options.js`; `manifest.json` parses as MV3 JSON.
+- Updated `tools/steam-market-bridge/README.md` with current inline status
+  behavior and the recommended live smoke-test cases.
+- During live operator smoke testing, normal, duplicate, and StatTrak rows
+  saved and catalog-linked correctly. Candidate details in the app were too
+  sparse for verifying listing/catalog identity fields, and observed bridge
+  payloads had `inspectLink: null`.
+- Expanded the candidate Details modal to show normalized identity, listing
+  IDs/URLs, inspect-link presence, catalog linkage IDs, paint index, duplicate
+  counters, and evaluation fields.
+- Added a bridge inspect-link fallback that reads inspect anchors directly
+  from the Steam listing row before falling back to Steam action templates.
+- Live retesting confirmed inspect links now populate. Missing float
+  enrichment still produced placeholder `0` float values, so text-based float
+  extraction now requires a decimal-form value while explicit CSFloat
+  attributes remain accepted.
+- Added server-side normalization defense for placeholder zero floats:
+  extension `floatValue: 0` is dropped with a warning when the item exterior
+  is known and not `FACTORY_NEW`.
+- `node --check tools/steam-market-bridge/page-bridge.js` passes.
+- `bun test tests/` passes with 30 tests.
+- `bun run check` passes with 0 errors and 0 warnings.
+- Added disposable SQLite integration coverage for extension candidate
+  ingestion and catalog linkage. The integration suite applies committed
+  Prisma migrations to `prisma/test-integration.db` and verifies catalog-linked
+  persistence, StatTrak normalization, duplicate listing merge behavior,
+  placeholder zero-float dropping, and candidate-to-inventory catalog identity
+  carryover.
+- `bun test tests/` passes with 35 tests.
+- `bun run check` passes with 0 errors and 0 warnings.
+- Live Chrome/Steam smoke testing was not completed in this sandbox; remaining
+  validation is to ingest real rows and record catalog-linked versus
+  catalog-unmatched outcomes.
+
 ### 2026-04-22
 
 - `bun run check` passes with 0 errors and 0 warnings.
@@ -280,6 +421,65 @@ only then deepen analytics or scoring complexity.
 ---
 
 ## Change Log
+
+### 2026-04-24 (Catalog-aware plan evaluation linkage)
+
+- Added nullable catalog identity columns to `TradeupOutcomeItem` and nullable
+  `catalogCollectionId` to `TradeupPlanRule`.
+- Updated plan rule/outcome writes and the catalog DB backfill tool to resolve
+  those identifiers from the static catalog snapshot.
+- Updated rule matching, basket readiness, inventory eligibility, candidate EV,
+  basket EV, and marginal contribution calculations to prefer
+  `catalogCollectionId` before falling back to collection strings.
+- Added regression coverage for catalog-ID rule matching and EV grouping.
+
+### 2026-04-24 (Catalog EV projection and ingestion diagnostics)
+
+- Enriched basket EV breakdowns with projected output float, projected
+  exterior, and projected market hash name using catalog skin min/max ranges.
+- Typed optional bridge enrichment fields (`minFloat`, `maxFloat`,
+  `paintIndex`) at the extension ingestion boundary.
+- Added normalization warnings for contradictory extension exterior/float
+  metadata while keeping ingestion permissive.
+- Updated the Steam Market bridge row status to show whether the saved
+  candidate was catalog-linked.
+
+### 2026-04-24 (Bridge ingestion hardening)
+
+- Updated the bridge content script to attach controls to standard Steam
+  listing rows, not only rows with CSFloat markers, so rows with missing float
+  enrichment can still be ingested.
+- Made listing ID extraction accept row-level `listing_<id>` IDs as well as
+  child `listing_<id>_...` IDs.
+- Made inspect-link template replacement use the requested listing ID when
+  Steam's listing info object does not repeat it, added `%appid%`
+  replacement, and preserved zero-valued asset property substitutions.
+- Broadened CSFloat metadata extraction to tolerate common min/max attribute
+  aliases and text labels for float range, pattern, and paint index.
+- Added inline warning counts for successful bridge ingestion responses.
+- Added normalization coverage for market-hash exterior values that conflict
+  with float-derived exterior values, keeping ingestion permissive.
+- Updated the bridge README with the current smoke-test checklist and status
+  output semantics.
+- Added app-side candidate detail visibility for live ingestion verification
+  and a DOM-based inspect-link extraction fallback after live rows showed null
+  inspect links.
+- Tightened bridge text parsing so missing-float placeholders like `Float: 0`
+  are not persisted as real zero floats.
+- Added normalization coverage to drop contradictory placeholder zero floats
+  for non-Factory-New extension rows.
+
+### 2026-04-24 (Candidate ingestion integration tests)
+
+- Added `tests/helpers/db.ts` to create a disposable SQLite database from the
+  committed Prisma migration SQL.
+- Added `tests/integration/candidateIngestion.test.ts` covering real service
+  writes for extension ingestion, catalog-linked identity, StatTrak
+  normalization, duplicate merges, placeholder zero-float handling, and
+  `markBought` inventory identity carryover.
+- Extended the local `bun:test` type shim for `beforeAll` and `afterAll`.
+- `bun test tests/` passes with 35 tests.
+- `bun run check` passes with 0 errors and 0 warnings.
 
 ### 2026-04-23 (Phase 6 workstream A ECharts dashboard charts)
 

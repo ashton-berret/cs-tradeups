@@ -4,12 +4,22 @@
 	type Props = {
 		open?: boolean;
 		title?: string;
+		size?: 'sm' | 'md' | 'lg' | 'xl';
 		children?: Snippet;
 		footer?: Snippet;
 		onclose?: () => void;
 	};
 
-	let { open = $bindable(false), title, children, footer, onclose }: Props = $props();
+	let { open = $bindable(false), title, size = 'md', children, footer, onclose }: Props = $props();
+	const sizeClass = $derived(
+		size === 'sm'
+			? 'max-w-md'
+			: size === 'lg'
+				? 'max-w-3xl'
+				: size === 'xl'
+					? 'max-w-5xl'
+					: 'max-w-lg'
+	);
 
 	function close() {
 		open = false;
@@ -34,7 +44,10 @@
 			onclick={close}
 		></button>
 		<div
-			class="relative w-full max-w-lg rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface-elevated)] shadow-xl"
+			class={[
+				'relative max-h-[calc(100vh-2rem)] w-full overflow-y-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface-elevated)] shadow-xl',
+				sizeClass
+			]}
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby={title ? 'modal-title' : undefined}

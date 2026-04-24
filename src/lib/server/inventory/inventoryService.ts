@@ -31,6 +31,7 @@ import { ConflictError, NotFoundError } from '$lib/server/http/errors';
 import { toDecimal, toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
 import { isWithinFloatRange } from '$lib/server/utils/float';
 import { markBought } from '$lib/server/candidates/candidateService';
+import { resolveCatalogIdentity } from '$lib/server/catalog/linkage';
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -150,6 +151,10 @@ export function toInventoryItemDTO(row: InventoryItem): InventoryItemDTO {
     weaponName: row.weaponName,
     skinName: row.skinName,
     collection: row.collection,
+    catalogSkinId: row.catalogSkinId,
+    catalogCollectionId: row.catalogCollectionId,
+    catalogWeaponDefIndex: row.catalogWeaponDefIndex,
+    catalogPaintIndex: row.catalogPaintIndex,
     rarity: row.rarity as ItemRarity | null,
     exterior: row.exterior as ItemExterior | null,
     floatValue: row.floatValue,
@@ -219,12 +224,26 @@ async function listAvailableForBasketImpl(
   const ruleCollections = Array.from(
     new Set(plan.rules.map((rule) => rule.collection).filter((collection): collection is string => Boolean(collection))),
   );
+  const ruleCatalogCollectionIds = Array.from(
+    new Set(
+      plan.rules
+        .map((rule) => rule.catalogCollectionId)
+        .filter((catalogCollectionId): catalogCollectionId is string => Boolean(catalogCollectionId)),
+    ),
+  );
   const rows = await db.inventoryItem.findMany({
     where: {
       status: 'HELD',
       rarity: plan.inputRarity,
-      ...(opts?.respectRuleCollections && ruleCollections.length > 0
-        ? { collection: { in: ruleCollections } }
+      ...(opts?.respectRuleCollections && (ruleCollections.length > 0 || ruleCatalogCollectionIds.length > 0)
+        ? {
+            OR: [
+              ...(ruleCatalogCollectionIds.length > 0
+                ? [{ catalogCollectionId: { in: ruleCatalogCollectionIds } }]
+                : []),
+              ...(ruleCollections.length > 0 ? [{ collection: { in: ruleCollections } }] : []),
+            ],
+          }
         : {}),
     },
     orderBy: [{ purchaseDate: 'desc' }, { createdAt: 'desc' }],
@@ -268,27 +287,7 @@ async function listEligibleInventoryForPlanImpl(
 }
 
 function createInventoryItemImpl(input: CreateInventoryItemInput): Promise<InventoryItemDTO> {
-  return db.inventoryItem
-    .create({
-      data: {
-        marketHashName: input.marketHashName,
-        weaponName: input.weaponName,
-        skinName: input.skinName,
-        collection: input.collection,
-        rarity: input.rarity,
-        exterior: input.exterior,
-        floatValue: input.floatValue,
-        pattern: input.pattern,
-        inspectLink: input.inspectLink,
-        purchasePrice: toDecimal(input.purchasePrice),
-        purchaseCurrency: input.purchaseCurrency,
-        purchaseFees: toDecimalOrNull(input.purchaseFees),
-        purchaseDate: input.purchaseDate,
-        candidateId: input.candidateId,
-        notes: input.notes,
-      },
-    })
-    .then(toInventoryItemDTO);
+  return createCatalogAwareInventoryItem(input).then(toInventoryItemDTO);
 }
 
 async function setStatusImpl(id: string, next: InventoryStatus): Promise<InventoryItemDTO> {
@@ -347,6 +346,7 @@ function inventoryMatchesPlanRules(
   item: InventoryItem,
   rules: Array<{
     collection: string | null;
+    catalogCollectionId?: string | null;
     rarity: string | null;
     exterior: string | null;
     minFloat: number | null;
@@ -362,7 +362,11 @@ function inventoryMatchesPlanRules(
       return false;
     }
 
-    if (rule.collection && item.collection !== rule.collection) {
+    if (rule.catalogCollectionId) {
+      if (item.catalogCollectionId !== rule.catalogCollectionId) {
+        return false;
+      }
+    } else if (rule.collection && item.collection !== rule.collection) {
       return false;
     }
 
@@ -421,4 +425,42 @@ function sortableInventoryValue(item: InventoryItem, sortBy: InventorySortKey): 
     default:
       return item.createdAt.getTime();
   }
+}
+
+async function createCatalogAwareInventoryItem(
+  input: CreateInventoryItemInput,
+): Promise<InventoryItem> {
+  const catalogIdentity = await resolveCatalogIdentity({
+    marketHashName: input.marketHashName,
+    weaponName: input.weaponName,
+    skinName: input.skinName,
+    collection: input.collection,
+    rarity: input.rarity ?? null,
+    exterior: input.exterior ?? null,
+    floatValue: input.floatValue ?? null,
+  });
+
+  return db.inventoryItem.create({
+    data: {
+      marketHashName: input.marketHashName,
+      weaponName: catalogIdentity?.weaponName ?? input.weaponName,
+      skinName: catalogIdentity?.skinName ?? input.skinName,
+      collection: catalogIdentity?.collection ?? input.collection,
+      catalogSkinId: catalogIdentity?.catalogSkinId,
+      catalogCollectionId: catalogIdentity?.catalogCollectionId,
+      catalogWeaponDefIndex: catalogIdentity?.catalogWeaponDefIndex,
+      catalogPaintIndex: catalogIdentity?.catalogPaintIndex,
+      rarity: catalogIdentity?.rarity ?? input.rarity,
+      exterior: catalogIdentity?.exterior ?? input.exterior,
+      floatValue: input.floatValue,
+      pattern: input.pattern,
+      inspectLink: input.inspectLink,
+      purchasePrice: toDecimal(input.purchasePrice),
+      purchaseCurrency: input.purchaseCurrency,
+      purchaseFees: toDecimalOrNull(input.purchaseFees),
+      purchaseDate: input.purchaseDate,
+      candidateId: input.candidateId,
+      notes: input.notes,
+    },
+  });
 }

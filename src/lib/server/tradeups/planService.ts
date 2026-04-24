@@ -30,6 +30,7 @@ import { db } from '$lib/server/db/client';
 import { ConflictError, NotFoundError } from '$lib/server/http/errors';
 import { toDecimal, toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
 import { reevaluateCandidate } from '$lib/server/candidates/candidateService';
+import { resolveCatalogCollectionIdentity, resolveCatalogIdentity } from '$lib/server/catalog/linkage';
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -201,6 +202,8 @@ async function createPlanImpl(input: CreatePlanInput): Promise<PlanDTO> {
     validateOutcomeRarity(input.targetRarity, outcome);
   }
 
+  const rules = await Promise.all(input.rules.map(planRuleCreateData));
+  const outcomeItems = await Promise.all(input.outcomeItems.map(outcomeCreateData));
   const row = await db.$transaction((tx) =>
     tx.tradeupPlan.create({
       data: {
@@ -214,8 +217,8 @@ async function createPlanImpl(input: CreatePlanInput): Promise<PlanDTO> {
         minLiquidityScore: input.minLiquidityScore,
         minCompositeScore: input.minCompositeScore,
         notes: input.notes,
-        rules: { create: input.rules.map(planRuleCreateData) },
-        outcomeItems: { create: input.outcomeItems.map(outcomeCreateData) },
+        rules: { create: rules },
+        outcomeItems: { create: outcomeItems },
       },
       include: planInclude,
     }),
@@ -299,7 +302,7 @@ async function deletePlanImpl(id: string): Promise<void> {
 
 async function addPlanRuleImpl(planId: string, rule: PlanRuleInput): Promise<PlanRuleDTO> {
   const created = await db.tradeupPlanRule.create({
-    data: { planId, ...planRuleCreateData(rule) },
+    data: { planId, ...(await planRuleCreateData(rule)) },
   });
 
   await reevaluateAllForPlan(planId);
@@ -315,7 +318,7 @@ async function updatePlanRuleImpl(ruleId: string, rule: PlanRuleInput): Promise<
 
   const updated = await db.tradeupPlanRule.update({
     where: { id: ruleId },
-    data: planRuleCreateData(rule),
+    data: await planRuleCreateData(rule),
   });
 
   await reevaluateAllForPlan(existing.planId);
@@ -343,7 +346,7 @@ async function addOutcomeItemImpl(planId: string, outcome: OutcomeItemInput): Pr
   validateOutcomeRarity(plan.targetRarity, outcome);
 
   const created = await db.tradeupOutcomeItem.create({
-    data: { planId, ...outcomeCreateData(outcome) },
+    data: { planId, ...(await outcomeCreateData(outcome)) },
   });
 
   await reevaluateAllForPlan(planId);
@@ -364,7 +367,7 @@ async function updateOutcomeItemImpl(outcomeId: string, outcome: OutcomeItemInpu
 
   const updated = await db.tradeupOutcomeItem.update({
     where: { id: outcomeId },
-    data: outcomeCreateData(outcome),
+    data: await outcomeCreateData(outcome),
   });
 
   await reevaluateAllForPlan(existing.planId);
@@ -392,6 +395,13 @@ async function reevaluateAllForPlanImpl(planId: string): Promise<{ count: number
   const ruleCollections = Array.from(
     new Set(plan.rules.map((rule) => rule.collection).filter((collection): collection is string => Boolean(collection))),
   );
+  const ruleCatalogCollectionIds = Array.from(
+    new Set(
+      plan.rules
+        .map((rule) => rule.catalogCollectionId)
+        .filter((catalogCollectionId): catalogCollectionId is string => Boolean(catalogCollectionId)),
+    ),
+  );
   const rows = await db.candidateListing.findMany({
     where: {
       OR: [
@@ -399,7 +409,16 @@ async function reevaluateAllForPlanImpl(planId: string): Promise<{ count: number
         {
           status: { notIn: ['BOUGHT', 'DUPLICATE'] },
           rarity: plan.inputRarity,
-          ...(ruleCollections.length > 0 ? { collection: { in: ruleCollections } } : {}),
+          ...(ruleCollections.length > 0 || ruleCatalogCollectionIds.length > 0
+            ? {
+                OR: [
+                  ...(ruleCatalogCollectionIds.length > 0
+                    ? [{ catalogCollectionId: { in: ruleCatalogCollectionIds } }]
+                    : []),
+                  ...(ruleCollections.length > 0 ? [{ collection: { in: ruleCollections } }] : []),
+                ],
+              }
+            : {}),
         },
       ],
     },
@@ -413,9 +432,12 @@ async function reevaluateAllForPlanImpl(planId: string): Promise<{ count: number
   return { count: rows.length };
 }
 
-function planRuleCreateData(rule: PlanRuleInput): Omit<Prisma.TradeupPlanRuleUncheckedCreateInput, 'id' | 'planId' | 'createdAt' | 'updatedAt'> {
+async function planRuleCreateData(rule: PlanRuleInput): Promise<Omit<Prisma.TradeupPlanRuleUncheckedCreateInput, 'id' | 'planId' | 'createdAt' | 'updatedAt'>> {
+  const collectionIdentity = await resolveCatalogCollectionIdentity(rule.collection);
+
   return {
-    collection: rule.collection,
+    collection: collectionIdentity?.collection ?? rule.collection,
+    catalogCollectionId: collectionIdentity?.catalogCollectionId,
     rarity: rule.rarity,
     exterior: rule.exterior,
     minFloat: rule.minFloat,
@@ -428,13 +450,25 @@ function planRuleCreateData(rule: PlanRuleInput): Omit<Prisma.TradeupPlanRuleUnc
   };
 }
 
-function outcomeCreateData(outcome: OutcomeItemInput): Omit<Prisma.TradeupOutcomeItemUncheckedCreateInput, 'id' | 'planId' | 'createdAt' | 'updatedAt'> {
-  return {
+async function outcomeCreateData(outcome: OutcomeItemInput): Promise<Omit<Prisma.TradeupOutcomeItemUncheckedCreateInput, 'id' | 'planId' | 'createdAt' | 'updatedAt'>> {
+  const catalogIdentity = await resolveCatalogIdentity({
     marketHashName: outcome.marketHashName,
     weaponName: outcome.weaponName,
     skinName: outcome.skinName,
     collection: outcome.collection,
     rarity: outcome.rarity,
+  });
+
+  return {
+    marketHashName: outcome.marketHashName,
+    weaponName: catalogIdentity?.weaponName ?? outcome.weaponName,
+    skinName: catalogIdentity?.skinName ?? outcome.skinName,
+    collection: catalogIdentity?.collection ?? outcome.collection,
+    catalogSkinId: catalogIdentity?.catalogSkinId,
+    catalogCollectionId: catalogIdentity?.catalogCollectionId,
+    catalogWeaponDefIndex: catalogIdentity?.catalogWeaponDefIndex,
+    catalogPaintIndex: catalogIdentity?.catalogPaintIndex,
+    rarity: catalogIdentity?.rarity ?? outcome.rarity,
     estimatedMarketValue: toDecimal(outcome.estimatedMarketValue),
     probabilityWeight: outcome.probabilityWeight,
   };
@@ -471,6 +505,7 @@ function toPlanRuleDTO(row: TradeupPlanRule): PlanRuleDTO {
     id: row.id,
     planId: row.planId,
     collection: row.collection,
+    catalogCollectionId: row.catalogCollectionId,
     rarity: row.rarity as ItemRarity | null,
     exterior: row.exterior as ItemExterior | null,
     minFloat: row.minFloat,
@@ -491,6 +526,10 @@ function toOutcomeItemDTO(row: TradeupOutcomeItem): OutcomeItemDTO {
     weaponName: row.weaponName,
     skinName: row.skinName,
     collection: row.collection,
+    catalogSkinId: row.catalogSkinId,
+    catalogCollectionId: row.catalogCollectionId,
+    catalogWeaponDefIndex: row.catalogWeaponDefIndex,
+    catalogPaintIndex: row.catalogPaintIndex,
     rarity: row.rarity as ItemRarity,
     estimatedMarketValue: toNumber(row.estimatedMarketValue) ?? 0,
     probabilityWeight: row.probabilityWeight,

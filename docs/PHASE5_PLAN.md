@@ -1,7 +1,8 @@
 # Phase 5 — Scoring & Workflow Refinement: Implementation Plan
 
-**Status:** Scoping outline. No behavior implemented yet.
-**Last Updated:** 2026-04-22
+**Status:** Historical implementation plan. Phase 5 has been implemented; see
+`docs/PROGRESS.md` for current state.
+**Last Updated:** 2026-04-24
 **Scope (from `docs/PLAN.md` §Phase 5):**
 
 - stronger basket-aware ranking
@@ -16,6 +17,11 @@ reliable than the current manual process."
 (actual state), `docs/PHASE4_UI_PLAN.md` (shipped UI baseline),
 `src/routes/api/README.md` (API surface), `src/lib/server/README.md`
 (service contracts).
+
+Post-Phase-5 note: later slices added the static CS2 catalog, catalog identity
+linkage, catalog-aware EV grouping/projection, and the local Steam Market
+bridge. Those current details live in `docs/PROGRESS.md`,
+`docs/CATALOG_PIPELINE.md`, and `docs/INTEGRATION_RESEARCH.md`.
 
 ---
 
@@ -495,7 +501,9 @@ Carried from `docs/PROGRESS.md` §"Still unresolved" and re-scoped here:
   the "effective" float band per skin, which affects output exterior
   projection in EV. Phase 5 keeps the global-band approximation so the
   new marginal-contribution ranking uses stable inputs. This is
-  explicitly a Phase 6 concern.
+  explicitly a Phase 6 concern. Post-Phase-6 update: the static CS2 catalog
+  now provides per-skin min/max float ranges for catalog-linked output
+  projection; dynamic projected-exterior pricing remains deferred.
 - **Real liquidity data.** Workstream C introduces a density-based
   proxy; a real volume signal (daily scrape, or pulled from the
   extension payload if it ships market volume) remains TBD. Proxy is
@@ -597,7 +605,8 @@ Manual smoke checks per workstream:
 - Per-skin float range tables and the EV math that depends on them.
 - Chrome extension bridge implementation. The ingestion endpoint
   changes in this phase are payload-compatible; a separate track
-  ships the bridge.
+  ships the bridge. Post-Phase-6 update: the local Steam Market bridge exists;
+  real-market selector/extraction hardening remains.
 - Drag-drop basket reorder.
 - Notifications / toasts beyond inline banners.
 - Automated test suite. Individual workstreams may add ad-hoc

@@ -46,6 +46,7 @@ import {
   toCandidateLike,
 } from './ruleMatching';
 import { basketReadinessIssues } from './readiness';
+import { withCatalogOutcomeFloatRanges } from './catalogOutcomes';
 
 /**
  * Dispatch on target kind. Mirrors the union defined in
@@ -126,7 +127,15 @@ async function evaluateCandidateImpl(candidateId: string): Promise<CandidateEval
   const diagnostics = diagnoseCandidateAgainstPlans(candidateLike, plans);
   const bestMatch = pickBestMatch(allMatches);
   const plan = bestMatch ? plans.find((item) => item.id === bestMatch.planId) ?? null : null;
-  const candidateEV = plan ? computeCandidateEV(candidate.collection, plan) : null;
+  const candidateEV = plan
+    ? computeCandidateEV(
+        {
+          collection: candidate.collection,
+          catalogCollectionId: candidate.catalogCollectionId,
+        },
+        plan,
+      )
+    : null;
   const expectedProfit = candidateEV == null ? null : roundMoney(candidateEV - (toNumber(candidate.listPrice) ?? 0));
   const expectedProfitPct =
     candidateEV == null ? null : percentChange(toNumber(candidate.listPrice) ?? 0, candidateEV);
@@ -241,7 +250,8 @@ async function evaluateBasketImpl(basketId: string): Promise<BasketEvaluation> {
   const slots = inventoryItems.map(toBasketSlotContext);
   const inputCost = sumMoney(inventoryItems.map((item) => toNumber(item.purchasePrice)));
   const avgFloat = averageFloat(inventoryItems.map((item) => item.floatValue));
-  const ev = computeBasketEV(slots, basket.plan);
+  const projectedPlan = await withCatalogOutcomeFloatRanges(basket.plan);
+  const ev = computeBasketEV(slots, projectedPlan, { averageInputFloat: avgFloat });
   const expectedProfit = roundMoney(ev.totalEV - inputCost);
   const expectedProfitPct = percentChange(inputCost, ev.totalEV);
   const readinessIssues = basketReadinessIssues(
@@ -279,6 +289,7 @@ async function computeMarginalForActiveBasket(
   candidate: {
     id: string;
     collection: string | null;
+    catalogCollectionId?: string | null;
     floatValue: number | null;
     rarity: string | null;
   },
@@ -306,6 +317,7 @@ async function computeMarginalForActiveBasket(
   const candidateSlot: BasketSlotContext = {
     inventoryItemId: candidate.id,
     collection: candidate.collection,
+    catalogCollectionId: candidate.catalogCollectionId,
     floatValue: candidate.floatValue,
     rarity: candidate.rarity,
   };
@@ -332,6 +344,7 @@ async function loadLiquiditySignal(
 function toBasketSlotContext(item: {
   id: string;
   collection: string | null;
+  catalogCollectionId?: string | null;
   exterior?: string | null;
   floatValue: number | null;
   rarity: string | null;
@@ -339,6 +352,7 @@ function toBasketSlotContext(item: {
   return {
     inventoryItemId: item.id,
     collection: item.collection,
+    catalogCollectionId: item.catalogCollectionId,
     exterior: item.exterior,
     floatValue: item.floatValue,
     rarity: item.rarity,

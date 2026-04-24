@@ -1,7 +1,8 @@
 # Phase 6 — Quality & Decision Support: Implementation Plan
 
-**Status:** Scoping outline. No behavior implemented yet.
-**Last Updated:** 2026-04-22
+**Status:** Historical implementation plan. Phase 6 has been implemented; see
+`docs/PROGRESS.md` for current state.
+**Last Updated:** 2026-04-24
 **Scope (from `docs/PLAN.md` §Phase 6):**
 
 - realistic seed data expansion
@@ -18,11 +19,10 @@ historical performance insight."
 `src/routes/api/README.md` (API surface), `src/lib/server/README.md`
 (service contracts).
 
-**Phase 6 is MVP-done.** Anything not listed here is deferred beyond
-MVP (see §7). The goal of this phase is not feature breadth; it is to
-make the historical view trustworthy, the error model typed, and the
-core behaviors verifiable by a test runner so the project can be
-operated on real data with confidence.
+**Phase 6 is MVP-done.** This document is retained as the historical workstream
+plan. Post-Phase-6 catalog identity linkage, catalog-aware EV projection, and
+the local Steam Market bridge are documented in `docs/PROGRESS.md`,
+`docs/CATALOG_PIPELINE.md`, and `docs/INTEGRATION_RESEARCH.md`.
 
 ---
 
@@ -509,6 +509,11 @@ MVP-done** — the project ships without it.
 
 ### 4.1 Per-weapon / per-skin float ranges — **deferred beyond Phase 6**
 
+Post-Phase-6 update: the static CS2 catalog now provides per-skin min/max
+float ranges, and basket EV breakdowns project catalog-linked output
+float/exterior from those ranges. Dynamic projected-exterior pricing remains
+deferred because no price table exists.
+
 **Why:** per-skin float bands require a skin catalog (scrape or
 hand-maintain) and reshape EV math. The Phase 5 marginal-contribution
 ranking uses the global-band approximation as stable input; Phase 6
@@ -534,6 +539,10 @@ payload — both are substantial scope and belong on a separate
 stable, so a drop-in replacement later does not touch callers.
 
 ### 4.4 Extension bridge mechanism — **deferred beyond Phase 6**
+
+Post-Phase-6 update: a local MV3 Steam Market companion bridge now exists
+under `tools/steam-market-bridge/`. Remaining bridge work is live-market soak
+testing and selector/extraction hardening.
 
 **Why:** the ingestion endpoint is payload-ready; the bridge is a
 Chrome-extension-runtime problem that lives outside this repo's
@@ -629,7 +638,8 @@ reshaping MVP code:
   Inventory, candidates, plans, baskets exports.
 - **Per-weapon / per-skin float range table and EV refinement.**
 - **Real marketplace-volume liquidity data.**
-- **Chrome extension bridge implementation.**
+- **Chrome extension bridge implementation.** Post-Phase-6 update: local
+  bridge exists; live-market hardening remains.
 - **Cron / scheduled re-evaluation.** The
   `/api/candidates/refresh-stale` endpoint from Phase 5 is still
   manual-trigger only.
@@ -654,6 +664,11 @@ migrations.** All work is at the service, route, UI, and test
 layers. This is intentional: Phase 5 absorbed the last round of
 schema changes needed for MVP. Any new column in Phase 6 would
 be a smell that scope has slipped.
+
+Post-Phase-6 update: the catalog identity linkage slice added nullable
+catalog reference columns to candidate, inventory, plan rule, and plan outcome
+rows. Those schema changes are intentionally additive and documented in
+`docs/CATALOG_PIPELINE.md` and `docs/PROGRESS.md`.
 
 | Table | Field | Type | Nullable | Default | Added in workstream |
 | ----- | ----- | ---- | -------- | ------- | ------------------- |

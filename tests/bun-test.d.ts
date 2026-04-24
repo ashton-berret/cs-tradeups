@@ -1,4 +1,10 @@
 declare module 'bun:test' {
+  export const afterAll: (
+    fn: () => void | Promise<void>,
+  ) => void;
+  export const beforeAll: (
+    fn: () => void | Promise<void>,
+  ) => void;
   export const beforeEach: (
     fn: () => void | Promise<void>,
   ) => void;

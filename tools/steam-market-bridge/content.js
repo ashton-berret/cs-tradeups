@@ -136,7 +136,7 @@
 
   function scanListingBlocks() {
     const blocks = document.querySelectorAll(
-      '[data-floatbar-added="true"], .market_listing_item_name_block csfloat-item-row-wrapper',
+      '.market_listing_row .market_listing_item_name_block, [data-floatbar-added="true"], .market_listing_item_name_block csfloat-item-row-wrapper',
     );
 
     for (const candidate of blocks) {
@@ -220,9 +220,15 @@
 
         const body = response.body || {};
         const savedStatus = body.candidate?.status ? ` (${body.candidate.status})` : '';
+        const catalogStatus = body.candidate?.catalogSkinId ? ' · catalog linked' : ' · catalog unmatched';
+        const warningStatus = Array.isArray(body.warnings) && body.warnings.length > 0
+          ? ` · ${body.warnings.length} warning${body.warnings.length === 1 ? '' : 's'}`
+          : '';
         setStatus(
           status,
-          body.wasDuplicate ? `Duplicate merged${savedStatus}` : `Saved${savedStatus}`,
+          body.wasDuplicate
+            ? `Duplicate merged${savedStatus}${catalogStatus}${warningStatus}`
+            : `Saved${savedStatus}${catalogStatus}${warningStatus}`,
           'success',
         );
         renderDebug(debug, debugBody, {
@@ -257,6 +263,15 @@
     }
 
     const idCandidates = [];
+    if (block.id) {
+      idCandidates.push(block.id);
+    }
+
+    const row = block.closest('.market_listing_row');
+    if (row?.id) {
+      idCandidates.push(row.id);
+    }
+
     const namedNode = block.querySelector('[id^="listing_"]');
     if (namedNode?.id) {
       idCandidates.push(namedNode.id);
@@ -267,7 +282,7 @@
     }
 
     for (const id of idCandidates) {
-      const match = /^listing_(\d+)_/.exec(id);
+      const match = /^listing_(\d+)(?:_|$)/.exec(id);
       if (match) {
         return match[1];
       }

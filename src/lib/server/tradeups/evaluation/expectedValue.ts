@@ -26,18 +26,40 @@
 // Per-skin float range tables are required to correctly price each output
 // at its projected exterior; tracked in docs/PROGRESS.md.
 
-import type { TradeupOutcomeItem, TradeupPlan } from '@prisma/client';
+import type { Prisma, TradeupPlan } from '@prisma/client';
 import type { BasketEVBreakdown } from '$lib/types/services';
 import { toNumber } from '$lib/server/utils/decimal';
+import { exteriorForFloat, projectOutputFloat } from '$lib/server/utils/float';
 import { multiplyMoney, roundMoney } from '$lib/server/utils/money';
+import type { ItemExterior } from '$lib/types/enums';
 import { DEFAULT_MAX_BUY_MARGIN_PCT } from './tuning';
 
 export interface BasketSlotContext {
   inventoryItemId: string;
   collection: string | null;
+  catalogCollectionId?: string | null;
   exterior?: string | null;
   floatValue: number | null;
   rarity: string | null;
+}
+
+type OutcomeLike = {
+  id: string;
+  marketHashName: string;
+  collection: string;
+  catalogCollectionId?: string | null;
+  rarity: string;
+  estimatedMarketValue: Prisma.Decimal | number | null;
+  probabilityWeight: number;
+  minFloat?: number | null;
+  maxFloat?: number | null;
+  marketHashNames?: Array<{ exterior: ItemExterior; marketHashName: string }>;
+};
+
+type PlanWithOutcomes = TradeupPlan & { outcomeItems: OutcomeLike[] };
+
+export interface BasketEVOptions {
+  averageInputFloat?: number | null;
 }
 
 /**
@@ -51,11 +73,13 @@ export function collectionChances(
   const chances: Record<string, number> = {};
 
   for (const slot of slots.slice(0, 10)) {
-    if (!slot.collection) {
+    const collectionKey = collectionIdentityKey(slot);
+
+    if (!collectionKey) {
       continue;
     }
 
-    chances[slot.collection] = Number(((chances[slot.collection] ?? 0) + 0.1).toFixed(6));
+    chances[collectionKey] = Number(((chances[collectionKey] ?? 0) + 0.1).toFixed(6));
   }
 
   return chances;
@@ -74,19 +98,21 @@ export function collectionChances(
  */
 export function computeBasketEV(
   slots: BasketSlotContext[],
-  plan: TradeupPlan & { outcomeItems: TradeupOutcomeItem[] },
+  plan: PlanWithOutcomes,
+  opts: BasketEVOptions = {},
 ): BasketEVBreakdown {
   const perCollectionChance = collectionChances(slots);
-  const outcomesByCollection = new Map<string, TradeupOutcomeItem[]>();
+  const outcomesByCollection = new Map<string, OutcomeLike[]>();
 
   for (const outcome of plan.outcomeItems) {
     if (outcome.rarity !== plan.targetRarity) {
       continue;
     }
 
-    const existing = outcomesByCollection.get(outcome.collection) ?? [];
+    const collectionKey = collectionIdentityKey(outcome);
+    const existing = outcomesByCollection.get(collectionKey) ?? [];
     existing.push(outcome);
-    outcomesByCollection.set(outcome.collection, existing);
+    outcomesByCollection.set(collectionKey, existing);
   }
 
   const perOutcomeContribution: BasketEVBreakdown['perOutcomeContribution'] = [];
@@ -103,6 +129,7 @@ export function computeBasketEV(
       const probability = collectionChance * (outcome.probabilityWeight / totalWeight);
       const estimatedValue = toNumber(outcome.estimatedMarketValue) ?? 0;
       const contribution = multiplyMoney(estimatedValue, probability);
+      const projection = projectOutcome(outcome, opts.averageInputFloat);
 
       perOutcomeContribution.push({
         outcomeId: outcome.id,
@@ -110,6 +137,9 @@ export function computeBasketEV(
         probability: Number(probability.toFixed(6)),
         estimatedValue,
         contribution,
+        projectedFloat: projection.projectedFloat,
+        projectedExterior: projection.projectedExterior,
+        projectedMarketHashName: projection.projectedMarketHashName,
       });
     }
   }
@@ -131,15 +161,17 @@ export function computeBasketEV(
  * contributes nothing to the output pool).
  */
 export function computeCandidateEV(
-  candidateCollection: string | null,
-  plan: TradeupPlan & { outcomeItems: TradeupOutcomeItem[] },
+  candidate: Pick<BasketSlotContext, 'collection' | 'catalogCollectionId'>,
+  plan: PlanWithOutcomes,
 ): number | null {
-  if (!candidateCollection) {
+  const candidateCollectionKey = collectionIdentityKey(candidate);
+
+  if (!candidateCollectionKey) {
     return null;
   }
 
   const outcomes = plan.outcomeItems.filter(
-    (outcome) => outcome.collection === candidateCollection && outcome.rarity === plan.targetRarity,
+    (outcome) => collectionIdentityKey(outcome) === candidateCollectionKey && outcome.rarity === plan.targetRarity,
   );
   const totalWeight = outcomes.reduce((sum, outcome) => sum + outcome.probabilityWeight, 0);
 
@@ -202,9 +234,43 @@ export function computeMaxBuyPrice(
 export function computeMarginalContribution(
   baseSlots: BasketSlotContext[],
   candidate: BasketSlotContext,
-  plan: TradeupPlan & { outcomeItems: TradeupOutcomeItem[] },
+  plan: PlanWithOutcomes,
 ): number {
   const before = computeBasketEV(baseSlots, plan).totalEV;
   const after = computeBasketEV([...baseSlots, candidate], plan).totalEV;
   return roundMoney(after - before);
+}
+
+function collectionIdentityKey(
+  value: { catalogCollectionId?: string | null; collection?: string | null },
+): string {
+  return value.catalogCollectionId ?? value.collection ?? '';
+}
+
+function projectOutcome(
+  outcome: OutcomeLike,
+  averageInputFloat: number | null | undefined,
+): {
+  projectedFloat: number | null;
+  projectedExterior: ItemExterior | null;
+  projectedMarketHashName: string | null;
+} {
+  if (averageInputFloat == null || outcome.minFloat == null || outcome.maxFloat == null) {
+    return {
+      projectedFloat: null,
+      projectedExterior: null,
+      projectedMarketHashName: null,
+    };
+  }
+
+  const projectedFloat = projectOutputFloat(averageInputFloat, outcome.minFloat, outcome.maxFloat);
+  const projectedExterior = exteriorForFloat(projectedFloat);
+  const projectedMarketHashName =
+    outcome.marketHashNames?.find((entry) => entry.exterior === projectedExterior)?.marketHashName ?? null;
+
+  return {
+    projectedFloat,
+    projectedExterior,
+    projectedMarketHashName,
+  };
 }

@@ -28,6 +28,10 @@ model CandidateListing {
   weaponName     String?
   skinName       String?
   collection     String?
+  catalogSkinId  String?
+  catalogCollectionId String?
+  catalogWeaponDefIndex Int?
+  catalogPaintIndex Int?
   rarity         String?
   exterior       String?
   floatValue     Float?
@@ -77,6 +81,9 @@ model CandidateListing {
   @@index([matchedPlanId])
   @@index([createdAt])
   @@index([collection])
+  @@index([catalogCollectionId, rarity])
+  @@index([catalogSkinId])
+  @@index([catalogWeaponDefIndex, catalogPaintIndex])
   @@index([rarity])
 }
 
@@ -90,6 +97,10 @@ model InventoryItem {
   weaponName     String?
   skinName       String?
   collection     String?
+  catalogSkinId  String?
+  catalogCollectionId String?
+  catalogWeaponDefIndex Int?
+  catalogPaintIndex Int?
   rarity         String?
   exterior       String?
   floatValue     Float?
@@ -114,6 +125,9 @@ model InventoryItem {
 
   @@index([status])
   @@index([collection, rarity])
+  @@index([catalogCollectionId, rarity])
+  @@index([catalogSkinId])
+  @@index([catalogWeaponDefIndex, catalogPaintIndex])
   @@index([candidateId])
   @@index([marketHashName])
 }
@@ -152,6 +166,7 @@ model TradeupPlanRule {
 
   planId      String
   collection  String?
+  catalogCollectionId String?
   rarity      String?
   exterior    String?
   minFloat    Float?
@@ -166,6 +181,7 @@ model TradeupPlanRule {
 
   @@index([planId])
   @@index([collection, rarity])
+  @@index([catalogCollectionId, rarity])
 }
 
 model TradeupOutcomeItem {
@@ -178,6 +194,10 @@ model TradeupOutcomeItem {
   weaponName           String?
   skinName             String?
   collection           String
+  catalogSkinId        String?
+  catalogCollectionId  String?
+  catalogWeaponDefIndex Int?
+  catalogPaintIndex    Int?
   rarity               String
   estimatedMarketValue Decimal
   probabilityWeight    Float @default(1.0)
@@ -185,6 +205,9 @@ model TradeupOutcomeItem {
   plan TradeupPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@index([planId])
+  @@index([catalogCollectionId, rarity])
+  @@index([catalogSkinId])
+  @@index([catalogWeaponDefIndex, catalogPaintIndex])
 }
 
 model TradeupBasket {

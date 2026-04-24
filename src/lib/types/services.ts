@@ -29,6 +29,10 @@ export interface CandidateDTO {
   weaponName: string | null;
   skinName: string | null;
   collection: string | null;
+  catalogSkinId: string | null;
+  catalogCollectionId: string | null;
+  catalogWeaponDefIndex: number | null;
+  catalogPaintIndex: number | null;
   rarity: ItemRarity | null;
   exterior: ItemExterior | null;
   floatValue: number | null;
@@ -80,6 +84,10 @@ export interface InventoryItemDTO {
   weaponName: string | null;
   skinName: string | null;
   collection: string | null;
+  catalogSkinId: string | null;
+  catalogCollectionId: string | null;
+  catalogWeaponDefIndex: number | null;
+  catalogPaintIndex: number | null;
   rarity: ItemRarity | null;
   exterior: ItemExterior | null;
   floatValue: number | null;
@@ -106,6 +114,7 @@ export interface PlanRuleDTO {
   id: string;
   planId: string;
   collection: string | null;
+  catalogCollectionId: string | null;
   rarity: ItemRarity | null;
   exterior: ItemExterior | null;
   minFloat: number | null;
@@ -124,6 +133,10 @@ export interface OutcomeItemDTO {
   weaponName: string | null;
   skinName: string | null;
   collection: string;
+  catalogSkinId: string | null;
+  catalogCollectionId: string | null;
+  catalogWeaponDefIndex: number | null;
+  catalogPaintIndex: number | null;
   rarity: ItemRarity;
   estimatedMarketValue: number;
   probabilityWeight: number;
@@ -306,6 +319,9 @@ export interface BasketEVBreakdown {
     probability: number;
     estimatedValue: number;
     contribution: number; // probability * estimatedValue
+    projectedFloat: number | null;
+    projectedExterior: ItemExterior | null;
+    projectedMarketHashName: string | null;
   }>;
 }
 

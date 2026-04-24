@@ -31,6 +31,48 @@ describe('expected value', () => {
     expect(computeBasketEV(slots, testPlan).totalEV).toBe(20);
   });
 
+  it('prefers catalog collection ids over display collection strings', () => {
+    const testPlan = plan({}, {
+      outcomeItems: [
+        outcome({
+          id: 'stable-output',
+          collection: 'Renamed Alpha Collection',
+          catalogCollectionId: 'collection-alpha',
+          estimatedMarketValue: decimal(25),
+        }),
+      ],
+    });
+    const slots = Array.from({ length: 10 }, (_, index) =>
+      slot({
+        inventoryItemId: `item-${index}`,
+        collection: COLLECTION_A,
+        catalogCollectionId: 'collection-alpha',
+      }),
+    );
+
+    expect(computeBasketEV(slots, testPlan).totalEV).toBe(25);
+  });
+
+  it('projects catalog outcome float and exterior when average input float is supplied', () => {
+    const testPlan = plan({}, {
+      outcomeItems: [
+        withProjection(outcome({
+          id: 'projected-output',
+          estimatedMarketValue: decimal(20),
+        })),
+      ],
+    });
+    const slots = Array.from({ length: 10 }, (_, index) =>
+      slot({ inventoryItemId: `item-${index}`, floatValue: 0.5 }),
+    );
+
+    expect(computeBasketEV(slots, testPlan, { averageInputFloat: 0.5 }).perOutcomeContribution[0]).toMatchObject({
+      projectedFloat: 0.4,
+      projectedExterior: 'WELL_WORN',
+      projectedMarketHashName: 'Output Skin (Well-Worn)',
+    });
+  });
+
   it('returns zero EV when a plan has no matching outcomes', () => {
     const testPlan = plan({}, { outcomeItems: [] });
     const slots = Array.from({ length: 10 }, (_, index) => slot({ inventoryItemId: `item-${index}` }));
@@ -38,3 +80,15 @@ describe('expected value', () => {
     expect(computeBasketEV(slots, testPlan).totalEV).toBe(0);
   });
 });
+
+function withProjection(base: ReturnType<typeof outcome>) {
+  return {
+    ...base,
+    minFloat: 0,
+    maxFloat: 0.8,
+    marketHashNames: [
+      { exterior: 'FIELD_TESTED' as const, marketHashName: 'Output Skin (Field-Tested)' },
+      { exterior: 'WELL_WORN' as const, marketHashName: 'Output Skin (Well-Worn)' },
+    ],
+  };
+}

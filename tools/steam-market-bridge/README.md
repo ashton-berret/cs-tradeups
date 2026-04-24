@@ -8,6 +8,8 @@ It runs on Steam Market listing pages, reads:
   asset metadata, and inspect-link templates
 - float-enrichment DOM added by CS2 Trader / CSFloat-style page scripts for
   float, paint seed, min float, max float, and paint index
+  - rows without float enrichment can still be ingested, but they will save
+    without float-derived fields
 
 Then it posts a normalized payload to the app's existing
 `POST /api/extension/candidates` endpoint.
@@ -36,7 +38,17 @@ embedding browser-extension concerns inside `src/`.
 3. Let CS2 Trader / CSFloat finish rendering float data for listing rows.
 4. Click `Ingest` next to the row you want to send into `cs-tradeups`.
 
-The extension reports whether the candidate was saved or merged as a duplicate.
+The extension reports whether the candidate was saved or merged as a duplicate,
+whether the app catalog-linked the item, and whether normalization warnings
+were returned.
+
+For live smoke testing, ingest a small spread of rows:
+
+- a normal catalog-match row with float enrichment
+- a StatTrak or Souvenir row
+- a row before/without float enrichment
+- a row with no inspect link
+- the same listing twice, to confirm duplicate merging
 
 ## Notes
 

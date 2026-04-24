@@ -3,7 +3,7 @@
 ## Document Contract
 
 **Purpose:** This file is the implementation source of truth for `cs-tradeups`.
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-24
 **Companion Document:** See `docs/PROGRESS.md` for actual current status and completed work.
 **Supporting Reference:** `docs/UI_STYLE_GUIDE.md` remains the visual/style reference, but it does not override product scope, architecture, or delivery priorities defined here.
 
@@ -153,7 +153,9 @@ The MVP is successful when the user can:
 - `POST /api/candidates/[id]/buy`
 - `POST /api/candidates/[id]/reevaluate`
 - `POST /api/candidates/reevaluate-open`
+- `POST /api/candidates/refresh-stale`
 - `GET /api/inventory`
+- `GET /api/inventory/eligible`
 - `POST /api/inventory`
 - `GET /api/inventory/[id]`
 - `PATCH /api/inventory/[id]`
@@ -189,6 +191,10 @@ The MVP is successful when the user can:
 - `GET /api/analytics/activity`
 - `GET /api/analytics/plan-performance`
 - `GET /api/analytics/expected-vs-realized`
+- `GET /api/catalog`
+- `GET /api/catalog/summary`
+- `GET /api/exports/executions.csv`
+- `GET /api/exports/expected-vs-realized.csv`
 
 ---
 
@@ -255,6 +261,8 @@ Primary responsibilities:
 - store evaluation output and recommendation status
 - support duplicate detection and later review quality analysis
 - track re-observation frequency via `lastSeenAt` and `timesSeen` for duplicate suppression
+- store nullable static-catalog identity links when a real CS2 skin match is available:
+  `catalogSkinId`, `catalogCollectionId`, `catalogWeaponDefIndex`, and `catalogPaintIndex`
 
 ### InventoryItem
 
@@ -265,6 +273,7 @@ Primary responsibilities:
 - track cost basis and ownership state
 - connect purchased items back to the original candidate when available
 - support basket assignment and execution history
+- store the same nullable static-catalog identity links as candidates when available
 
 ### TradeupPlan
 
@@ -283,6 +292,7 @@ Represents allowed or preferred input constraints for a plan.
 Typical fields should cover:
 
 - collection
+- optional stable catalog collection identity (`catalogCollectionId`)
 - rarity
 - exterior
 - float range
@@ -306,6 +316,8 @@ Typical fields should cover:
 - market hash name
 - weapon and skin name
 - collection
+- optional stable catalog identity (`catalogSkinId`, `catalogCollectionId`,
+  `catalogWeaponDefIndex`, `catalogPaintIndex`)
 - rarity (should match the plan's target rarity)
 - estimated market value
 - probability weight (for weighted EV calculations)
@@ -382,6 +394,21 @@ The evaluation engine is the differentiator, but it should be built in layers in
 - stronger float-fit and plan-rule weighting
 - conservative valuation path beside optimistic valuation
 
+### Catalog-Aware Evaluation Requirements
+
+- Static CS2 catalog data stays separate from dynamic operator data. The app
+  serves the catalog from a generated snapshot file, not runtime database
+  tables.
+- Dynamic rows may store nullable catalog identity references so real matched
+  candidates, inventory, plan rules, and outcomes can use stable IDs while
+  unmatched manual/filler rows remain valid.
+- Matching and EV grouping should prefer `catalogCollectionId` over display
+  collection strings when both sides have catalog linkage.
+- Basket EV breakdowns should project output float/exterior from catalog
+  skin min/max ranges when a plan outcome is linked to `catalogSkinId`.
+- Estimated outcome values remain dynamic operator-managed plan data until a
+  real price table exists; the static catalog does not provide prices.
+
 ### Recommendation States
 
 At minimum:
@@ -427,7 +454,13 @@ The ingestion source is a third-party Chrome extension (CS2 Trader - Steam Tradi
 
 ### Integration Approach
 
-The app-side ingestion endpoint exists. The exact mechanism for bridging the third-party extension output into that endpoint still needs to be determined. Options include a lightweight relay extension, a bookmarklet, or manual copy-paste with a structured import form.
+The app-side ingestion endpoint exists and a local MV3 companion bridge lives
+under `tools/steam-market-bridge/`. The bridge reads Steam listing globals and
+float-enrichment DOM on Steam Market pages, then posts normalized candidates
+to `POST /api/extension/candidates`. Ingestion remains permissive and
+operator-controlled: it accepts typed float enrichment when available,
+returns normalization/evaluation diagnostics, and tolerates missing catalog
+matches rather than inventing them.
 
 ### MVP Security
 
@@ -602,13 +635,17 @@ This order intentionally biases toward getting the discovery loop working before
 - float precision and duplicate matching can create false positives or false negatives
 - expected value formulas can be misleading if assumptions are not explicit
 - marketplace prices are time-sensitive, so stale candidate evaluations may need re-evaluation logic
+- catalog-linked EV can project output float/exterior, but it still depends on
+  operator-entered outcome values until dynamic price data exists
 
 ### Open Questions
 
 - how detailed should the first expected-value model be for mixed baskets and multiple outcome distributions?
-- what minimum extension payload is guaranteed on day one?
+- how durable are Steam Market and CS2 Trader / CSFloat DOM selectors under real usage?
 - should notification behavior exist in MVP or wait until the queue workflow is stable?
 - when should stored candidate evaluations be recomputed after prices age?
+- should projected-exterior EV eventually select prices from a dynamic price
+  table rather than one operator-entered estimated value per outcome?
 
 These questions are real, but none of them block the foundation build.
 
