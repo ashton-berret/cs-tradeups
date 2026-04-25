@@ -91,6 +91,34 @@ don't check it into the repo.
 - `GET /api/catalog`
 - `GET /api/catalog/summary`
 
+### Market prices
+
+- `POST /api/market-prices/import`
+  - JSON body: `{ source, observations }`.
+  - CSV body: `text/csv` with `source` query param and columns
+    `marketHashName`, `currency`, `lowestSellPrice`, `medianSellPrice`,
+    `volume`, and `observedAt`. Invalid CSV imports return per-row
+    `rowErrors` and do not partially import valid rows.
+  - Local JSON/CSV normalization lives in
+    `src/lib/server/marketPrices/localImportAdapter.ts`; route handlers should
+    stay transport-only as new sources are added.
+  - Successful imports refresh open candidate evaluations and active basket
+    metrics; the response includes `refresh` counts.
+- `POST /api/market-prices/refresh`
+  - Re-runs the same dependent EV refresh without importing observations.
+  - Returns candidate and basket refresh counts plus basket refresh errors.
+- `GET /api/market-prices/summary`
+  - Returns source/currency groups for all observations matching
+    `search`/`source`/`currency` and `latestOnly`, including counts,
+    newest/oldest observation times, and freshness counts.
+- `GET /api/market-prices/latest`
+  - Without lookup params: paginated observation list filtered by `search`,
+    `source`, and `currency`, with `sortBy` (`observedAt`, `marketValue`,
+    `source`, `currency`), `sortDir`, and `latestOnly`.
+  - With lookup params: latest single observation by `marketHashName`, or by
+    `catalogSkinId` plus `exterior`.
+  - Observation DTOs include `freshness` derived from `observedAt`.
+
 ### Exports
 
 - `GET /api/exports/executions.csv`
@@ -151,6 +179,10 @@ don't check it into the repo.
 ### Evaluation
 
 - `POST /api/tradeups/evaluate`
+  - Basket evaluations include per-outcome EV pricing metadata with
+    `priceSource` (`OBSERVED_MARKET` or `PLAN_FALLBACK`) and the market hash
+    used for the priced value. Observed market prices include
+    `priceFreshness` and `priceObservedAt`.
 
 ### Executions
 

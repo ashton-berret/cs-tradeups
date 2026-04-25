@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { toCsv } from '$lib/server/utils/csv';
+import { parseCsv, toCsv } from '$lib/server/utils/csv';
 
 describe('toCsv', () => {
   it('escapes commas, quotes, and newlines with RFC 4180 quoting', () => {
@@ -23,5 +23,37 @@ describe('toCsv', () => {
     );
 
     expect(csv).toBe("A,B,C,D\r\n\"'=SUM(1,2)\",'+1,'@cmd,'-10\r\n");
+  });
+});
+
+describe('parseCsv', () => {
+  it('parses headers, quoted cells, and row numbers', () => {
+    const parsed = parseCsv('name,price,note\r\n"AK-47, Slate",1.25,"line one\nline two"\r\n');
+
+    expect(parsed.headers).toEqual(['name', 'price', 'note']);
+    expect(parsed.rows).toEqual([
+      {
+        rowNumber: 2,
+        values: {
+          name: 'AK-47, Slate',
+          price: '1.25',
+          note: 'line one\nline two',
+        },
+      },
+    ]);
+  });
+
+  it('ignores blank records', () => {
+    const parsed = parseCsv('\nmarketHashName,currency\n\nAK-47 | Slate (Field-Tested),USD\n');
+
+    expect(parsed.rows).toEqual([
+      {
+        rowNumber: 2,
+        values: {
+          marketHashName: 'AK-47 | Slate (Field-Tested)',
+          currency: 'USD',
+        },
+      },
+    ]);
   });
 });

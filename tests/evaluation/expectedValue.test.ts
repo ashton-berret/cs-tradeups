@@ -73,6 +73,63 @@ describe('expected value', () => {
     });
   });
 
+  it('uses latest market price for projected exterior when one is available', () => {
+    const testPlan = plan({}, {
+      outcomeItems: [
+        withProjection({
+          ...outcome({
+            id: 'projected-priced-output',
+            estimatedMarketValue: decimal(20),
+          }),
+          latestMarketPrices: [
+            {
+              marketHashName: 'Output Skin (Well-Worn)',
+              marketValue: 35,
+              observedAt: new Date('2026-04-24T18:00:00Z'),
+              freshness: 'FRESH',
+            },
+          ],
+        }),
+      ],
+    });
+    const slots = Array.from({ length: 10 }, (_, index) =>
+      slot({ inventoryItemId: `item-${index}`, floatValue: 0.5 }),
+    );
+    const ev = computeBasketEV(slots, testPlan, { averageInputFloat: 0.5 });
+
+    expect(ev.totalEV).toBe(35);
+    expect(ev.perOutcomeContribution[0]).toMatchObject({
+      estimatedValue: 35,
+      projectedMarketHashName: 'Output Skin (Well-Worn)',
+      priceSource: 'OBSERVED_MARKET',
+      priceMarketHashName: 'Output Skin (Well-Worn)',
+      priceObservedAt: new Date('2026-04-24T18:00:00Z'),
+      priceFreshness: 'FRESH',
+    });
+  });
+
+  it('falls back to the plan outcome value when no latest market price exists', () => {
+    const testPlan = plan({}, {
+      outcomeItems: [
+        withProjection(outcome({
+          id: 'unpriced-output',
+          estimatedMarketValue: decimal(20),
+        })),
+      ],
+    });
+    const slots = Array.from({ length: 10 }, (_, index) =>
+      slot({ inventoryItemId: `item-${index}`, floatValue: 0.5 }),
+    );
+
+    const ev = computeBasketEV(slots, testPlan, { averageInputFloat: 0.5 });
+
+    expect(ev.totalEV).toBe(20);
+    expect(ev.perOutcomeContribution[0]).toMatchObject({
+      priceSource: 'PLAN_FALLBACK',
+      priceMarketHashName: 'Output Skin (Well-Worn)',
+    });
+  });
+
   it('returns zero EV when a plan has no matching outcomes', () => {
     const testPlan = plan({}, { outcomeItems: [] });
     const slots = Array.from({ length: 10 }, (_, index) => slot({ inventoryItemId: `item-${index}` }));
@@ -81,7 +138,7 @@ describe('expected value', () => {
   });
 });
 
-function withProjection(base: ReturnType<typeof outcome>) {
+function withProjection<T extends ReturnType<typeof outcome>>(base: T) {
   return {
     ...base,
     minFloat: 0,

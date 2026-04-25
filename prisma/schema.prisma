@@ -291,3 +291,28 @@ model TradeupExecution {
   @@index([planId])
   @@index([executedAt])
 }
+
+model MarketPriceObservation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  marketHashName      String
+  catalogSkinId       String?
+  catalogCollectionId String?
+  catalogWeaponDefIndex Int?
+  catalogPaintIndex   Int?
+  exterior            String?
+
+  currency        String  @default("USD")
+  lowestSellPrice Decimal?
+  medianSellPrice Decimal?
+  volume          Int?
+  source          String
+  observedAt      DateTime
+  rawPayload      Json?
+
+  @@index([marketHashName, currency, observedAt])
+  @@index([catalogSkinId, exterior, currency, observedAt])
+  @@index([catalogCollectionId, exterior, currency, observedAt])
+  @@index([source, observedAt])
+}

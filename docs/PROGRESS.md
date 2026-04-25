@@ -67,6 +67,39 @@ What currently exists:
   strings.
 - Basket EV breakdowns project per-outcome output float/exterior from
   catalog skin min/max ranges when an outcome has `catalogSkinId`.
+- Market price observations can now be stored locally for catalog-linked
+  market hash names, and EV can prefer latest observed projected-exterior
+  prices while falling back to plan-managed outcome values.
+- Basket details show per-outcome EV pricing source, distinguishing observed
+  market prices from plan fallback values.
+- Market price observations carry freshness labels derived from `observedAt`,
+  and price-driven UI surfaces show the label with a relative age subtext.
+- Local price import normalization now lives behind a market price import
+  adapter boundary, keeping JSON/CSV source parsing out of HTTP route logic.
+- Successful price imports refresh open candidate evaluations and active
+  basket metrics so imported prices are reflected in persisted EV fields.
+- `/market-prices` surfaces import results as structured counts and includes
+  a current-page source/currency/freshness summary above the observations
+  table.
+- Market price observations can be sorted by observed time, market value,
+  source, or currency from the `/market-prices` filter bar.
+- CSV price import accepts either a pasted CSV payload or an uploaded `.csv`
+  file from the `/market-prices` page.
+- `/market-prices` includes a manual Refresh EV action that re-evaluates open
+  candidates and recomputes active baskets against stored observations without
+  importing new prices.
+- `/market-prices` exposes page-size selection for 25, 50, or 100 observation
+  rows.
+- The market price observation summary is now server-derived for all rows
+  matching the active filters, not just the visible page.
+- `/market-prices` defaults to showing the latest observation per
+  market-hash/currency pair, with an option to inspect all historical
+  observations.
+- Import result cards include distinct imported item count and catalog-linked
+  observation count.
+- `/market-prices` provides a utilitarian operator page for inspecting local
+  price observations, filtering by search/source/currency, and importing JSON
+  or CSV batches through `POST /api/market-prices/import`.
 - Extension ingestion accepts typed float-enrichment metadata
   (`minFloat`, `maxFloat`, `paintIndex`) and returns warnings for
   contradictory extension metadata without rejecting the row.
@@ -77,8 +110,9 @@ What does not exist yet:
 
 - Svelte component tests.
 - Automated end-to-end browser coverage for the companion bridge.
-- Dynamic marketplace price/volume tables. EV values remain plan-managed and
-  liquidity still uses the candidate-density proxy.
+- External price source adapters and marketplace history chart backfill.
+- Real marketplace-volume liquidity signal. Liquidity still uses the
+  candidate-density proxy.
 
 ---
 
@@ -191,6 +225,9 @@ These decisions are currently stable enough to build against:
 - Validation: Zod at every inbound boundary.
 - Product mode: local-first, single-user.
 - Purchase flow: manual buying only in MVP.
+- Steam purchase automation: do not automate Steam buying, listing, order
+  placement, or checkout flows. Future tooling may deep-link/open Steam pages
+  for the operator, but the human should execute purchases.
 - API layering: route handlers parse and delegate to services; business
   logic stays in `src/lib/server/**`.
 - API response model: list endpoints return `PaginatedResponse<T>` with
@@ -250,11 +287,21 @@ Resolved:
 
 Still unresolved:
 
-- **Catalog-priced EV by projected exterior.** EV still uses manually stored
-  outcome market values as-is; there is no dynamic price table to select a
-  different value for the projected exterior.
+- **Price ingestion source.** The database can store local market price
+  observations, EV can consume them, and the operator can inspect/import JSON
+  or CSV batches from `/market-prices`. Automated source adapters are still
+  deferred.
+- **Historical Steam chart ingestion.** Steam exposes price charts in the
+  browser experience, but direct history endpoints are not treated as a stable
+  official integration contract here. Prefer building a local observation
+  history from latest-price imports first; add historical backfill only if a
+  reliable source is selected.
 - **Real marketplace-volume liquidity signal.** `computeLiquidityScore` uses
   the Phase 5 density proxy until a listing-volume signal is available.
+- **Visible weapons/catalog database.** The static catalog snapshot is
+  available through read-only API endpoints, but there is not yet an operator
+  UI for browsing weapons, skins, collections, float ranges, paint indexes,
+  or item imagery. Defer until the ingestion/pricing foundation is stable.
 - **Bridge hardening on real-market usage.** The local companion extension
   now has first-pass static hardening for missing float enrichment, listing
   row ID extraction, inspect-link placeholder replacement, and float metadata
@@ -322,6 +369,8 @@ Recommended handoff order:
      table.
    - Option C: add database integration tests if live ingestion exposes query
      regressions.
+   - Deferred UI option: add a visible weapons/catalog database with skin
+     imagery and catalog metadata after ingestion and pricing data are stable.
 
 Do not invent catalog matches for fake seed/filler rows. Do not start
 marketplace price ingestion or plan-discovery import work until the live
@@ -349,6 +398,52 @@ only then deepen analytics or scoring complexity.
 
 ### 2026-04-24
 
+- Added `/market-prices` with a paginated latest-observation table, filters
+  for search/source/currency, and import forms backed by the existing
+  `POST /api/market-prices/import` endpoint.
+- Extended `GET /api/market-prices/latest` so it still supports single
+  latest-price lookup and now also returns a paginated observation list when
+  called without lookup params.
+- Added CSV import support on `POST /api/market-prices/import` using the same
+  observation fields as JSON import, with all-or-nothing validation and
+  per-row `rowErrors`.
+- Added EV breakdown pricing source metadata and surfaced it in the basket
+  builder details table, so each outcome shows whether the value came from an
+  observed market price or the plan fallback.
+- Added price freshness classification (`FRESH`, `RECENT`, `STALE`, `OLD`)
+  for local market observations and displayed labels with relative age
+  subtext, such as `Recent` with `(12 hrs ago)`, in `/market-prices` and
+  basket EV pricing.
+- Extracted local JSON/CSV market price import parsing into
+  `src/lib/server/marketPrices/localImportAdapter.ts`, preserving the current
+  manual import behavior while creating a narrow seam for future non-scraping
+  source adapters.
+- Added post-import EV refresh through
+  `src/lib/server/marketPrices/refreshService.ts`: open candidates are
+  re-evaluated and BUILDING/READY baskets are recomputed after successful
+  JSON or CSV imports.
+- Expanded `/market-prices` operator visibility with structured import
+  result cards, basket refresh error display, and source/currency summaries
+  showing observation counts, newest/oldest relative age, and freshness
+  counts for the current filtered page.
+- Added sort controls to `/market-prices` and corresponding
+  `GET /api/market-prices/latest` query support for `observedAt`,
+  `marketValue`, `source`, and `currency`.
+- Added CSV file upload support to the `/market-prices` import form while
+  preserving pasted CSV import behavior.
+- Added `POST /api/market-prices/refresh` and a `/market-prices` Refresh EV
+  button for rerunning dependent candidate/basket EV refresh without an
+  import.
+- Added a page-size control to the `/market-prices` filter bar.
+- Added `GET /api/market-prices/summary` and wired `/market-prices` to use it
+  for source/currency/freshness summaries across all matching observations.
+- Added `latestOnly` support to `GET /api/market-prices/latest` and
+  `GET /api/market-prices/summary`, plus a UI mode selector for latest rows
+  versus full observation history.
+- Expanded `/market-prices` import result cards to show distinct item count
+  and catalog-linked observation count from the import response.
+- Added integration coverage for filtered market price observation listing,
+  CSV import success, and CSV row validation failure.
 - Added and applied the nullable plan catalog linkage migration.
 - Regenerated Prisma Client after the schema change.
 - Ran `bun run catalog:backfill-db`; current local DB matched 3/3 plan rules
@@ -399,6 +494,15 @@ only then deepen analytics or scoring complexity.
   placeholder zero-float dropping, and candidate-to-inventory catalog identity
   carryover.
 - `bun test tests/` passes with 35 tests.
+- `bun run check` passes with 0 errors and 0 warnings.
+- Added the first pricing foundation: `MarketPriceObservation`, a local market
+  price service, latest-price lookup by market hash and catalog exterior, and
+  EV fallback logic that prefers latest observed projected-exterior prices
+  before using plan outcome values.
+- Regenerated Prisma Client after the market price observation schema change.
+- Added local JSON price observation import and latest-price lookup API routes:
+  `POST /api/market-prices/import` and `GET /api/market-prices/latest`.
+- `bun test tests/` passes with 39 tests.
 - `bun run check` passes with 0 errors and 0 warnings.
 - Live Chrome/Steam smoke testing was not completed in this sandbox; remaining
   validation is to ingest real rows and record catalog-linked versus
@@ -480,6 +584,58 @@ only then deepen analytics or scoring complexity.
 - Extended the local `bun:test` type shim for `beforeAll` and `afterAll`.
 - `bun test tests/` passes with 35 tests.
 - `bun run check` passes with 0 errors and 0 warnings.
+
+### 2026-04-24 (Market price observation foundation)
+
+- Added nullable/additive `MarketPriceObservation` persistence for local price
+  observations keyed by market hash and catalog identity.
+- Added `src/lib/server/marketPrices/priceService.ts` for creating
+  observations and reading latest prices by market hash or catalog
+  skin/exterior.
+- Updated basket and candidate EV paths to enrich plan outcomes with latest
+  observed prices and prefer projected-exterior market prices when available,
+  while preserving plan outcome `estimatedMarketValue` as fallback.
+- Added tests for latest price lookup, catalog identity on price observations,
+  dynamic projected-exterior EV, and fallback EV behavior.
+- Regenerated Prisma Client and applied
+  `20260424020000_market_price_observations` to the local SQLite dev database.
+- Added local JSON import and latest lookup endpoints:
+  `POST /api/market-prices/import` and `GET /api/market-prices/latest`.
+- Added `/market-prices` as the first operator UI for inspecting local price
+  observations and importing JSON or CSV batches.
+- Basket EV breakdowns now expose `priceSource` and `priceMarketHashName`;
+  the basket builder displays those fields next to projected exterior, price,
+  probability, and contribution.
+- Basket EV observed-price rows also expose `priceObservedAt` and
+  `priceFreshness`; fallback rows remain visibly marked as plan fallback.
+- `POST /api/market-prices/import` delegates local JSON/CSV normalization to
+  the local import adapter; future source adapters should produce the same
+  validated `{ source, observations }` import input.
+- Price import responses include refresh counts for candidates and baskets;
+  the `/market-prices` success message surfaces those counts.
+- The `/market-prices` table now has a lightweight grouping summary for the
+  currently loaded filtered observations. Charts and history backfill remain
+  deferred.
+- Latest price observation sorting is now explicit in the UI and API; default
+  remains newest observed first.
+- CSV imports can now be file-based from the browser UI; server-side
+  validation and per-row errors still flow through the same local import
+  adapter path.
+- Manual dependent EV refresh is available from the market prices page and
+  uses the same refresh service as successful imports.
+- The market price admin table can now change row count without hand-editing
+  query parameters.
+- Market price summaries now reflect the active filter set across the full
+  matching result set while the table remains paginated.
+- The market price admin page now separates the operational latest-price view
+  from full local observation history without adding charts or backfill.
+- Import feedback now makes catalog linkage visible immediately after a JSON
+  or CSV batch is submitted.
+- Added integration coverage for local batch price imports.
+- `bun test tests/` passes with 39 tests.
+- `bun run check` passes with 0 errors and 0 warnings.
+- New external price source adapters, automated scraping, and automated buying
+  remain out of scope.
 
 ### 2026-04-23 (Phase 6 workstream A ECharts dashboard charts)
 

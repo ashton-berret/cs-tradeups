@@ -13,7 +13,8 @@
 		{ href: '/inventory', label: 'Inventory' },
 		{ href: '/tradeups/plans', label: 'Plans' },
 		{ href: '/tradeups/baskets', label: 'Baskets' },
-		{ href: '/tradeups/executions', label: 'Executions' }
+		{ href: '/tradeups/executions', label: 'Executions' },
+		{ href: '/market-prices', label: 'Market Prices' }
 	];
 
 	onMount(() => {

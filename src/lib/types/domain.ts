@@ -32,6 +32,7 @@ import type {
   recordSaleSchema,
   executionFilterSchema,
 } from '$lib/schemas/execution';
+import type { marketPriceLatestListSchema } from '$lib/schemas/marketPrice';
 
 // -- Candidate --
 export type CreateCandidateInput = z.infer<typeof createCandidateSchema>;
@@ -65,6 +66,9 @@ export type CreateExecutionInput = z.infer<typeof createExecutionSchema>;
 export type UpdateExecutionResultInput = z.infer<typeof updateExecutionResultSchema>;
 export type RecordSaleInput = z.infer<typeof recordSaleSchema>;
 export type ExecutionFilter = z.infer<typeof executionFilterSchema>;
+
+// -- Market prices --
+export type MarketPriceLatestListFilter = z.infer<typeof marketPriceLatestListSchema>;
 
 // -- Shared --
 export interface PaginatedResponse<T> {

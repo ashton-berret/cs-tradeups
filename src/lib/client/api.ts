@@ -2,12 +2,14 @@ export type ApiErrorBody = {
 	error?: string;
 	message?: string;
 	issues?: unknown[];
+	rowErrors?: unknown[];
 };
 
 export class ApiError extends Error {
 	status: number;
 	code: string;
 	issues?: unknown[];
+	rowErrors?: unknown[];
 
 	constructor(status: number, body: ApiErrorBody = {}) {
 		super(body.message ?? body.error ?? `Request failed with status ${status}`);
@@ -15,6 +17,7 @@ export class ApiError extends Error {
 		this.status = status;
 		this.code = body.error ?? 'ApiError';
 		this.issues = body.issues;
+		this.rowErrors = body.rowErrors;
 	}
 }
 

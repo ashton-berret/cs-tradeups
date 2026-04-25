@@ -8,6 +8,14 @@ const db = new PrismaClient();
 mock.module('$lib/server/db/client', () => ({ db }));
 
 const { ingestExtensionCandidate, markBought } = await import('$lib/server/candidates/candidateService');
+const {
+  createMarketPriceObservation,
+  getLatestMarketPriceForCatalogExterior,
+  getLatestMarketPriceForMarketHashName,
+  importMarketPriceObservations,
+  listLatestMarketPriceObservations,
+} = await import('$lib/server/marketPrices/priceService');
+const { POST: importMarketPrices } = await import('../../src/routes/api/market-prices/import/+server');
 
 describe('candidate ingestion integration', () => {
   beforeAll(async () => {
@@ -143,5 +151,243 @@ describe('candidate ingestion integration', () => {
       exterior: 'FIELD_TESTED',
       floatValue: 0.191234,
     });
+  });
+
+  it('stores latest market price observations with catalog identity', async () => {
+    await createMarketPriceObservation({
+      marketHashName: 'AK-47 | Slate (Field-Tested)',
+      currency: 'usd',
+      lowestSellPrice: 1.25,
+      medianSellPrice: 1.4,
+      volume: 120,
+      source: 'TEST_IMPORT',
+      observedAt: new Date('2026-04-24T12:00:00Z'),
+    });
+    const later = await createMarketPriceObservation({
+      marketHashName: 'AK-47 | Slate (Field-Tested)',
+      currency: 'USD',
+      lowestSellPrice: 1.35,
+      medianSellPrice: 1.5,
+      volume: 140,
+      source: 'TEST_IMPORT',
+      observedAt: new Date('2026-04-24T13:00:00Z'),
+    });
+
+    const latestByHash = await getLatestMarketPriceForMarketHashName(
+      'AK-47 | Slate (Field-Tested)',
+      'USD',
+    );
+    const latestByCatalogExterior = await getLatestMarketPriceForCatalogExterior({
+      catalogSkinId: later.catalogSkinId ?? '',
+      exterior: 'FIELD_TESTED',
+      currency: 'USD',
+    });
+
+    expect(latestByHash).toMatchObject({
+      id: later.id,
+      marketValue: 1.35,
+      currency: 'USD',
+      volume: 140,
+      catalogSkinId: later.catalogSkinId,
+      exterior: 'FIELD_TESTED',
+    });
+    expect(latestByCatalogExterior?.id).toBe(later.id);
+  });
+
+  it('imports a local batch of market price observations', async () => {
+    const result = await importMarketPriceObservations({
+      source: 'LOCAL_JSON_TEST',
+      observations: [
+        {
+          marketHashName: 'AK-47 | Slate (Field-Tested)',
+          currency: 'USD',
+          lowestSellPrice: 1.25,
+          volume: 10,
+          observedAt: new Date('2026-04-24T14:00:00Z'),
+        },
+        {
+          marketHashName: 'StatTrak™ AK-47 | Uncharted (Field-Tested)',
+          currency: 'USD',
+          medianSellPrice: 4.2,
+          volume: 3,
+          observedAt: new Date('2026-04-24T14:05:00Z'),
+        },
+      ],
+    });
+
+    expect(result.count).toBe(2);
+    expect(result.observations.map((observation) => observation.source)).toEqual([
+      'LOCAL_JSON_TEST',
+      'LOCAL_JSON_TEST',
+    ]);
+    expect(result.observations.every((observation) => observation.catalogSkinId != null)).toBe(true);
+  });
+
+  it('lists market price observations with operator filters', async () => {
+    await importMarketPriceObservations({
+      source: 'LOCAL_JSON_TEST',
+      observations: [
+        {
+          marketHashName: 'AK-47 | Slate (Field-Tested)',
+          currency: 'USD',
+          lowestSellPrice: 1.25,
+          observedAt: new Date('2026-04-24T14:00:00Z'),
+        },
+        {
+          marketHashName: 'StatTrak™ AK-47 | Uncharted (Field-Tested)',
+          currency: 'EUR',
+          medianSellPrice: 4.2,
+          observedAt: new Date('2026-04-24T14:05:00Z'),
+        },
+      ],
+    });
+
+    const page = await listLatestMarketPriceObservations({
+      search: 'Slate',
+      source: 'LOCAL_JSON_TEST',
+      currency: 'usd',
+      latestOnly: true,
+      sortBy: 'observedAt',
+      sortDir: 'desc',
+      page: 1,
+      limit: 25,
+    });
+
+    expect(page.total).toBe(1);
+    expect(page.data[0]).toMatchObject({
+      marketHashName: 'AK-47 | Slate (Field-Tested)',
+      currency: 'USD',
+      source: 'LOCAL_JSON_TEST',
+      marketValue: 1.25,
+    });
+  });
+
+  it('sorts market price observations by market value', async () => {
+    await importMarketPriceObservations({
+      source: 'LOCAL_JSON_TEST',
+      observations: [
+        {
+          marketHashName: 'AK-47 | Slate (Field-Tested)',
+          currency: 'USD',
+          lowestSellPrice: 1.25,
+          observedAt: new Date('2026-04-24T14:00:00Z'),
+        },
+        {
+          marketHashName: 'StatTrak™ AK-47 | Uncharted (Field-Tested)',
+          currency: 'USD',
+          medianSellPrice: 4.2,
+          observedAt: new Date('2026-04-24T14:05:00Z'),
+        },
+      ],
+    });
+
+    const page = await listLatestMarketPriceObservations({
+      source: 'LOCAL_JSON_TEST',
+      currency: 'usd',
+      latestOnly: true,
+      sortBy: 'marketValue',
+      sortDir: 'desc',
+      page: 1,
+      limit: 25,
+    });
+
+    expect(page.data.map((row) => row.marketValue)).toEqual([4.2, 1.25]);
+  });
+
+  it('can list only the latest market price observation per item', async () => {
+    await importMarketPriceObservations({
+      source: 'LOCAL_JSON_TEST',
+      observations: [
+        {
+          marketHashName: 'AK-47 | Slate (Field-Tested)',
+          currency: 'USD',
+          lowestSellPrice: 1.25,
+          observedAt: new Date('2026-04-24T14:00:00Z'),
+        },
+        {
+          marketHashName: 'AK-47 | Slate (Field-Tested)',
+          currency: 'USD',
+          lowestSellPrice: 1.5,
+          observedAt: new Date('2026-04-24T15:00:00Z'),
+        },
+      ],
+    });
+
+    const latest = await listLatestMarketPriceObservations({
+      source: 'LOCAL_JSON_TEST',
+      currency: 'usd',
+      latestOnly: true,
+      sortBy: 'observedAt',
+      sortDir: 'desc',
+      page: 1,
+      limit: 25,
+    });
+    const history = await listLatestMarketPriceObservations({
+      source: 'LOCAL_JSON_TEST',
+      currency: 'usd',
+      latestOnly: false,
+      sortBy: 'observedAt',
+      sortDir: 'desc',
+      page: 1,
+      limit: 25,
+    });
+
+    expect(latest.data.map((row) => row.marketValue)).toEqual([1.5]);
+    expect(history.data.map((row) => row.marketValue)).toEqual([1.5, 1.25]);
+  });
+
+  it('imports market price observations from CSV', async () => {
+    const response = await importMarketPrices({
+      request: new Request('http://localhost/api/market-prices/import?source=CSV_TEST', {
+        method: 'POST',
+        headers: { 'content-type': 'text/csv' },
+        body: [
+          'marketHashName,currency,lowestSellPrice,medianSellPrice,volume,observedAt',
+          'AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z',
+        ].join('\n'),
+      }),
+    } as never);
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body.count).toBe(1);
+    expect(body.observations[0]).toMatchObject({
+      marketHashName: 'AK-47 | Slate (Field-Tested)',
+      currency: 'USD',
+      source: 'CSV_TEST',
+      marketValue: 1.25,
+      volume: 120,
+    });
+    expect(body.refresh).toEqual({
+      candidatesReevaluated: 0,
+      basketsRecomputed: 0,
+      basketErrors: [],
+    });
+  });
+
+  it('returns per-row CSV validation errors without importing partial rows', async () => {
+    const response = await importMarketPrices({
+      request: new Request('http://localhost/api/market-prices/import?source=CSV_TEST', {
+        method: 'POST',
+        headers: { 'content-type': 'text/csv' },
+        body: [
+          'marketHashName,currency,lowestSellPrice,medianSellPrice,volume,observedAt',
+          'AK-47 | Slate (Field-Tested),USD,1.25,,10,2026-04-24T18:00:00.000Z',
+          'StatTrak™ AK-47 | Uncharted (Field-Tested),USD,,,,2026-04-24T18:05:00.000Z',
+        ].join('\n'),
+      }),
+    } as never);
+    const body = await response.json();
+    const count = await db.marketPriceObservation.count();
+
+    expect(response.status).toBe(400);
+    expect(body.rowErrors).toEqual([
+      {
+        rowNumber: 3,
+        field: 'lowestSellPrice',
+        message: 'At least one price field is required',
+      },
+    ]);
+    expect(count).toBe(0);
   });
 });

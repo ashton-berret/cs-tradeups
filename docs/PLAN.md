@@ -37,6 +37,10 @@ This project centralizes those decisions so the user spends time on judgment and
 ### Product Positioning
 
 This is not a general marketplace bot and not an automated purchasing system.
+Steam buying, selling, order placement, checkout, or confirmation flows should
+remain human-executed. Tooling may deep-link to Steam pages or present
+decision-support data, but it should not use bots, scripts, macros, or
+non-human-controlled systems to execute marketplace actions.
 
 This is a decision-support and record-keeping system that should:
 
@@ -65,6 +69,7 @@ This is a decision-support and record-keeping system that should:
 ### Explicitly Out of Scope For MVP
 
 - automated Steam purchasing
+- automated Steam listing, order placement, checkout, or confirmation
 - multi-user collaboration
 - exchange integrations beyond the extension payload
 - advanced auth and permission systems
@@ -90,6 +95,9 @@ The MVP is successful when the user can:
 
 - The app is local-first and optimized for one operator.
 - Manual buying remains the default workflow.
+- Steam marketplace automation remains out of scope. The app may assist the
+  operator with links, candidate details, and max-buy guidance, but the human
+  operator executes marketplace actions.
 - The Chrome extension is responsible for gathering listing-page data and float-rich metadata.
 - The Svelte app is the system of record after ingestion.
 - SQLite is the default local database for MVP development and single-user operation.
@@ -406,8 +414,27 @@ The evaluation engine is the differentiator, but it should be built in layers in
   collection strings when both sides have catalog linkage.
 - Basket EV breakdowns should project output float/exterior from catalog
   skin min/max ranges when a plan outcome is linked to `catalogSkinId`.
-- Estimated outcome values remain dynamic operator-managed plan data until a
-  real price table exists; the static catalog does not provide prices.
+- Estimated outcome values remain dynamic operator-managed plan data unless a
+  local market price observation exists for the relevant market hash or
+  projected exterior. The static catalog does not provide prices.
+
+### Market Price Observation Requirements
+
+- Dynamic prices are stored as local observations, not as static catalog data.
+- Latest observed prices may override a plan outcome's manual
+  `estimatedMarketValue`, but plan values remain the fallback when no
+  observation exists.
+- Price observations should be keyed by `marketHashName` and nullable catalog
+  identity fields when a static catalog match exists.
+- Projected-exterior EV should select the observed price for the projected
+  market hash name when available.
+- The first ingestion path should be local import or manual/API insertion.
+  Automated Steam scraping or third-party price adapters should be added only
+  after the local observation model is proven.
+- Steam chart/history data can be useful for trend analysis, but browser
+  chart/history endpoints are not treated as a stable official integration
+  contract. Prefer building local observation history from latest-price imports
+  first; add historical backfill only after selecting a reliable source.
 
 ### Recommendation States
 
@@ -635,8 +662,9 @@ This order intentionally biases toward getting the discovery loop working before
 - float precision and duplicate matching can create false positives or false negatives
 - expected value formulas can be misleading if assumptions are not explicit
 - marketplace prices are time-sensitive, so stale candidate evaluations may need re-evaluation logic
-- catalog-linked EV can project output float/exterior, but it still depends on
-  operator-entered outcome values until dynamic price data exists
+- dynamic price observations can improve EV, but stale or sparse observations
+  may be worse than operator-entered outcome values if source age is not
+  surfaced clearly
 
 ### Open Questions
 
@@ -644,8 +672,10 @@ This order intentionally biases toward getting the discovery loop working before
 - how durable are Steam Market and CS2 Trader / CSFloat DOM selectors under real usage?
 - should notification behavior exist in MVP or wait until the queue workflow is stable?
 - when should stored candidate evaluations be recomputed after prices age?
-- should projected-exterior EV eventually select prices from a dynamic price
-  table rather than one operator-entered estimated value per outcome?
+- what freshness threshold should mark price observations stale for candidate
+  and basket re-evaluation?
+- which price source, if any, should backfill historical chart data after the
+  local observation table has enough real usage?
 
 These questions are real, but none of them block the foundation build.
 

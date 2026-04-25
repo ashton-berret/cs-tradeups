@@ -127,13 +127,14 @@ async function evaluateCandidateImpl(candidateId: string): Promise<CandidateEval
   const diagnostics = diagnoseCandidateAgainstPlans(candidateLike, plans);
   const bestMatch = pickBestMatch(allMatches);
   const plan = bestMatch ? plans.find((item) => item.id === bestMatch.planId) ?? null : null;
+  const pricedPlan = plan ? await withCatalogOutcomeFloatRanges(plan) : null;
   const candidateEV = plan
     ? computeCandidateEV(
         {
           collection: candidate.collection,
           catalogCollectionId: candidate.catalogCollectionId,
         },
-        plan,
+        pricedPlan ?? plan,
       )
     : null;
   const expectedProfit = candidateEV == null ? null : roundMoney(candidateEV - (toNumber(candidate.listPrice) ?? 0));
@@ -162,7 +163,7 @@ async function evaluateCandidateImpl(candidateId: string): Promise<CandidateEval
     previousPinnedByUser: candidate.pinnedByUser,
   });
   const marginalBasketValue = plan
-    ? await computeMarginalForActiveBasket(plan, candidate)
+    ? await computeMarginalForActiveBasket(pricedPlan ?? plan, candidate)
     : null;
 
   await db.candidateListing.update({

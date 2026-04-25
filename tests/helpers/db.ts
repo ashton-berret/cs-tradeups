@@ -22,6 +22,7 @@ export async function applyMigrations(db: PrismaClient): Promise<void> {
     '20260422120000_phase5_schema_additions/migration.sql',
     '20260424000000_catalog_identity_linkage/migration.sql',
     '20260424010000_plan_catalog_identity_linkage/migration.sql',
+    '20260424020000_market_price_observations/migration.sql',
   ];
 
   for (const file of migrationFiles) {
@@ -33,6 +34,7 @@ export async function applyMigrations(db: PrismaClient): Promise<void> {
 }
 
 export async function clearOperationalTables(db: PrismaClient): Promise<void> {
+  await db.marketPriceObservation.deleteMany();
   await db.tradeupExecution.deleteMany();
   await db.tradeupBasketItem.deleteMany();
   await db.tradeupBasket.deleteMany();

@@ -322,6 +322,10 @@ export interface BasketEVBreakdown {
     projectedFloat: number | null;
     projectedExterior: ItemExterior | null;
     projectedMarketHashName: string | null;
+    priceSource: 'OBSERVED_MARKET' | 'PLAN_FALLBACK';
+    priceMarketHashName: string;
+    priceObservedAt: Date | null;
+    priceFreshness: 'FRESH' | 'RECENT' | 'STALE' | 'OLD' | null;
   }>;
 }
 

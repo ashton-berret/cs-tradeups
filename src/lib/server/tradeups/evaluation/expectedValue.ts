@@ -32,6 +32,7 @@ import { toNumber } from '$lib/server/utils/decimal';
 import { exteriorForFloat, projectOutputFloat } from '$lib/server/utils/float';
 import { multiplyMoney, roundMoney } from '$lib/server/utils/money';
 import type { ItemExterior } from '$lib/types/enums';
+import type { PriceFreshness } from '$lib/server/marketPrices/freshness';
 import { DEFAULT_MAX_BUY_MARGIN_PCT } from './tuning';
 
 export interface BasketSlotContext {
@@ -54,6 +55,12 @@ type OutcomeLike = {
   minFloat?: number | null;
   maxFloat?: number | null;
   marketHashNames?: Array<{ exterior: ItemExterior; marketHashName: string }>;
+  latestMarketPrices?: Array<{
+    marketHashName: string;
+    marketValue: number | null;
+    observedAt?: Date;
+    freshness?: PriceFreshness | string;
+  }>;
 };
 
 type PlanWithOutcomes = TradeupPlan & { outcomeItems: OutcomeLike[] };
@@ -127,19 +134,23 @@ export function computeBasketEV(
 
     for (const outcome of outcomes) {
       const probability = collectionChance * (outcome.probabilityWeight / totalWeight);
-      const estimatedValue = toNumber(outcome.estimatedMarketValue) ?? 0;
-      const contribution = multiplyMoney(estimatedValue, probability);
       const projection = projectOutcome(outcome, opts.averageInputFloat);
+      const price = resolveOutcomePrice(outcome, projection.projectedMarketHashName);
+      const contribution = multiplyMoney(price.estimatedValue, probability);
 
       perOutcomeContribution.push({
         outcomeId: outcome.id,
         marketHashName: outcome.marketHashName,
         probability: Number(probability.toFixed(6)),
-        estimatedValue,
+        estimatedValue: price.estimatedValue,
         contribution,
         projectedFloat: projection.projectedFloat,
         projectedExterior: projection.projectedExterior,
         projectedMarketHashName: projection.projectedMarketHashName,
+        priceSource: price.source,
+        priceMarketHashName: price.marketHashName,
+        priceObservedAt: price.observedAt,
+        priceFreshness: price.freshness,
       });
     }
   }
@@ -181,7 +192,7 @@ export function computeCandidateEV(
 
   return roundMoney(
     outcomes.reduce((sum, outcome) => {
-      const estimatedValue = toNumber(outcome.estimatedMarketValue) ?? 0;
+      const estimatedValue = resolveOutcomePrice(outcome, null).estimatedValue;
       return sum + estimatedValue * (outcome.probabilityWeight / totalWeight);
     }, 0),
   );
@@ -273,4 +284,49 @@ function projectOutcome(
     projectedExterior,
     projectedMarketHashName,
   };
+}
+
+function resolveOutcomePrice(
+  outcome: OutcomeLike,
+  projectedMarketHashName: string | null,
+): {
+  estimatedValue: number;
+  source: BasketEVBreakdown['perOutcomeContribution'][number]['priceSource'];
+  marketHashName: string;
+  observedAt: Date | null;
+  freshness: PriceFreshness | null;
+} {
+  const marketHashName = projectedMarketHashName ?? outcome.marketHashName;
+  const dynamicPrice = findLatestMarketPrice(outcome, marketHashName);
+
+  if (dynamicPrice?.marketValue != null) {
+    return {
+      estimatedValue: dynamicPrice.marketValue,
+      source: 'OBSERVED_MARKET',
+      marketHashName,
+      observedAt: dynamicPrice.observedAt ?? null,
+      freshness: isPriceFreshness(dynamicPrice.freshness) ? dynamicPrice.freshness : null,
+    };
+  }
+
+  return {
+    estimatedValue: toNumber(outcome.estimatedMarketValue) ?? 0,
+    source: 'PLAN_FALLBACK',
+    marketHashName,
+    observedAt: null,
+    freshness: null,
+  };
+}
+
+function findLatestMarketPrice(
+  outcome: OutcomeLike,
+  marketHashName: string,
+): NonNullable<OutcomeLike['latestMarketPrices']>[number] | null {
+  const match = outcome.latestMarketPrices?.find((price) => price.marketHashName === marketHashName && price.marketValue != null);
+
+  return match ?? null;
+}
+
+function isPriceFreshness(value: unknown): value is PriceFreshness {
+  return value === 'FRESH' || value === 'RECENT' || value === 'STALE' || value === 'OLD';
 }
