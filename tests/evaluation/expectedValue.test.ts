@@ -66,7 +66,7 @@ describe('expected value', () => {
       slot({ inventoryItemId: `item-${index}`, floatValue: 0.5 }),
     );
 
-    expect(computeBasketEV(slots, testPlan, { averageInputFloat: 0.5 }).perOutcomeContribution[0]).toMatchObject({
+    expect(computeBasketEV(slots, testPlan, { averageWearProportion: 0.5 }).perOutcomeContribution[0]).toMatchObject({
       projectedFloat: 0.4,
       projectedExterior: 'WELL_WORN',
       projectedMarketHashName: 'Output Skin (Well-Worn)',
@@ -95,7 +95,7 @@ describe('expected value', () => {
     const slots = Array.from({ length: 10 }, (_, index) =>
       slot({ inventoryItemId: `item-${index}`, floatValue: 0.5 }),
     );
-    const ev = computeBasketEV(slots, testPlan, { averageInputFloat: 0.5 });
+    const ev = computeBasketEV(slots, testPlan, { averageWearProportion: 0.5 });
 
     expect(ev.totalEV).toBe(35);
     expect(ev.perOutcomeContribution[0]).toMatchObject({
@@ -121,7 +121,7 @@ describe('expected value', () => {
       slot({ inventoryItemId: `item-${index}`, floatValue: 0.5 }),
     );
 
-    const ev = computeBasketEV(slots, testPlan, { averageInputFloat: 0.5 });
+    const ev = computeBasketEV(slots, testPlan, { averageWearProportion: 0.5 });
 
     expect(ev.totalEV).toBe(20);
     expect(ev.perOutcomeContribution[0]).toMatchObject({

@@ -130,10 +130,31 @@ export function updateCandidate(
  * The purchase price/fees default to the candidate's list price if the caller
  * does not override them.
  */
-export function markBought(
-  id: string,
-  args: { purchasePrice: number; purchaseFees?: number; purchaseDate?: Date },
-): Promise<{ candidate: CandidateDTO; inventoryItem: InventoryItemDTO }> {
+export interface MarkBoughtArgs {
+  purchasePrice: number;
+  purchaseFees?: number;
+  purchaseDate?: Date;
+  /**
+   * When supplied, the converted inventory item is immediately added to the
+   * given basket at the given slot. Best-effort — if the basket no longer
+   * accepts items (status changed, slot occupied, full), the conversion
+   * still succeeds and `basketReservation.warning` describes why the
+   * reservation was skipped.
+   */
+  intendedBasketId?: string;
+  intendedSlotIndex?: number;
+}
+
+export interface MarkBoughtResult {
+  candidate: CandidateDTO;
+  inventoryItem: InventoryItemDTO;
+  basketReservation:
+    | { basketId: string; slotIndex: number }
+    | { warning: string }
+    | null;
+}
+
+export function markBought(id: string, args: MarkBoughtArgs): Promise<MarkBoughtResult> {
   return markBoughtImpl(id, args);
 }
 
@@ -418,10 +439,7 @@ async function updateCandidateImpl(
   return toCandidateDTO(row);
 }
 
-async function markBoughtImpl(
-  id: string,
-  args: { purchasePrice: number; purchaseFees?: number; purchaseDate?: Date },
-): Promise<{ candidate: CandidateDTO; inventoryItem: InventoryItemDTO }> {
+async function markBoughtImpl(id: string, args: MarkBoughtArgs): Promise<MarkBoughtResult> {
   const result = await db.$transaction(async (tx) => {
     const candidate = await tx.candidateListing.findUnique({ where: { id } });
 
@@ -483,10 +501,90 @@ async function markBoughtImpl(
     return { candidate: updatedCandidate, inventoryItem };
   });
 
+  const basketReservation = await tryReserveIntoBasket(
+    result.inventoryItem,
+    args.intendedBasketId,
+    args.intendedSlotIndex,
+  );
+
+  // If the reservation succeeded, the inventory item's status changed inside
+  // the basket transaction; re-read so the response reflects RESERVED_FOR_BASKET.
+  const inventoryRow =
+    basketReservation && 'basketId' in basketReservation
+      ? ((await db.inventoryItem.findUnique({ where: { id: result.inventoryItem.id } })) ??
+        result.inventoryItem)
+      : result.inventoryItem;
+
   return {
     candidate: toCandidateDTO(result.candidate),
-    inventoryItem: toInventoryItemDTO(result.inventoryItem),
+    inventoryItem: toInventoryItemDTO(inventoryRow),
+    basketReservation,
   };
+}
+
+/**
+ * Best-effort basket reservation after a successful mark-bought.
+ *
+ * Failure modes that produce a `warning` instead of throwing:
+ *   - intent fields not provided → returns null
+ *   - basket not found, not BUILDING, full, or slot occupied
+ *   - inventory rarity does not match basket plan input rarity
+ *
+ * Hard errors (DB connection failures, etc.) still propagate; the candidate
+ * has already been converted at this point and the caller should see the
+ * exception to investigate.
+ */
+async function tryReserveIntoBasket(
+  inventoryItem: InventoryItem,
+  intendedBasketId: string | undefined,
+  intendedSlotIndex: number | undefined,
+): Promise<MarkBoughtResult['basketReservation']> {
+  if (!intendedBasketId || intendedSlotIndex == null) {
+    return null;
+  }
+
+  try {
+    await db.$transaction(async (tx) => {
+      const basket = await tx.tradeupBasket.findUnique({
+        where: { id: intendedBasketId },
+        include: { plan: true, items: true },
+      });
+      if (!basket) {
+        throw new ConflictError(`Intended basket ${intendedBasketId} no longer exists`);
+      }
+      if (basket.status !== 'BUILDING') {
+        throw new ConflictError(`Basket is ${basket.status}, only BUILDING accepts reservations`);
+      }
+      if (basket.items.length >= 10) {
+        throw new ConflictError('Basket already has 10 items');
+      }
+      if (basket.items.some((item) => item.slotIndex === intendedSlotIndex)) {
+        throw new ConflictError(`Slot ${intendedSlotIndex} is already occupied`);
+      }
+      if (inventoryItem.rarity !== basket.plan.inputRarity) {
+        throw new ConflictError(
+          `Item rarity ${inventoryItem.rarity ?? 'null'} does not match plan input rarity ${basket.plan.inputRarity}`,
+        );
+      }
+
+      await tx.inventoryItem.update({
+        where: { id: inventoryItem.id },
+        data: { status: 'RESERVED_FOR_BASKET' },
+      });
+      await tx.tradeupBasketItem.create({
+        data: {
+          basketId: intendedBasketId,
+          inventoryItemId: inventoryItem.id,
+          slotIndex: intendedSlotIndex,
+        },
+      });
+    });
+
+    return { basketId: intendedBasketId, slotIndex: intendedSlotIndex };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown reservation error';
+    return { warning: message };
+  }
 }
 
 async function deleteCandidateImpl(id: string): Promise<void> {

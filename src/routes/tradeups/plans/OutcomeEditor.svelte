@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
+	import CatalogCollectionSelect from '$lib/components/CatalogCollectionSelect.svelte';
 	import { ITEM_RARITIES } from '$lib/types/enums';
 	import type { OutcomeItemDTO } from '$lib/types/services';
 
@@ -30,7 +31,12 @@
 		<Input name="marketHashName" placeholder="Market hash name" value={outcome?.marketHashName ?? ''} help="Full market name of the possible output item." required />
 		<Input name="weaponName" placeholder="Weapon" value={outcome?.weaponName ?? ''} help="Optional display field." />
 		<Input name="skinName" placeholder="Skin" value={outcome?.skinName ?? ''} help="Optional display field." />
-		<Input name="outcomeCollection" placeholder="Collection" value={outcome?.collection ?? ''} help="For candidate EV, this should match the candidate collection." required />
+		<CatalogCollectionSelect
+			name="outcomeCollection"
+			value={outcome?.collection ?? ''}
+			placeholder="Collection"
+			help="Output collection. Pick from the dropdown so EV grouping uses the stable catalog id."
+		/>
 		<div>
 			<select name="outcomeRarity" value={outcome?.rarity ?? ''} required class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">
 				<option value="">Rarity</option>

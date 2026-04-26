@@ -4,6 +4,7 @@ import { ApiError, apiFetch } from '$lib/client/api';
 import type { MarketPriceLatestListFilter, PaginatedResponse } from '$lib/types/domain';
 import type {
 	MarketPriceObservationDTO,
+	MarketPriceObservedSourceDTO,
 	MarketPriceObservationSummaryDTO
 } from '$lib/server/marketPrices/priceService';
 import type { MarketPriceImportRefreshResult } from '$lib/server/marketPrices/refreshService';
@@ -20,8 +21,9 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			fetch,
 			`/api/market-prices/summary${copySearch(url, ['search', 'source', 'currency', 'latestOnly'])}`
 		);
+		const sources = await apiFetch<MarketPriceObservedSourceDTO[]>(fetch, '/api/market-prices/sources');
 
-		return { page, summary, filter: filterFromUrl(url) as MarketPriceLatestListFilter };
+		return { page, summary, sources, filter: filterFromUrl(url) as MarketPriceLatestListFilter };
 	} catch (err) {
 		if (err instanceof ApiError) error(err.status, err.message);
 		throw err;

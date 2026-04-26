@@ -22,6 +22,8 @@ const markBoughtBodySchema = z.object({
   purchasePrice: moneySchema,
   purchaseFees: moneySchema.optional(),
   purchaseDate: z.coerce.date().optional(),
+  intendedBasketId: z.string().min(1).optional(),
+  intendedSlotIndex: z.number().int().min(0).max(9).optional(),
 });
 
 export const POST: RequestHandler = async ({ params, request }) => {

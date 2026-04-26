@@ -42,6 +42,16 @@ export interface BasketSlotContext {
   exterior?: string | null;
   floatValue: number | null;
   rarity: string | null;
+  /**
+   * The input skin's per-skin float range. Required for correct CS2
+   * wear-proportion math when projecting output exteriors. When the slot's
+   * catalog skin is unknown or the snapshot has no entry, leave these null
+   * — the EV path will skip output projection rather than fall back to
+   * treating the raw float as a wear proportion (which silently mis-projects
+   * exteriors for any skin not in the [0, 1] range).
+   */
+  inputMinFloat?: number | null;
+  inputMaxFloat?: number | null;
 }
 
 type OutcomeLike = {
@@ -66,7 +76,14 @@ type OutcomeLike = {
 type PlanWithOutcomes = TradeupPlan & { outcomeItems: OutcomeLike[] };
 
 export interface BasketEVOptions {
-  averageInputFloat?: number | null;
+  /**
+   * Average wear proportion across the basket's inputs in [0, 1] — NOT the
+   * average raw float. Compute via `averageWearProportion(inputs)` so each
+   * input's float is normalized into its own range before averaging. Pass
+   * null when any input lacks min/max float and the projection should be
+   * skipped rather than approximated.
+   */
+  averageWearProportion?: number | null;
 }
 
 /**
@@ -134,7 +151,7 @@ export function computeBasketEV(
 
     for (const outcome of outcomes) {
       const probability = collectionChance * (outcome.probabilityWeight / totalWeight);
-      const projection = projectOutcome(outcome, opts.averageInputFloat);
+      const projection = projectOutcome(outcome, opts.averageWearProportion);
       const price = resolveOutcomePrice(outcome, projection.projectedMarketHashName);
       const contribution = multiplyMoney(price.estimatedValue, probability);
 
@@ -260,13 +277,13 @@ function collectionIdentityKey(
 
 function projectOutcome(
   outcome: OutcomeLike,
-  averageInputFloat: number | null | undefined,
+  averageWearProportion: number | null | undefined,
 ): {
   projectedFloat: number | null;
   projectedExterior: ItemExterior | null;
   projectedMarketHashName: string | null;
 } {
-  if (averageInputFloat == null || outcome.minFloat == null || outcome.maxFloat == null) {
+  if (averageWearProportion == null || outcome.minFloat == null || outcome.maxFloat == null) {
     return {
       projectedFloat: null,
       projectedExterior: null,
@@ -274,7 +291,7 @@ function projectOutcome(
     };
   }
 
-  const projectedFloat = projectOutputFloat(averageInputFloat, outcome.minFloat, outcome.maxFloat);
+  const projectedFloat = projectOutputFloat(averageWearProportion, outcome.minFloat, outcome.maxFloat);
   const projectedExterior = exteriorForFloat(projectedFloat);
   const projectedMarketHashName =
     outcome.marketHashNames?.find((entry) => entry.exterior === projectedExterior)?.marketHashName ?? null;

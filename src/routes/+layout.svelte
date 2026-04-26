@@ -14,6 +14,8 @@
 		{ href: '/tradeups/plans', label: 'Plans' },
 		{ href: '/tradeups/baskets', label: 'Baskets' },
 		{ href: '/tradeups/executions', label: 'Executions' },
+		{ href: '/buy-queue', label: 'Buy Queue' },
+		{ href: '/calculator', label: 'Calculator' },
 		{ href: '/market-prices', label: 'Market Prices' }
 	];
 

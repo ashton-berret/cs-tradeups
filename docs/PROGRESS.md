@@ -2,15 +2,15 @@
 
 ## Status Snapshot
 
-**Project Status:** Phase 6 MVP implemented and verified; Phases 0-6 complete
-**Last Updated:** 2026-04-24
+**Project Status:** Phases 0-7 complete; Phase 8 in progress — EV math correctness fix shipped, catalog-aware authoring (combobox in plan/rule/outcome editors) shipped, calculator scratchpad shipped. Watchlist combinations and optional catalog browser remain.
+**Last Updated:** 2026-04-26
 **Plan Reference:** See `docs/PLAN.md`
 
 ---
 
 ## Current Reality
 
-As of 2026-04-24, this repository has a Bun-managed SvelteKit app with a
+As of 2026-04-25, this repository has a Bun-managed SvelteKit app with a
 local SQLite database, a real service layer, and a thin SvelteKit API layer
 around the services.
 
@@ -97,22 +97,56 @@ What currently exists:
   observations.
 - Import result cards include distinct imported item count and catalog-linked
   observation count.
+- Market price observations now expose derived source metadata (`sourceType`
+  and `sourceLabel`), and `/market-prices` offers observed source presets for
+  filtering while preserving free-text source entry.
 - `/market-prices` provides a utilitarian operator page for inspecting local
   price observations, filtering by search/source/currency, and importing JSON
   or CSV batches through `POST /api/market-prices/import`.
+- The intended mature workflow is now documented as a self-sustaining
+  trade-up hunting assistant: the operator maintains roughly five active
+  plans, presses a discovery action, receives normalized candidate
+  assignments and buy-queue guidance, and still performs the final Steam
+  marketplace purchase action manually.
 - Extension ingestion accepts typed float-enrichment metadata
   (`minFloat`, `maxFloat`, `paintIndex`) and returns warnings for
   contradictory extension metadata without rejecting the row.
 - The Steam Market bridge surfaces whether a saved candidate was catalog
   linked or catalog unmatched in its inline row status.
+- Global partition planner at `/buy-queue` with role badges, alternatives
+  disclosure, and assignment-context-preserving Mark Bought wired to
+  `markBought` (which best-effort reserves the new inventory item into the
+  intended basket and surfaces a warning on conflict).
+- Per-input wear-proportion EV math throughout the system. Per-skin float
+  ranges from the catalog are loaded and used to normalize each input's
+  float into its own range before averaging — basket builder, evaluation,
+  and planner all agree.
+- `CatalogCollectionSelect` combobox component with live-filtered dropdown
+  suggestions, keyboard navigation, and Linked/Free badge. Wired into
+  RuleEditor, PlanEditorModal, and OutcomeEditor so plan authoring no
+  longer relies on free-text collection names.
+- `/calculator` scratchpad page with `POST /api/tradeups/calculator`
+  backend. Operator picks a plan, types up to 10 hypothetical inputs
+  (collection + float + price), sees EV / per-collection chance /
+  per-outcome contribution / cost / profit. Output exterior projection is
+  intentionally skipped in v1; the warnings panel makes the limitation
+  visible.
 
 What does not exist yet:
 
-- Svelte component tests.
+- Svelte component tests beyond the combobox ranking heuristic.
 - Automated end-to-end browser coverage for the companion bridge.
 - External price source adapters and marketplace history chart backfill.
 - Real marketplace-volume liquidity signal. Liquidity still uses the
   candidate-density proxy.
+- Watchlist combinations — no way yet to pin a buy-queue or calculator
+  proposal and re-check it after a future price import.
+- `CatalogSkinSelect` companion combobox. Without it, the calculator and
+  any future watchlist cannot project output exteriors because we don't
+  know each input's per-skin float range.
+- `/catalog` browser page (deferred — operator can hit `/api/catalog` for
+  raw data, and the combobox already surfaces collection names where it
+  matters).
 
 ---
 
@@ -210,6 +244,79 @@ What does not exist yet:
 - [x] Workstream D: Typed service errors migration.
 - [x] Workstream E: Automated test coverage with `bun test`.
 
+### Phase 7: Planner And Buy Queue
+
+- [x] `CandidateAssignment` view model.
+- [x] `plannerService` with global partition optimization.
+- [x] `GET /api/tradeups/buy-queue` endpoint.
+- [x] `/buy-queue` operator page.
+- [x] `markBought` carries assignment context into inventory/basket.
+- [x] Planner unit tests including the 39+1 partition case.
+- [x] End-to-end integration test of `buildBuyQueue` against a seeded SQLite DB.
+
+### Phase 8: Catalog-Aware Authoring, Calculator, And Watchlist
+
+- [x] **Critical EV bug fix: per-input wearProportion averaging.** Shipped
+  `wearProportion(float, min, max)` and `averageWearProportion(inputs)` in
+  `utils/float.ts`; renamed `BasketEVOptions.averageInputFloat` →
+  `averageWearProportion` so the semantics are explicit; added
+  `inputMinFloat` / `inputMaxFloat` to `BasketSlotContext`; introduced
+  `enrichSlotsWithInputRanges` helper that loads each slot's per-skin range
+  from the catalog snapshot via `getCatalogSkinFloatRange`. Wired through
+  `evaluationService.evaluateBasket`, `basketService.recomputeMetricsInTx`,
+  and `partition.basketEV`. Slots without a catalog match get null ranges
+  and the projection path skips output-exterior projection rather than
+  approximate. 11 new unit tests cover the helpers, the corrected
+  projection, and the missing-range fallback.
+- [x] Bug fix: `partition.basketEV` now computes
+  `averageWearProportion(slots)` and passes it to `computeBasketEV`, so the
+  planner swap optimizer can see float-driven exterior pricing differences.
+  Pool items carry `inputMinFloat` / `inputMaxFloat` populated during
+  `buildPool` (now async).
+- [x] `CatalogCollectionSelect` combobox component — text input with live
+  filtering and dropdown suggestions backed by `/api/catalog/summary`,
+  module-scoped fetch cache shared across instances, keyboard navigation
+  (Arrow/Enter/Escape), and a Linked/Free badge that signals catalog
+  linkage so the operator can see at a glance whether the rule will
+  match by stable id. The submitted form value is the canonical
+  collection name; planService already resolves `catalogCollectionId`
+  from canonical text via `resolveCatalogCollectionIdentity`, so no
+  schema or server changes were needed.
+- [x] Wired combobox into `RuleEditor.svelte`, `PlanEditorModal.svelte`,
+  and `OutcomeEditor.svelte` (replacing the free-text Input on
+  `outcomeCollection`). Free typing remains valid for legacy rules; the
+  Free/Linked badge surfaces the difference visually.
+- [ ] `CatalogSkinSelect` combobox for skin-level autocomplete (used by
+  the calculator scratchpad and any future catalog browser). Defer until
+  the calculator UI needs it.
+- [x] `/calculator` scratchpad page: pick a plan, type up to 10
+  hypothetical inputs (collection combobox + float + price), see EV,
+  per-collection chance, per-outcome contribution, total cost, expected
+  profit. Output exterior projection is intentionally skipped in v1
+  because it would require per-input skin selection (so each input's
+  float can be normalized into its own range) — the user-facing notes
+  panel surfaces that limitation. Endpoint:
+  `POST /api/tradeups/calculator`. Service:
+  `src/lib/server/tradeups/calculatorService.ts`. Schema:
+  `src/lib/schemas/calculator.ts`. 5 integration tests cover
+  single-collection EV, mixed-collection weighting, warning emission,
+  and missing plan id.
+- [ ] `CatalogSkinSelect` companion combobox so calculator/watchlist
+  inputs can carry a specific skin. Without it, output exterior projection
+  remains skipped in those surfaces because per-input float ranges are
+  unknown.
+- [ ] Watchlist combinations: persist a 10-item proposal as a lightweight
+  saved combination (new `TradeupCombination` model or a `WATCHLIST` basket
+  variant), with a `recheckProfitability` action that re-evaluates against
+  current observed prices and reports profitability deltas vs the snapshot
+  taken at save time.
+- [ ] `/catalog` browser page for skins/collections/floats — natural home
+  for the autocomplete components and reusable item cards.
+- [x] Combobox ranking heuristic test (`tests/components/`).
+- [x] Calculator math integration tests covering single-collection,
+  mixed-collection weighting, and warning emission.
+- [ ] Watchlist re-check integration test (after watchlist ships).
+
 Legend: `[x]` = complete and verified at the current expected level;
 `[ ]` = not implemented.
 
@@ -228,6 +335,9 @@ These decisions are currently stable enough to build against:
 - Steam purchase automation: do not automate Steam buying, listing, order
   placement, or checkout flows. Future tooling may deep-link/open Steam pages
   for the operator, but the human should execute purchases.
+- Discovery automation is allowed when it produces inspectable candidate or
+  price observations, assignment reasons, and buy guidance instead of
+  executing marketplace transactions.
 - API layering: route handlers parse and delegate to services; business
   logic stays in `src/lib/server/**`.
 - API response model: list endpoints return `PaginatedResponse<T>` with
@@ -246,6 +356,23 @@ These decisions are currently stable enough to build against:
 - Documentation model: `docs/PLAN.md` is intended architecture and roadmap;
   `docs/PROGRESS.md` is actual execution/state truth. Stale root handoff
   docs were removed to avoid competing instructions.
+- EV math (Phase 8): every output exterior projection uses
+  per-input-normalized wear proportions, not raw input floats. The
+  `BasketEVOptions.averageWearProportion` field name enforces this at the
+  type level — passing a raw float fails to compile, which is the point.
+  When per-input min/max float is unknown, the projection is skipped
+  rather than approximated. Collection-weighted EV remains exact in
+  either case.
+- Plan/rule/outcome authoring (Phase 8): canonical collection names come
+  from the `CatalogCollectionSelect` combobox. Free typing remains valid
+  for legacy rows (Free badge surfaces this), but `planService` resolves
+  `catalogCollectionId` from canonical text via
+  `resolveCatalogCollectionIdentity`, so picking from the dropdown is
+  enough to catalog-link the rule. No new form fields were introduced.
+- Calculator scope (Phase 8 v1): `/calculator` deliberately omits per-input
+  skin selection, so output exterior projection is skipped. The math
+  warnings panel makes this visible. Adding `CatalogSkinSelect` later
+  removes the limitation without changing the existing endpoint contract.
 
 ---
 
@@ -291,6 +418,17 @@ Still unresolved:
   observations, EV can consume them, and the operator can inspect/import JSON
   or CSV batches from `/market-prices`. Automated source adapters are still
   deferred.
+- **Planner and buy queue engine.** Candidate evaluation can score and rank
+  opportunities, but there is not yet a first-class planner that assigns
+  listings to an active plan, basket, bucket, slot, or reserve role with a
+  max-buy reason. This is the next product slice before marketplace source
+  automation. Locked decision: the planner is a global partition optimizer
+  over the full candidate + inventory pool, not a greedy per-candidate
+  assigner. See the Phase 7 Plan section above for the full design.
+- **Bulk discovery/source adapters.** The target is a self-sustaining listing
+  discovery loop, but source adapters should feed the existing observable
+  import/ingestion paths first. Steam/browser-assisted collection remains
+  non-transactional and should not automate checkout.
 - **Historical Steam chart ingestion.** Steam exposes price charts in the
   browser experience, but direct history endpoints are not treated as a stable
   official integration contract here. Prefer building a local observation
@@ -312,69 +450,376 @@ Still unresolved:
 
 ---
 
-## Immediate Next Steps
+## Phase 8 Plan: Catalog-Aware Authoring, Calculator, And Watchlist
 
-Phase 6 plus the catalog identity integration slice completes the scoped MVP
-foundation. The next session should focus on proving the real ingestion loop
-before adding pricing, marketplace ingestion, plan tuning, or unrelated UI.
+Phase 7 made the buy queue actionable, but a session review surfaced four
+gaps that block the operator from trusting the system end-to-end:
 
-Recommended handoff order:
+### Driving Concerns
 
-1. **Live bridge smoke test.**
-   - Start the app with `EXTENSION_SHARED_SECRET` configured.
-   - Load `tools/steam-market-bridge/` as an unpacked Chrome extension.
-   - Open several real Steam Market CS2 listing pages with CS2 Trader /
-     CSFloat float enrichment enabled.
-   - Ingest a small sample across common cases: exact catalog match,
-     StatTrak/Souvenir prefix, missing float enrichment, missing inspect link,
-     and a duplicate listing.
-   - Record which rows save as catalog-linked versus catalog-unmatched.
-   - Remaining from the 2026-04-24 sandbox session: this was not completed
-     because the session could not load Chrome/Steam pages. Static extraction
-     failures found during code inspection were fixed and covered where they
-     touch server normalization.
+1. **Plan rule editor uses free-text collection names.** The catalog snapshot
+   has 92 collections and 1,421 skins, but `RuleEditor.svelte` and the
+   outcome editor accept any string. A typo at plan-creation time
+   (e.g. `Snakebite Collection` vs `The Snakebite Collection`) silently
+   prevents every downstream candidate from matching, and the operator has
+   no clean way to debug it. This is the highest-friction problem in the
+   system today.
+2. **No tradeup calculator scratchpad.** `computeBasketEV` is correct and
+   wired into the basket builder, but the only way to evaluate a
+   hypothetical 10-item combination is to first create inventory rows.
+   There is no "what if" surface for arbitrary collection/float/price tuples.
+3. **No saved-combinations / watchlist.** The buy queue is recomputed each
+   load. If the operator likes a particular partition and wants to re-check
+   it after a price refresh, there is no way to pin the combination. The
+   workaround (materializing a `BUILDING` basket) immediately reserves
+   inventory and is too heavyweight.
+4. **Planner partition optimizer ignores float-driven exterior pricing.**
+   `partition.basketEV` calls `computeBasketEV` without `averageInputFloat`,
+   so the swap optimizer cannot see EV differences from grouping low-float
+   vs high-float items of the same collection. The basket builder UI math
+   is correct; only planner-internal optimization is affected. Real risk in
+   the common case where observed prices differ across exteriors.
 
-2. **Tighten bridge extraction based on observed failures.**
-   - Primary files: `tools/steam-market-bridge/page-bridge.js`,
-     `tools/steam-market-bridge/content.js`,
-     `src/lib/server/candidates/normalization.ts`,
-     `src/lib/server/catalog/linkage.ts`.
-   - Fix only concrete live failures: selector drift, wrong listing id,
-     bad inspect-link template replacement, bad collection/rarity/exterior
-     extraction, missing float fields, or misleading inline diagnostics.
-   - Keep ingestion permissive. Warnings are preferred over rejecting rows
-     unless the app cannot create a valid candidate.
+### EV Math Audit (verified 2026-04-25)
 
-3. **Validate server-side persistence and evaluation after live ingestion.**
-   - Confirm new candidates have correct `catalogSkinId`,
-     `catalogCollectionId`, `catalogWeaponDefIndex`, and `catalogPaintIndex`
-     when a real catalog match exists.
-   - Confirm unmatched rows are legitimate extension/manual edge cases, not
-     catalog linker bugs.
-   - Re-run affected candidates with `POST /api/candidates/[id]/reevaluate`
-     or bulk open re-evaluation if plan/rule data changes.
+Correct:
 
-4. **Add regression coverage for any fixed edge case.**
-   - Prefer focused unit tests under `tests/catalog/`, `tests/candidates/`,
-     or `tests/evaluation/`.
-   - Run `bun test tests/` and `bun run check`.
-   - If Prisma schema changes are unavoidable, keep them nullable/additive,
-     regenerate Prisma Client, run `bunx prisma migrate deploy`, and update
-     this document.
+- Collection weighting: `P(collection) = slot count / 10`. 2 from A + 8 from
+  B yields 20%/80% as expected.
+- Within-collection outcome distribution: weighted by `probabilityWeight`,
+  defaults to uniform.
+- Per-skin float ranges loaded from the catalog snapshot via
+  `withCatalogOutcomeFloatRanges` (output side).
+- Observed market price preferred over plan fallback when present.
 
-5. **Only after bridge/linkage confidence, choose the next larger slice.**
-   - Option A: replace density-based liquidity with a real market-volume
-     signal.
-   - Option B: add dynamic projected-exterior price support from a real price
-     table.
-   - Option C: add database integration tests if live ingestion exposes query
-     regressions.
-   - Deferred UI option: add a visible weapons/catalog database with skin
-     imagery and catalog metadata after ingestion and pricing data are stable.
+Wrong (FIXED 2026-04-25):
 
-Do not invent catalog matches for fake seed/filler rows. Do not start
-marketplace price ingestion or plan-discovery import work until the live
-candidate ingestion loop is proven stable.
+- ~~Input float normalization is missing.~~ **Fixed.** New
+  `averageWearProportion(inputs)` normalizes each input by its own
+  per-skin range before averaging. `enrichSlotsWithInputRanges` loads
+  ranges from the catalog snapshot. `BasketEVOptions.averageInputFloat`
+  renamed to `averageWearProportion` to prevent regression.
+- ~~`partition.basketEV` does not pass the average wear proportion.~~
+  **Fixed.** Pool items carry `inputMinFloat` / `inputMaxFloat`;
+  `partition.basketEV` computes the wear proportion and passes it. Swap
+  optimizer can now see float-driven exterior EV differences.
+
+### Recommended Order
+
+1. **Fix the planner float-projection bug** (one-line change + regression
+   test). Do this first because it is small, isolated, and the integration
+   tests will catch the change cleanly.
+2. **Build catalog combobox components.** `CatalogCollectionSelect` first —
+   text input with live-filtered dropdown suggestions sourced from
+   `/api/catalog/summary`. Selection writes both the canonical display
+   string and the stable `catalogCollectionId`. `CatalogSkinSelect` second,
+   reusing the same combobox primitive.
+3. **Wire comboboxes into plan editing.** Replace free-text collection
+   inputs in `RuleEditor.svelte`, `PlanEditorModal.svelte`, and the outcome
+   editor. Existing free-text rules continue to work; the catalog id is now
+   set automatically when the operator picks from the suggestions.
+4. **Ship `/calculator` scratchpad.** New page with plan picker + 10
+   transient input rows (collection combobox, float, price). Calls the
+   existing `computeBasketEV` math through a small server function or an
+   inline `POST /api/tradeups/calculator` endpoint. Output: per-collection
+   chance, per-outcome contribution, projected exteriors, total EV, total
+   cost, expected profit. Does not persist anything.
+5. **Add watchlist combinations.** New entity (or basket status variant) to
+   persist a 10-item proposal with a snapshot of prices/EV at save time.
+   `POST /api/tradeups/combinations` from the buy queue ("save this
+   proposal"). `POST /api/tradeups/combinations/[id]/recheck` re-evaluates
+   against current observed prices and reports the delta. UI: a
+   `/watchlist` page or a tab on the buy queue.
+6. **Optional: `/catalog` browser page.** Reuses the combobox primitive and
+   adds visible cards for skins/collections/floats. Lower priority — defer
+   if the autocomplete in the plan editor is sufficient.
+
+### Combobox Behavior
+
+- Text input with live filtering as the operator types — substring match
+  case-insensitively, ranked by prefix match first then position.
+- Suggestions drop down beneath the input (max ~8 visible).
+- Free text remains valid for legacy rules; if the typed text matches a
+  catalog entry exactly, the catalog id is set automatically. If the
+  operator picks from the dropdown, the canonical display string and id
+  are both written.
+- A small badge next to the input shows whether the current value is
+  catalog-linked or free-text-only, so the operator can see at a glance
+  whether the rule will participate in catalog-id matching.
+
+### Deferred Within Phase 8
+
+- Skin imagery and rich card UI in the catalog browser.
+- Multi-language collection name handling.
+- Backfill migration that resolves all existing free-text rules to catalog
+  ids — defer until the combobox-authored rules are proven and the operator
+  asks for a sweep.
+
+---
+
+## Phase 7 Plan: Planner And Buy Queue
+
+Phase 6 plus the catalog identity, bridge hardening, and market price
+observation slices complete the current foundation. Phase 7 makes the app
+assign real candidate listings into plan/basket needs and produce a buy queue.
+This must ship before Steam scraping or broader price source automation.
+
+### Design Concerns Driving The Phase
+
+These concerns came out of reviewing the current evaluation flow before
+implementation. They shape the requirements below.
+
+1. **Evaluation already picks a winner without explaining alternatives.**
+   `evaluateCandidate` computes `allMatches` and writes `matchedPlanId`, but
+   only the winner persists. The buy queue must surface runner-up plans and
+   baskets per candidate so operator overrides are informed, not guesswork.
+2. **Tie-breaking is currently alphabetic on plan id.** `pickBestMatch`
+   resolves equal-fit ties by `planId.localeCompare`. That is fine for
+   deterministic output but visible tie reasons must be added before this
+   becomes user-facing in a buy queue.
+3. **`boundedFloatFit` rewards center-of-band floats.** That is the wrong
+   heuristic when a basket needs a specific projected output exterior — the
+   operator may want the highest acceptable float to drag a basket's average
+   up, or the lowest. Float-fit must be evaluated against the *basket's*
+   current average and target exterior, not the rule midpoint, when
+   assignment-aware ranking runs.
+4. **No slot-scarcity awareness today.** A scarce float/collection slot can
+   be assigned to a basket that did not need it because the candidate scored
+   well in isolation. Global optimization is required, not greedy
+   per-candidate assignment.
+5. **`recomputeMetrics` evaluates baskets as they stand.** There is no
+   "what would this basket look like with candidate X" projection feeding
+   back into candidate ranking. The planner needs to compute marginal
+   contribution against simulated post-add basket state, which
+   `computeMarginalContribution` already does for one basket at a time but
+   not across the full pool.
+6. **Manual operator overrides must be honored.** Pinned candidates and
+   manually reserved inventory are fixed inputs to the optimizer, not
+   suggestions it can override.
+
+### Global Basket Optimization (Locked Decision For Phase 7)
+
+Greedy per-candidate assignment is rejected. The planner is a global
+optimizer over the full candidate + inventory pool against all active
+plans and baskets.
+
+The product reason: with 39 viable items already in the pool, adding the
+40th must produce the partition that yields the maximum number of viable
+10-item baskets and the maximum total expected value across them. A locally
+optimal home for a single new item can break a basket that was one slot from
+ready, or strand a scarce slot in a basket that did not need it.
+
+Algorithmic shape:
+
+- Pool: all `WATCHING` / `GOOD_BUY` candidates plus `HELD` /
+  `RESERVED_FOR_BASKET` inventory.
+- Containers: all active `BUILDING` baskets plus zero or more proposed new
+  baskets per active plan.
+- Pre-filter by plan rules so each item only contends for baskets under plans
+  whose rules accept it. This shrinks the combinatorial space dramatically;
+  most items match one or two plans, not all of them.
+- Score each candidate partition by total expected EV/profit; tiebreak on
+  viable-basket count so four ready baskets beat three ready + one slightly
+  higher EV trio.
+- Exact enumeration where per-plan viable count is small (low tens). Fall
+  back to a heuristic — greedy initial assignment plus local-search swaps
+  that strictly improve total EV — when not. Converge to a stable result.
+- Deterministic output: same input pool produces same partition across
+  refreshes when nothing changed. Stability matters for operator trust.
+- Manual pins are fixed inputs; the optimizer optimizes the remainder around
+  them.
+- Recompute on any pool change: new candidate, new price observation, plan
+  edit, manual basket edit.
+
+### Recommended Handoff Order
+
+1. **Read the current evaluation and basket flow.**
+   - Primary files: `src/lib/server/tradeups/evaluation/**`,
+     `src/lib/server/tradeups/basketService.ts`,
+     `src/lib/server/candidates/**`, and current candidates/baskets UI routes.
+   - Identify what data already exists for plan fit, float fit, EV, max buy,
+     current basket membership, and listing URL/inspect link.
+   - Confirm `matchCandidateToPlans` returns full match sets (it does) and
+     that `computeMarginalContribution` accepts simulated slot context (it
+     does).
+
+2. **Add the `CandidateAssignment` view model.**
+   - Location: `src/lib/types/services.ts`.
+   - Fields: `candidateId`, `planId`, `planName`, nullable `basketId`,
+     nullable `basketSlotIndex`, `role` (`BASKET_SLOT` | `BASKET_FILL` |
+     `RESERVE` | `NEW_BASKET`), `recommendation`, `maxBuyPrice`,
+     `expectedProfit`, `expectedProfitPct`, `marginalEVContribution`,
+     `floatFit { score, explanation }`, `pricing { source, freshness }`,
+     `reason` string, and `alternatives[]` with `planId`, `basketId`,
+     `marginalEVContribution`, and `whyNotChosen`.
+   - Transient by default. Do not persist in this slice. Revisit only if
+     recomputation becomes slow or the operator needs assignment history.
+
+3. **Build `plannerService` with the global optimizer.**
+   - New file `src/lib/server/tradeups/plannerService.ts`.
+   - Public surface: `buildBuyQueue(): Promise<CandidateAssignment[]>`.
+   - Internal pipeline:
+     a. Load active plans, candidates, inventory, baskets in one read pass.
+     b. Per plan, compute the eligible item set (rule pre-filter).
+     c. For each plan, search partitions of eligible items into ten-item
+        groups maximizing total EV. Use exact enumeration when feasible;
+        fall back to greedy + local-search swap improvement otherwise.
+     d. Compose the cross-plan global solution: each item lands in at most
+        one plan/basket; ties resolved by marginal EV delta.
+     e. For each item in the chosen solution, compute the assignment record
+        with reason, alternatives (top 2-3 runner-ups across plans/baskets),
+        and float-fit explanation.
+     f. Honor manual pins as fixed assignments; optimize remainder around
+        them.
+   - Stability: sort partitions and items deterministically before scoring
+     so equal-EV solutions produce identical output across runs.
+
+4. **Expose `GET /api/tradeups/buy-queue`.**
+   - Calls `buildBuyQueue()` and serializes.
+   - Optional `?planId=...` to scope; optional `?includeAlternatives=true`
+     to keep the default response lean.
+   - No persistence, no mutations.
+
+5. **Surface the `/buy-queue` operator page.**
+   - Route: `src/routes/buy-queue/+page.server.ts` and `+page.svelte`.
+   - Group by plan, then by proposed basket inside each plan.
+   - Per row: external listing link, inspect-link icon, current price vs
+     max buy (red when over), assigned slot, marginal EV $, reason text,
+     freshness badge consistent with `/market-prices`.
+   - Disclosure for alternatives, expanded on demand.
+   - Single "Refresh queue" action that re-runs the planner without import.
+   - Per-row actions: "Mark bought" (carrying assignment context), "Pass",
+     "Re-evaluate".
+   - Utilitarian styling. No charts. No drag-and-drop.
+
+6. **Wire `markBought` to carry assignment context.**
+   - Extend `POST /api/candidates/[id]/buy` to accept optional
+     `intendedBasketId` and `intendedSlotIndex`.
+   - After conversion, when the basket is still `BUILDING` with that slot
+     available, call `basketService.addItem` immediately.
+   - When the slot is no longer available, fall through to `HELD` inventory
+     and surface a warning in the response.
+   - The buy queue UI passes these from the assignment.
+
+7. **Tests and docs.**
+   - Unit tests covering: one candidate one plan no basket → `NEW_BASKET`;
+     candidate fits two plans → picks higher marginal EV with alternatives;
+     basket at 9/10 → `BASKET_FILL` priority; two candidates compete for
+     last slot → loser falls to alternative; float band edge cases;
+     max-buy gating; pinned override fixed; deterministic output for
+     unchanged input; 39+1 pool produces strictly better partition than
+     greedy assignment for at least one constructed case.
+   - One integration test seeding plans + candidates + a partial basket and
+     asserting the expected partition.
+   - Update `docs/PROGRESS.md` Phase Tracking with Phase 7 progress.
+   - Run `bun run check` and `bun test tests/`. The known sandbox `EPERM`
+     reading `node_modules\esm-env` remains an environment failure, not an
+     application failure.
+
+### Deferred Within Phase 7
+
+- Persisting assignments. Recomputation is fine until proven slow.
+- Auto-creating proposed baskets. Show "would start a new basket" as a role,
+  but require an operator click to materialize the basket row.
+- Smart per-basket float-band assignment that optimizes for projected output
+  exterior rather than just marginal EV. v1 uses marginal EV alone; revisit
+  if specific bad assignments surface.
+- Cross-plan rebalancing beyond the local-search swap heuristic. v1 is good
+  enough if it strictly improves over greedy; bipartite-matching-style exact
+  solutions can wait until the heuristic shows visible failures.
+
+Only after the planner/buy-queue loop is useful should the project add a
+bulk discovery/source adapter. That adapter should feed normalized candidates
+and price observations into the same inspectable services and must not
+automate Steam buying, selling, order placement, checkout, or confirmation.
+
+---
+
+## Next Session Handoff Prompt
+
+Use this prompt to continue in a fresh session:
+
+```text
+We are continuing cs-tradeups.
+
+Repo:
+C:\Users\jasht\source\repos\cs-tradeups
+
+Read first:
+- docs/PROGRESS.md
+- docs/PLAN.md
+
+Current state:
+- Phases 0-7 complete. Phase 8 in progress.
+- Phase 7 planner/buy-queue is shipped: global partition optimizer
+  (pure-collection-first greedy + local-search swap), `/buy-queue` page
+  grouped by plan and proposed basket with role badges and ranked
+  alternatives, markBought carrying assignment context for best-effort
+  basket reservation. 7 integration tests, 9 partition unit tests.
+- Phase 8 progress so far:
+  - EV correctness fix: per-input wear-proportion averaging now used
+    everywhere. wearProportion(float, min, max) and
+    averageWearProportion(inputs) helpers, BasketSlotContext carries
+    inputMinFloat/inputMaxFloat, BasketEVOptions.averageInputFloat
+    renamed to averageWearProportion, enrichSlotsWithInputRanges helper
+    populates ranges from the catalog snapshot. Wired through
+    evaluationService, basketService, and planner partition.
+  - CatalogCollectionSelect combobox: live-filtered dropdown sourced
+    from /api/catalog/summary, module-scoped fetch cache, keyboard
+    navigation, Linked/Free badge. Wired into RuleEditor,
+    PlanEditorModal, OutcomeEditor. Server-side resolver
+    (resolveCatalogCollectionIdentity) does the catalogCollectionId
+    lookup so no schema changes were needed.
+  - /calculator scratchpad with POST /api/tradeups/calculator. Pick a
+    plan, type up to 10 hypothetical inputs (collection + float +
+    price), see EV/per-collection chance/per-outcome contribution/cost/
+    profit. Output exterior projection skipped in v1 because per-input
+    skin selection isn't supported yet.
+- 100 tests pass. bun run check is clean.
+
+Next coding slice for Phase 8:
+1. CatalogSkinSelect companion combobox so calculator and (later)
+   watchlist inputs can carry a specific skin. Once an input has a
+   catalogSkinId, getCatalogSkinFloatRange gives us inputMinFloat /
+   inputMaxFloat, which unblocks output exterior projection in those
+   surfaces. Same UX shape as CatalogCollectionSelect; sourced from
+   /api/catalog/summary skins. Optional collection scoping prop to
+   filter the dropdown to a chosen collection.
+2. Watchlist combinations. Persist a 10-item proposal as a saved
+   combination (likely a new TradeupCombination model or a WATCHLIST
+   basket variant) with a snapshot of currentPrice and EV at save
+   time. Add POST /api/tradeups/combinations to save and
+   POST /api/tradeups/combinations/[id]/recheck to re-evaluate
+   against current observed prices and report a delta. UI: a save
+   button on /buy-queue and /calculator, a /watchlist or
+   /tradeups/watchlist page for review.
+3. (Optional, lower priority) /catalog browser page using the
+   combobox primitives plus skin/collection cards.
+
+Order rationale: skin select unblocks correct exterior projection in
+the calculator and any future watchlist; watchlist depends on the
+proposal-with-snapshot persistence model. Catalog browser is purely
+operator UX and can defer.
+
+Verification gates:
+- bun run check (0 errors, 0 warnings)
+- bun test tests/ (all green)
+- The known sandbox EPERM reading node_modules\esm-env counts as an
+  environment failure, not an application failure.
+
+Do not:
+- Do not automate Steam buying, selling, order placement, checkout, or
+  confirmation.
+- Do not implement Steam scraping/source adapters before the
+  watchlist/observation loop is in place.
+- Do not add historical chart backfill yet.
+- Do not silently accept free-text collection or skin names where the
+  combobox can be used. Author rules and outcomes through the
+  combobox.
+- Do not regress the wear-proportion math by passing raw input floats
+  to projectOutputFloat. The renamed BasketEVOptions field
+  (averageWearProportion) catches this at the type level — keep it.
+```
 
 ---
 
@@ -395,6 +840,140 @@ only then deepen analytics or scoring complexity.
 ---
 
 ## Verification Log
+
+### 2026-04-26
+
+- Documentation sync: refreshed `Status Snapshot`, `Current Reality`,
+  Phase 8 checklist, `Locked Decisions`, and the next-session handoff
+  prompt to reflect the shipped state of Phase 8 deliverables (EV
+  correctness fix, catalog combobox in plan/rule/outcome editors,
+  calculator scratchpad). The handoff prompt now points the next session
+  at `CatalogSkinSelect` followed by watchlist combinations.
+
+### 2026-04-25
+
+- Shipped Phase 8 calculator scratchpad: `/calculator` page with plan
+  picker, 10 input rows (collection combobox + float + price), and a
+  results panel showing total cost, EV, expected profit, average input
+  float, per-collection chance, and per-outcome contribution.
+  `POST /api/tradeups/calculator` endpoint backed by
+  `calculatorService.calculate`, which reuses `withCatalogOutcomeFloatRanges`
+  for outcome enrichment and `computeBasketEV` for the math. Output
+  exterior projection is intentionally skipped in v1 — the warnings
+  panel makes this visible to the operator. Added 5 integration tests
+  in `tests/integration/calculator.test.ts` covering pure-collection EV,
+  mixed-collection slot-count weighting, fewer-than-10-inputs warning,
+  always-skipped-projection warning, and missing-plan error path. Sidebar
+  nav gained a Calculator entry. Full suite: 100 tests pass;
+  `bun run check` reports 0 errors and 0 warnings.
+- Shipped Phase 8 catalog autocomplete: `CatalogCollectionSelect` combobox
+  (`src/lib/components/CatalogCollectionSelect.svelte`) with live-filtered
+  dropdown suggestions sourced from `/api/catalog/summary`, module-scoped
+  fetch cache, keyboard navigation (Arrow/Enter/Escape), and a Linked/Free
+  badge that signals whether the current value matches a known catalog
+  collection. Wired into `RuleEditor.svelte`, `PlanEditorModal.svelte`, and
+  `OutcomeEditor.svelte`. Server side requires no changes — `planService`
+  already calls `resolveCatalogCollectionIdentity` against canonical text,
+  so the combobox just needs to ensure the operator picks a real
+  collection name and the catalog id falls out automatically. Added a
+  unit test for the ranking heuristic in
+  `tests/components/catalogCollectionSelect.test.ts` (6 cases). Full
+  suite: 95 tests pass; `bun run check` reports 0 errors and 0 warnings.
+- Shipped the Phase 8 critical EV correctness fix: per-input wear-proportion
+  averaging. The previous code computed `avg(raw input floats)` and treated
+  that as a wear proportion, which is only correct when every input has
+  range [0, 1]. CS2 actual mechanics normalize each input by its own range
+  first (`(float − min) / (max − min)`), average those proportions, and
+  then map the average through each output's range. Affected every EV
+  computation in the system — basket builder UI, candidate evaluation,
+  basket recomputeMetrics, and planner partition. New helpers
+  `wearProportion` and `averageWearProportion` in `utils/float.ts`. New
+  `enrichSlotsWithInputRanges` helper loads per-skin ranges from the
+  catalog snapshot. `BasketSlotContext` carries `inputMinFloat` /
+  `inputMaxFloat`. `BasketEVOptions.averageInputFloat` renamed to
+  `averageWearProportion` so the semantics are explicit and the wrong
+  value cannot be passed silently. Pool items now also carry input ranges
+  so `partition.basketEV` can compute and pass the corrected proportion;
+  `buildPool` is now async because it loads ranges via
+  `getCatalogSkinFloatRange`. Added `tests/evaluation/wearProportion.test.ts`
+  with 11 cases covering the helpers, the corrected projection (same raw
+  float on different input ranges produces different output exteriors),
+  and the missing-range fallback (projection is skipped, total EV still
+  computes from collection weighting). Full suite: 89 tests pass,
+  `bun run check` reports 0 errors and 0 warnings.
+- Designed Phase 8: catalog-aware combobox authoring (text input with live
+  filtering and dropdown suggestions, not a hard select), tradeup calculator
+  scratchpad at `/calculator`, and saved-combination watchlist with
+  `recheckProfitability` for re-evaluating against later price observations.
+  Captured driving concerns: free-text collection inputs silently break rule
+  matching, no scratchpad calculator exists for hypothetical baskets, no way
+  to pin a buy-queue proposal for later re-check, and the planner partition
+  optimizer ignores float-driven output exterior pricing. Audited the EV
+  math: collection weighting (slot count / 10), within-collection
+  `probabilityWeight`, simple-mean float averaging, per-skin float ranges,
+  `projectOutputFloat` formula (`min + avg × (max - min)`), and
+  observed-vs-plan-fallback pricing all correct. The one bug found:
+  `partition.basketEV` does not pass `averageInputFloat` to
+  `computeBasketEV`, so swap optimization cannot see float-driven exterior
+  EV differences. Logged as the first deliverable in Phase 8.
+- Completed Phase 7 end-to-end: shipped the `/buy-queue` operator page
+  (server load + Svelte page) grouped by plan and proposed basket with
+  inline alternatives disclosure, role badges, max-buy red-flag visualization,
+  and a per-row Mark-Bought form that posts the assignment context. Added
+  the sidebar nav entry. Extended `markBought` to accept optional
+  `intendedBasketId` and `intendedSlotIndex` and best-effort reserve the new
+  inventory item into the basket; failure modes (basket missing/non-BUILDING,
+  slot occupied, full, rarity mismatch) return `basketReservation: { warning }`
+  rather than reverting the candidate conversion. Added 7 integration tests
+  under `tests/integration/plannerBuyQueue.test.ts` covering empty-pool,
+  10-item single basket, 4-viable-baskets-from-40, existing-basket pinning
+  honored, deterministic output, markBought success path, and markBought
+  warning path. Full `bun test tests/` reports 78 tests passing;
+  `bun run check` reports 0 errors and 0 warnings.
+- Implemented Phase 7 core: shipped `CandidateAssignment` / `BuyQueueResult`
+  types in `src/lib/types/services.ts`, the planner module under
+  `src/lib/server/tradeups/planner/` (eligibility, partition, types), the
+  `plannerService.buildBuyQueue` entry point in
+  `src/lib/server/tradeups/plannerService.ts`, and the
+  `GET /api/tradeups/buy-queue` route. The optimizer is the locked global
+  partition design: pure-collection-first basket formation, mixed-basket
+  fallback for leftovers, and a local-search swap pass that strictly
+  improves total EV. Manual pins (inventory items already in BUILDING
+  baskets) are honored as fixed inputs.
+- Added 15 planner unit tests under `tests/planner/`. Coverage includes
+  empty pool, single item reserved, ten-item pure basket, twenty-item
+  two-basket split, existing 9-item basket completion, the locked
+  39+1 → 4-viable-basket case (12+13+10+5 across four collections), uneven
+  partition stranding, deterministic output across calls, and pure-collection
+  basket formation when two collections both have ≥10 items.
+- `bun test tests/` passes with 71 tests; `bun run check` reports 0 errors
+  and 0 warnings.
+- Phase 7 work still open: `/buy-queue` operator page, `markBought`
+  assignment-context wiring, and an end-to-end integration test of
+  `buildBuyQueue` against a seeded SQLite DB.
+- Locked Phase 7 design in `docs/PLAN.md` and the Phase 7 Plan section of this
+  document: the planner is a global partition optimizer over the full
+  candidate + inventory pool against active plans and baskets, not a greedy
+  per-candidate assigner. Adding the Nth item must produce the partition that
+  maximizes total EV and viable-basket count, not the locally best home for
+  that one item. Also captured the supporting concerns: alternatives must
+  surface, tie-breaking must be visible, float-fit must be basket-aware, and
+  manual operator pins are fixed inputs to the optimizer.
+- Clarified the target operating model in `docs/PLAN.md`: the finished
+  product should behave like a self-sustaining trade-up hunting assistant with
+  plan-aware discovery, assignment, basket proposal, and buy-queue guidance,
+  while leaving final marketplace actions to the human operator.
+- Updated the evaluation and extension roadmap so the next product slice is
+  planner assignment and buy-queue visibility before any Steam scraping or
+  broader source adapter work.
+- Updated this progress document with the current market-prices UI/API state,
+  the planner/buy-queue next-step order, and a reusable next-session handoff
+  prompt.
+- Most recent code verification from the market-prices slice: `bun run check`
+  passed, focused market-price tests passed, and a full `bun test tests/`
+  attempt in the restricted sandbox hit `EPERM` while reading
+  `node_modules\esm-env` during integration-test startup. This is recorded as
+  an environment failure, not a known application failure.
 
 ### 2026-04-24
 
@@ -442,6 +1021,11 @@ only then deepen analytics or scoring complexity.
   versus full observation history.
 - Expanded `/market-prices` import result cards to show distinct item count
   and catalog-linked observation count from the import response.
+- Added derived source metadata via
+  `src/lib/server/marketPrices/sourceMetadata.ts`, plus
+  `GET /api/market-prices/sources` for observed source presets.
+- Updated `/market-prices` to show source type badges in the table and
+  summary, and to offer source presets through the source filter input.
 - Added integration coverage for filtered market price observation listing,
   CSV import success, and CSV row validation failure.
 - Added and applied the nullable plan catalog linkage migration.
@@ -631,6 +1215,13 @@ only then deepen analytics or scoring complexity.
   from full local observation history without adding charts or backfill.
 - Import feedback now makes catalog linkage visible immediately after a JSON
   or CSV batch is submitted.
+- Source classification is currently derived from source names and does not
+  require a migration. Future adapters should set stable source names so this
+  classification remains useful.
+- Finished price automation direction is now documented in `docs/PLAN.md`:
+  adapters or file drops should bulk insert normalized observations through
+  the same inspectable pipeline, with source/freshness/history visible before
+  EV-driven decisions; Steam buying/selling automation remains out of scope.
 - Added integration coverage for local batch price imports.
 - `bun test tests/` passes with 39 tests.
 - `bun run check` passes with 0 errors and 0 warnings.
@@ -890,3 +1481,33 @@ only then deepen analytics or scoring complexity.
 - Updated stack direction to Svelte 5, TailwindCSS 4.x, and ECharts.
 - Cleaned up `docs/UI_STYLE_GUIDE.md` for CS2 rarity colors and the correct
   localStorage key.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Random things to fix/notes
+- calculator is incorrect, doesn't show all collections, no input for actual weapons, plans at the top are meaningless and limiting, need to be able to save as a plan
+- graphs on dashboard ui are bad, illegible
+- general ui is bad, needs brightening/improvement in dark mode
+- need to link to steam inventory automatically
+- ensure that clickable links appear in the buy queue, need to open in new tab and highlight the price and float so i know im getting the right one on the web page after clickinglink
+- remove the csv and json import full modals and just turn into buttons that extend the modal, won't really use this, all of this should be done autonomously
+- for tradeup executions, should be able to select result from steam inventory
+- need an inventory net worth graph on dashboard at top
+- need to improve new plan modal to make wider, tough to read

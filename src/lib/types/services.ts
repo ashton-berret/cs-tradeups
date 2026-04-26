@@ -353,6 +353,162 @@ export type EvaluationResult =
   | { kind: 'basket'; result: BasketEvaluation };
 
 // ---------------------------------------------------------------------------
+// Planner / Buy Queue
+// ---------------------------------------------------------------------------
+//
+// The planner is a global partition optimizer: it takes the full pool of
+// candidates + held inventory + active baskets and produces an assignment
+// per item showing which plan/basket/slot it should occupy to maximize total
+// expected EV across all baskets, plus runner-up alternatives so the operator
+// can override with full information.
+//
+// Assignments are transient (recomputed on demand). Pool items always carry
+// a stable `poolItemId` so the UI can map back to the underlying candidate or
+// inventory item.
+
+/** Whether the pool item is a candidate (not yet purchased) or inventory (held). */
+export type PoolItemKind = 'CANDIDATE' | 'INVENTORY';
+
+/** Where the planner placed the item. */
+export type AssignmentRole =
+  /** Filling a slot in a new basket the planner proposed. */
+  | 'NEW_BASKET'
+  /** Filling an open slot in an existing BUILDING basket. */
+  | 'BASKET_FILL'
+  /** Eligible but no full basket forms; held in reserve for a future fill. */
+  | 'RESERVE'
+  /** Operator manually pinned this item to this basket; planner respects it. */
+  | 'PINNED';
+
+export interface AssignmentAlternative {
+  /** Plan the alternative would assign to. Same plan as primary is allowed when only the basket differs. */
+  planId: string;
+  planName: string;
+  /** null when the alternative is a different new basket within the same/another plan. */
+  basketId: string | null;
+  /** Marginal EV contribution if the item went here instead of its primary. */
+  marginalEVContribution: number | null;
+  /**
+   * Delta = (primary marginal EV) - (this alternative's marginal EV). Always ≥ 0
+   * because the primary is the best by definition. Lets the UI render
+   * "this assignment beats the next-best plan by $0.34".
+   */
+  deltaFromPrimary: number;
+  /** Short, user-facing reason this lost. */
+  whyNotChosen: string;
+}
+
+export interface AssignmentFloatFit {
+  /** 0..1 — same scale as ruleFitScore but evaluated against the assigned basket, not the rule midpoint. */
+  score: number;
+  /** Short user-facing string. e.g. "0.07 inside 0.00–0.15 band; basket avg → MW output". */
+  explanation: string;
+}
+
+export interface AssignmentPricing {
+  /** OBSERVED → live market price drove EV; PLAN_FALLBACK → plan outcome value used. */
+  source: 'OBSERVED' | 'PLAN_FALLBACK';
+  freshness: 'FRESH' | 'RECENT' | 'STALE' | 'OLD' | null;
+}
+
+export interface CandidateAssignment {
+  /** Stable id for the pool item — `candidate:<id>` or `inventory:<id>`. */
+  poolItemId: string;
+  poolItemKind: PoolItemKind;
+
+  /** The underlying row id (candidate.id or inventoryItem.id). */
+  sourceId: string;
+
+  planId: string;
+  planName: string;
+
+  /**
+   * Existing basket id when filling slots in a BUILDING basket; null when the
+   * planner is proposing a fresh basket. Proposed baskets are not persisted —
+   * the operator must materialize them by clicking "create basket".
+   */
+  basketId: string | null;
+
+  /**
+   * Stable id for the proposed (or existing) basket grouping. Existing baskets
+   * use their real id; proposed baskets use `proposed:<planId>:<index>` so the
+   * UI can group rows that belong together even before any DB row exists.
+   */
+  basketGroupId: string;
+
+  /** 0-based slot index inside the (proposed or existing) basket. */
+  basketSlotIndex: number;
+
+  role: AssignmentRole;
+
+  /** Snapshot of the candidate's current recommendation (only meaningful for CANDIDATE kind). */
+  recommendation: CandidateDecisionStatus | null;
+
+  /** Max buy guidance; null when not derivable (no plan threshold, no EV). */
+  maxBuyPrice: number | null;
+
+  /** Item's price right now — listPrice for candidates, purchasePrice for inventory. */
+  currentPrice: number;
+
+  /** EV contribution of placing this item in this specific assigned basket. */
+  marginalEVContribution: number | null;
+
+  /**
+   * Profit if the operator buys this item at currentPrice and the assigned
+   * basket realizes its expected EV: per-slot share of basket EV minus this
+   * item's currentPrice. Null when basket EV unavailable.
+   */
+  expectedProfit: number | null;
+  expectedProfitPct: number | null;
+
+  floatFit: AssignmentFloatFit;
+  pricing: AssignmentPricing;
+
+  /** One-line human reason. e.g. "Fills slot 7/10 of proposed Mirage basket #2 (EV $14.20)". */
+  reason: string;
+
+  /** Top runner-up assignments — at most 3, sorted by marginalEVContribution desc. */
+  alternatives: AssignmentAlternative[];
+}
+
+/** Per-basket grouping data used by the buy queue UI. */
+export interface ProposedBasketSummary {
+  basketGroupId: string;
+  basketId: string | null;        // null when proposed
+  planId: string;
+  planName: string;
+  itemCount: number;              // 1..10
+  isFull: boolean;                // itemCount === 10
+  totalCost: number;              // sum of currentPrice across items
+  expectedEV: number | null;
+  expectedProfit: number | null;
+  expectedProfitPct: number | null;
+  averageFloat: number | null;
+}
+
+export interface BuyQueueResult {
+  /** All assignments, including RESERVE rows, sorted plan → basket → slot. */
+  assignments: CandidateAssignment[];
+  /** Summaries to support grouped UI rendering without re-aggregating. */
+  baskets: ProposedBasketSummary[];
+  /**
+   * Items that were in the input pool but ended up unassigned (no plan match,
+   * or eligible but optimizer found no profitable home). UI can show these
+   * separately so the operator sees nothing was silently dropped.
+   */
+  unassigned: Array<{
+    poolItemId: string;
+    poolItemKind: PoolItemKind;
+    sourceId: string;
+    reason: string;
+  }>;
+  /** Total expected profit across all proposed/filled baskets. */
+  totalExpectedProfit: number;
+  /** Count of baskets that would be full (10/10) under this assignment. */
+  viableBasketCount: number;
+}
+
+// ---------------------------------------------------------------------------
 // Analytics
 // ---------------------------------------------------------------------------
 

@@ -69,6 +69,13 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 		return 'muted';
 	}
 
+	function sourceTone(value: string | null | undefined): 'success' | 'primary' | 'warning' | 'muted' {
+		if (value === 'CSV_IMPORT') return 'primary';
+		if (value === 'JSON_IMPORT') return 'success';
+		if (value === 'MANUAL') return 'warning';
+		return 'muted';
+	}
+
 	function relativeAge(value: Date | string | null | undefined) {
 		if (!value) return 'unknown age';
 		const ageMs = Math.max(0, Date.now() - new Date(value).getTime());
@@ -245,7 +252,12 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 		<div class="space-y-4">
 			<FilterBar resetHref="/market-prices">
 				<Input name="search" placeholder="Search item or catalog id" value={data.filter.search ?? ''} class="w-72" />
-				<Input name="source" placeholder="Source" value={data.filter.source ?? ''} class="w-44" />
+				<Input name="source" placeholder="Source" value={data.filter.source ?? ''} list="market-price-sources" class="w-44" />
+				<datalist id="market-price-sources">
+					{#each data.sources as source}
+						<option value={source.source}>{source.sourceLabel} · {source.count}</option>
+					{/each}
+				</datalist>
 				<Input name="currency" placeholder="Currency" value={data.filter.currency ?? ''} class="w-32" />
 				<select name="latestOnly" value={data.filter.latestOnly === false ? 'false' : 'true'} class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">
 					<option value="true">Latest per item</option>
@@ -286,8 +298,9 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 									<div class="font-semibold text-[var(--color-text-primary)]">
 										{summary.source} · {summary.currency} · {summary.count} observation{summary.count === 1 ? '' : 's'}
 									</div>
-									<div class="mt-0.5 text-[var(--color-text-muted)]">
-										{relativeAgeRange(summary.newestObservedAt, summary.oldestObservedAt)}
+									<div class="mt-1 flex flex-wrap items-center gap-2">
+										<Badge tone={sourceTone(summary.sourceType)}>{summary.sourceLabel}</Badge>
+										<span class="text-[var(--color-text-muted)]">{relativeAgeRange(summary.newestObservedAt, summary.oldestObservedAt)}</span>
 									</div>
 								</div>
 								<div class="text-[var(--color-text-secondary)]">{formatFreshnessCounts(summary.freshness)}</div>
@@ -317,7 +330,12 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 						<div>Median: <Money value={row.medianSellPrice} currency={row.currency} /></div>
 					</td>
 					<td class="px-4 py-3 text-[var(--color-text-secondary)]">{row.volume ?? '—'}</td>
-					<td class="px-4 py-3 text-[var(--color-text-secondary)]">{row.source}</td>
+					<td class="px-4 py-3 text-[var(--color-text-secondary)]">
+						<div>{row.source}</div>
+						<div class="mt-1">
+							<Badge tone={sourceTone(row.sourceType)}>{row.sourceLabel}</Badge>
+						</div>
+					</td>
 					<td class="px-4 py-3 text-[var(--color-text-secondary)]">
 						<Badge tone={freshnessTone(row.freshness)}>{freshnessLabel(row.freshness)}</Badge>
 						<div class="mt-1 text-xs text-[var(--color-text-muted)]">({relativeAge(row.observedAt)})</div>

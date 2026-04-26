@@ -70,6 +70,9 @@ This is a decision-support and record-keeping system that should:
 
 - automated Steam purchasing
 - automated Steam listing, order placement, checkout, or confirmation
+- automated final marketplace action execution of any kind; the app may
+  prepare and open the correct listing, but the human presses the actual buy,
+  sell, order, checkout, or confirmation controls
 - multi-user collaboration
 - exchange integrations beyond the extension payload
 - advanced auth and permission systems
@@ -91,6 +94,47 @@ The MVP is successful when the user can:
 
 ---
 
+## Target Operating Model
+
+The intended mature workflow is a self-sustaining trade-up hunting assistant,
+not a marketplace checkout bot.
+
+The operator should be able to maintain roughly five active trade-up plans,
+press a `Go`-style discovery action, and have the system continuously assist
+with the repetitive work:
+
+1. Gather candidate listing observations from approved sources.
+2. Normalize listing identity, price, float, inspect link, listing URL, and
+   source metadata.
+3. Catalog-link each listing when possible.
+4. Evaluate candidates against all active plans.
+5. Assign each viable candidate to the best plan, basket, bucket, or reserve
+   role.
+6. Build or update proposed 10-item baskets with correct float values and EV.
+7. Produce an actionable buy queue with exact listing links, max buy price,
+   expected EV/profit impact, assigned basket slot, and reason.
+8. Let the human open the listing and press the actual marketplace purchase
+   button.
+9. After manual purchase, reconcile the bought item into inventory and reserve
+   it into the assigned basket.
+
+The line is therefore:
+
+- **Automate:** discovery, normalization, scoring, duplicate handling,
+  price refresh, bucket assignment, basket planning, buy-queue generation,
+  deep links, and post-purchase reconciliation helpers.
+- **Do not automate:** Steam buying, selling, listing, order placement,
+  checkout, confirmation, or any other action that executes marketplace
+  transactions.
+
+The primary product endpoint after the current pricing foundation is a
+planner/buy-queue loop: active plans define the strategy, source adapters feed
+candidate listings and price observations, the planner assigns candidates to
+specific plan/basket needs, and the operator only performs the final purchase
+decision/action.
+
+---
+
 ## Operating Assumptions
 
 - The app is local-first and optimized for one operator.
@@ -98,6 +142,8 @@ The MVP is successful when the user can:
 - Steam marketplace automation remains out of scope. The app may assist the
   operator with links, candidate details, and max-buy guidance, but the human
   operator executes marketplace actions.
+- Discovery automation is in scope when it produces inspectable observations
+  and recommendations rather than executing transactions.
 - The Chrome extension is responsible for gathering listing-page data and float-rich metadata.
 - The Svelte app is the system of record after ingestion.
 - SQLite is the default local database for MVP development and single-user operation.
@@ -203,6 +249,7 @@ The MVP is successful when the user can:
 - `GET /api/catalog/summary`
 - `GET /api/exports/executions.csv`
 - `GET /api/exports/expected-vs-realized.csv`
+- `GET /api/tradeups/buy-queue`
 
 ---
 
@@ -401,6 +448,63 @@ The evaluation engine is the differentiator, but it should be built in layers in
 - better duplicate suppression and refresh handling
 - stronger float-fit and plan-rule weighting
 - conservative valuation path beside optimistic valuation
+- plan-level buy queue assignment: given active plans, current inventory,
+  active baskets, candidate price, and candidate float, assign viable listings
+  to the best plan/basket/bucket/reserve role with a visible reason
+- proposed basket construction: group exactly ten compatible inputs, preserve
+  exact float values, compute projected output exteriors, and show expected
+  EV/profit before the operator buys
+- max-buy guidance should be attached to the candidate's assigned role, not
+  just the candidate in isolation
+
+### Global Basket Optimization Requirements
+
+The planner is not a greedy per-candidate assigner. It is a global optimizer
+over the full pool of viable inventory and candidates against active plans.
+
+The product reason: if the operator has 39 viable skins across plans, adding
+the 40th should produce the partition that yields the maximum number of viable
+10-item baskets (and the maximum total expected value across them), not just
+the locally best home for that one new item. A locally optimal assignment can
+break a basket that was one float away from ready, or strand a scarce
+collection slot in a basket that did not need it.
+
+Concretely the planner must:
+
+- treat the full set of `WATCHING` / `GOOD_BUY` candidates plus `HELD` /
+  `RESERVED_FOR_BASKET` inventory as a single pool of slot-fillers
+- treat all active `BUILDING` baskets plus zero or more proposed new baskets
+  per active plan as the set of containers
+- search partitions of that pool into ten-item groups under each plan's rules
+  (rarity, collection mix, float bands, max buy)
+- score each partition by total expected EV/profit, with viable-basket count
+  as a tiebreaker so the optimizer prefers four ready baskets over three
+  ready and one slightly higher EV trio
+- recompute the optimal partition whenever the pool changes (new candidate,
+  new price observation, plan edit, manual basket edit) so the buy queue
+  reflects current optimum, not a stale greedy assignment
+- for each candidate in the buy queue, surface not just the assigned basket
+  but the *delta* between assigned-here vs assigned-elsewhere so the operator
+  can override with full information
+
+Tractability notes (these constrain implementation, not requirements):
+
+- The plan-rule pre-filter shrinks the combinatorial space dramatically.
+  Items only contend for baskets under plans whose rules accept them; most
+  items match one or two plans, not all of them.
+- Exact enumeration is feasible when per-plan candidate count is small (low
+  tens). Above that, the planner should fall back to a heuristic (greedy
+  initial assignment + local-search swaps that strictly improve total EV)
+  and converge.
+- The optimizer must be deterministic for a given input pool so the operator
+  sees stable assignments across refreshes when nothing changed.
+- The optimizer must be inspectable: every assignment should carry the reason
+  and the next-best alternative so trust failures debug to a specific
+  candidate or basket, not to "the planner moved things again."
+
+Manual operator overrides win. If the operator pins a candidate to a specific
+basket or marks an item reserved manually, the optimizer treats those as
+fixed and optimizes the remainder around them.
 
 ### Catalog-Aware Evaluation Requirements
 
@@ -431,6 +535,17 @@ The evaluation engine is the differentiator, but it should be built in layers in
 - The first ingestion path should be local import or manual/API insertion.
   Automated Steam scraping or third-party price adapters should be added only
   after the local observation model is proven.
+- Finished price automation should still be inspectable and operator-owned:
+  source adapters produce normalized latest-price observations, the app stores
+  them with source/freshness/history metadata, EV refreshes run explicitly or
+  after import, and the operator reviews changes before acting. Bulk insertion
+  can come from CSV/file drops, local adapter jobs, or a browser-assisted
+  collector; none of those paths should automate buying, selling, order
+  placement, checkout, or confirmation.
+- Steam/browser collection, if added, should behave like an import adapter:
+  gather visible/latest price facts, submit them through the same validated
+  observation pipeline, and keep source/freshness/error reporting visible in
+  `/market-prices`. It should not be treated as a hidden scoring dependency.
 - Steam chart/history data can be useful for trend analysis, but browser
   chart/history endpoints are not treated as a stable official integration
   contract. Prefer building local observation history from latest-price imports
@@ -477,6 +592,8 @@ The ingestion source is a third-party Chrome extension (CS2 Trader - Steam Tradi
 - detect duplicates
 - persist the candidate
 - evaluate against active plans
+- assign viable candidates into the planner/buy-queue model when enough plan,
+  price, and float data exists
 - return recommendation details for immediate extension feedback
 
 ### Integration Approach
@@ -488,6 +605,12 @@ to `POST /api/extension/candidates`. Ingestion remains permissive and
 operator-controlled: it accepts typed float enrichment when available,
 returns normalization/evaluation diagnostics, and tolerates missing catalog
 matches rather than inventing them.
+
+Future discovery automation should extend this contract rather than bypass it:
+browser-assisted collectors or source adapters may gather many visible listing
+facts, but they should submit normalized observations/candidates, receive
+visible assignment and pricing diagnostics, and leave final marketplace action
+execution to the operator.
 
 ### MVP Security
 
@@ -636,6 +759,34 @@ Deliverables:
 Exit criteria:
 
 - the app provides trustworthy historical performance insight
+
+### Phase 7: Planner And Buy Queue
+
+Deliverables:
+
+- transient `CandidateAssignment` view model carrying candidate, plan,
+  basket, slot, role, max buy, expected profit, marginal EV contribution,
+  float-fit explanation, pricing source/freshness, reason text, and ranked
+  alternatives
+- `plannerService` that performs global partition optimization across the
+  full candidate + inventory pool against active plans and baskets
+- `GET /api/tradeups/buy-queue` endpoint
+- `/buy-queue` operator page grouped by plan and proposed basket
+- `markBought` extension to carry intended basket/slot context forward into
+  inventory and basket reservation
+- focused planner tests for partition quality, manual-override pinning, slot
+  contention resolution, float-band edge cases, max-buy gating, and stable
+  output for unchanged inputs
+
+Exit criteria:
+
+- adding a new candidate to a pool of N items recomputes the optimal
+  partition and the buy queue reflects the result deterministically
+- the operator can scan the buy queue, understand each assignment's reason
+  and runner-up, and complete a manual purchase with the assignment context
+  preserved into inventory
+- planner output is inspectable enough that disagreement debugs to a specific
+  candidate or basket, not to opaque planner behavior
 
 ---
 

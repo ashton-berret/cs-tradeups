@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
+	import CatalogCollectionSelect from '$lib/components/CatalogCollectionSelect.svelte';
 	import { ITEM_EXTERIORS, ITEM_RARITIES } from '$lib/types/enums';
 	import type { PlanRuleDTO } from '$lib/types/services';
 
@@ -28,7 +29,12 @@
 		</p>
 	{/if}
 	<div class="grid grid-cols-2 gap-2 md:grid-cols-4">
-		<Input name="collection" placeholder="Collection" value={rule?.collection ?? ''} help="Exact collection name to allow." />
+		<CatalogCollectionSelect
+			name="collection"
+			value={rule?.collection ?? ''}
+			placeholder="Collection"
+			help="Type to filter — pick from the dropdown to catalog-link the rule. Free text still works but won't match by stable id."
+		/>
 		<div>
 			<select name="rarity" value={rule?.rarity ?? ''} class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">
 				<option value="">Rarity</option>

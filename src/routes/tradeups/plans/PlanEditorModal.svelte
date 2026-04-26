@@ -2,6 +2,7 @@
 	import Modal from '$lib/components/Modal.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
+	import CatalogCollectionSelect from '$lib/components/CatalogCollectionSelect.svelte';
 	import { ITEM_EXTERIORS, ITEM_RARITIES } from '$lib/types/enums';
 
 	type Props = {
@@ -126,7 +127,11 @@
 				Rules are input filters. If you add any rules, a candidate must satisfy at least one of them to match the plan.
 			</p>
 			<div class="grid grid-cols-2 gap-3 md:grid-cols-4">
-				<Input name="collection" placeholder="Collection" help="Exact collection name to allow. For your candidate: The Kilowatt Collection." />
+				<CatalogCollectionSelect
+					name="collection"
+					placeholder="Collection"
+					help="Type to filter — pick from the dropdown to catalog-link this rule. Linked rules survive collection display-name changes; free-text rules only match by exact string."
+				/>
 				<div>
 					<select name="rarity" class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">
 						<option value="">Rule rarity</option>

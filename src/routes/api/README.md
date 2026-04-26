@@ -111,6 +111,9 @@ don't check it into the repo.
   - Returns source/currency groups for all observations matching
     `search`/`source`/`currency` and `latestOnly`, including counts,
     newest/oldest observation times, and freshness counts.
+- `GET /api/market-prices/sources`
+  - Returns observed source presets with derived source type labels and
+    observation counts for filter UI.
 - `GET /api/market-prices/latest`
   - Without lookup params: paginated observation list filtered by `search`,
     `source`, and `currency`, with `sortBy` (`observedAt`, `marketValue`,

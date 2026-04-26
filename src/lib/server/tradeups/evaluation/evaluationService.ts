@@ -27,7 +27,8 @@ import type { CandidateDecisionStatus, ItemRarity } from '$lib/types/enums';
 import { db } from '$lib/server/db/client';
 import { NotFoundError } from '$lib/server/http/errors';
 import { toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
-import { averageFloat } from '$lib/server/utils/float';
+import { averageFloat, averageWearProportion } from '$lib/server/utils/float';
+import { enrichSlotsWithInputRanges } from './inputFloatRanges';
 import { percentChange, roundMoney, sumMoney } from '$lib/server/utils/money';
 import {
   computeBasketEV,
@@ -248,11 +249,12 @@ async function evaluateBasketImpl(basketId: string): Promise<BasketEvaluation> {
   }
 
   const inventoryItems = basket.items.map((item) => item.inventoryItem);
-  const slots = inventoryItems.map(toBasketSlotContext);
+  const slots = await enrichSlotsWithInputRanges(inventoryItems);
   const inputCost = sumMoney(inventoryItems.map((item) => toNumber(item.purchasePrice)));
   const avgFloat = averageFloat(inventoryItems.map((item) => item.floatValue));
+  const avgWearProportion = averageWearProportion(slots);
   const projectedPlan = await withCatalogOutcomeFloatRanges(basket.plan);
-  const ev = computeBasketEV(slots, projectedPlan, { averageInputFloat: avgFloat });
+  const ev = computeBasketEV(slots, projectedPlan, { averageWearProportion: avgWearProportion });
   const expectedProfit = roundMoney(ev.totalEV - inputCost);
   const expectedProfitPct = percentChange(inputCost, ev.totalEV);
   const readinessIssues = basketReadinessIssues(

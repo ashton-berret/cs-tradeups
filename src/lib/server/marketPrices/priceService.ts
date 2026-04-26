@@ -5,6 +5,11 @@ import { toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
 import type { MarketPriceLatestListFilter, PaginatedResponse } from '$lib/types/domain';
 import type { ItemExterior } from '$lib/types/enums';
 import { classifyPriceFreshness, type PriceFreshness } from './freshness';
+import {
+  describeMarketPriceSource,
+  type MarketPriceSourceMetadata,
+  type MarketPriceSourceType,
+} from './sourceMetadata';
 
 export interface CreateMarketPriceObservationInput {
   marketHashName: string;
@@ -32,17 +37,28 @@ export interface MarketPriceObservationDTO {
   marketValue: number | null;
   volume: number | null;
   source: string;
+  sourceType: MarketPriceSourceType;
+  sourceLabel: string;
   observedAt: Date;
   freshness: PriceFreshness;
 }
 
 export interface MarketPriceObservationSummaryDTO {
   source: string;
+  sourceType: MarketPriceSourceType;
+  sourceLabel: string;
   currency: string;
   count: number;
   newestObservedAt: Date;
   oldestObservedAt: Date;
   freshness: Record<PriceFreshness, number>;
+}
+
+export interface MarketPriceObservedSourceDTO extends MarketPriceSourceMetadata {
+  source: string;
+  count: number;
+  newestObservedAt: Date;
+  oldestObservedAt: Date;
 }
 
 export async function importMarketPriceObservations(input: {
@@ -219,6 +235,8 @@ export async function summarizeLatestMarketPriceObservations(
       groups.get(key) ??
       {
         source: row.source,
+        sourceType: row.sourceType,
+        sourceLabel: row.sourceLabel,
         currency: row.currency,
         count: 0,
         newestObservedAt: row.observedAt,
@@ -236,9 +254,38 @@ export async function summarizeLatestMarketPriceObservations(
   return [...groups.values()].sort((a, b) => b.count - a.count || a.source.localeCompare(b.source));
 }
 
+export async function listObservedMarketPriceSources(): Promise<MarketPriceObservedSourceDTO[]> {
+  const rows = await db.marketPriceObservation.findMany({
+    select: { source: true, observedAt: true },
+    orderBy: [{ observedAt: 'desc' }, { createdAt: 'desc' }],
+  });
+  const groups = new Map<string, MarketPriceObservedSourceDTO>();
+
+  for (const row of rows) {
+    const metadata = describeMarketPriceSource(row.source);
+    const existing =
+      groups.get(row.source) ??
+      {
+        source: row.source,
+        ...metadata,
+        count: 0,
+        newestObservedAt: row.observedAt,
+        oldestObservedAt: row.observedAt,
+      };
+
+    if (row.observedAt > existing.newestObservedAt) existing.newestObservedAt = row.observedAt;
+    if (row.observedAt < existing.oldestObservedAt) existing.oldestObservedAt = row.observedAt;
+    existing.count += 1;
+    groups.set(row.source, existing);
+  }
+
+  return [...groups.values()].sort((a, b) => b.count - a.count || a.source.localeCompare(b.source));
+}
+
 export function toMarketPriceObservationDTO(row: MarketPriceObservation): MarketPriceObservationDTO {
   const lowestSellPrice = toNumber(row.lowestSellPrice);
   const medianSellPrice = toNumber(row.medianSellPrice);
+  const source = describeMarketPriceSource(row.source);
 
   return {
     id: row.id,
@@ -255,6 +302,8 @@ export function toMarketPriceObservationDTO(row: MarketPriceObservation): Market
     marketValue: lowestSellPrice ?? medianSellPrice,
     volume: row.volume,
     source: row.source,
+    sourceType: source.sourceType,
+    sourceLabel: source.sourceLabel,
     observedAt: row.observedAt,
     freshness: classifyPriceFreshness(row.observedAt),
   };

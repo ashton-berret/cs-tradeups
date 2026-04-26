@@ -32,12 +32,13 @@ import type { TradeupBasketStatus } from '$lib/types/enums';
 import { db } from '$lib/server/db/client';
 import { ConflictError, NotFoundError } from '$lib/server/http/errors';
 import { toDecimalOrNull, toNumber } from '$lib/server/utils/decimal';
-import { averageFloat } from '$lib/server/utils/float';
+import { averageFloat, averageWearProportion } from '$lib/server/utils/float';
 import { percentChange, roundMoney, sumMoney } from '$lib/server/utils/money';
 import { toInventoryItemDTO } from '$lib/server/inventory/inventoryService';
-import { computeBasketEV, type BasketSlotContext } from './evaluation/expectedValue';
+import { computeBasketEV } from './evaluation/expectedValue';
 import { evaluateBasket } from './evaluation/evaluationService';
 import { withCatalogOutcomeFloatRanges } from './evaluation/catalogOutcomes';
+import { enrichSlotsWithInputRanges } from './evaluation/inputFloatRanges';
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -616,11 +617,12 @@ async function recomputeMetricsInTx(tx: TxClient, basketId: string): Promise<Bas
   }
 
   const inventoryItems = basket.items.map((item) => item.inventoryItem);
-  const slots = inventoryItems.map(toBasketSlotContext);
+  const slots = await enrichSlotsWithInputRanges(inventoryItems);
   const totalCost = sumMoney(inventoryItems.map((item) => toNumber(item.purchasePrice)));
   const avgFloat = averageFloat(inventoryItems.map((item) => item.floatValue));
+  const avgWearProportion = averageWearProportion(slots);
   const projectedPlan = await withCatalogOutcomeFloatRanges(basket.plan);
-  const ev = computeBasketEV(slots, projectedPlan, { averageInputFloat: avgFloat });
+  const ev = computeBasketEV(slots, projectedPlan, { averageWearProportion: avgWearProportion });
   const expectedProfit = roundMoney(ev.totalEV - totalCost);
   const expectedProfitPct = percentChange(totalCost, ev.totalEV);
 
@@ -665,20 +667,3 @@ function validateBasketStatusTransition(
   }
 }
 
-function toBasketSlotContext(item: {
-  id: string;
-  collection: string | null;
-  catalogCollectionId?: string | null;
-  exterior?: string | null;
-  floatValue: number | null;
-  rarity: string | null;
-}): BasketSlotContext {
-  return {
-    inventoryItemId: item.id,
-    collection: item.collection,
-    catalogCollectionId: item.catalogCollectionId,
-    exterior: item.exterior,
-    floatValue: item.floatValue,
-    rarity: item.rarity,
-  };
-}
