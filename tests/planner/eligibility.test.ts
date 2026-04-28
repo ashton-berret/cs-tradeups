@@ -31,6 +31,7 @@ function inventoryRow(overrides: Partial<InventoryItem> = {}): InventoryItem {
     currentEstValue: null,
     notes: null,
     candidateId: null,
+    steamAssetId: null,
     ...overrides,
   };
 }

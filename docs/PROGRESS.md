@@ -750,75 +750,225 @@ Read first:
 - docs/PLAN.md
 
 Current state:
-- Phases 0-7 complete. Phase 8 in progress.
-- Phase 7 planner/buy-queue is shipped: global partition optimizer
-  (pure-collection-first greedy + local-search swap), `/buy-queue` page
-  grouped by plan and proposed basket with role badges and ranked
-  alternatives, markBought carrying assignment context for best-effort
-  basket reservation. 7 integration tests, 9 partition unit tests.
-- Phase 8 progress so far:
-  - EV correctness fix: per-input wear-proportion averaging now used
-    everywhere. wearProportion(float, min, max) and
-    averageWearProportion(inputs) helpers, BasketSlotContext carries
-    inputMinFloat/inputMaxFloat, BasketEVOptions.averageInputFloat
-    renamed to averageWearProportion, enrichSlotsWithInputRanges helper
-    populates ranges from the catalog snapshot. Wired through
-    evaluationService, basketService, and planner partition.
-  - CatalogCollectionSelect combobox: live-filtered dropdown sourced
-    from /api/catalog/summary, module-scoped fetch cache, keyboard
-    navigation, Linked/Free badge. Wired into RuleEditor,
-    PlanEditorModal, OutcomeEditor. Server-side resolver
-    (resolveCatalogCollectionIdentity) does the catalogCollectionId
-    lookup so no schema changes were needed.
-  - /calculator scratchpad with POST /api/tradeups/calculator. Pick a
-    plan, type up to 10 hypothetical inputs (collection + float +
-    price), see EV/per-collection chance/per-outcome contribution/cost/
-    profit. Output exterior projection skipped in v1 because per-input
-    skin selection isn't supported yet.
-- 100 tests pass. bun run check is clean.
+- Phases 0-7 complete. Phase 8 substantially complete after the
+  2026-04-26/27 session covering Slices A-D (calculator overhaul,
+  buy-queue listing reference, Steam inventory integration, UI
+  polish). Every item from the "Random things to fix/notes" list at
+  the bottom of this file is addressed.
+- 100 tests pass. bun run check is clean (0 errors, 0 warnings).
+- Steam float enrichment landed late in the session: as of Steam's
+  2026-04 inventory payload change, `asset_properties` ships float +
+  paint seed natively. inventoryAdapter parses both into
+  SteamInventoryItem; steamLinkService matches by
+  (marketHashName, floatValue ± 1e-6) with three strategies —
+  FLOAT_EXACT, FLOAT_BACKFILL (copies Steam float onto local row),
+  FIFO_FALLBACK (logged for review). RecordResultModal auto-fills
+  float on pick. The inventory page sync banner breaks "newly
+  linked" out by strategy with an expandable review list for
+  FIFO fallbacks. No third-party resolver needed.
+- TradeUpLab.com importer: tools/import-tradeuplab.ts pulls
+  community trade-up combinations from
+  https://www.tradeuplab.com/tradeups/?page=N&min_probability=M
+  (HTML scraping with cheerio), reconstructs canonical
+  market_hash_names from card display text using the catalog
+  weapon list (longest-prefix match, with StatTrak™/Souvenir
+  fallback to the base skin entry), and POSTs each combo to
+  /api/tradeups/combinations as a TradeupCombination draft.
+  TradeupCombination.tradeupLabId column with a unique constraint
+  makes re-runs idempotent (Prisma P2002 → ConflictError → "duplicate"
+  in importer summary). saveCombination accepts an optional
+  tradeupLabId; combinationSaveSchema notes cap is 16 KB so
+  the source-metadata JSON blob fits combos with many outcomes.
+  First import: 551/558 cards at min_probability=90 (~28 pages),
+  6 quarantined as invalid cards (very old IDs with a different
+  DOM structure), 1 over-cap fixed by the notes bump.
+- Thesis-override path on saveCombination: importers (and any
+  future external-source importer) can pass thesisOverride
+  { totalCost, totalEV, expectedProfit, expectedProfitPct } to
+  freeze pre-computed numbers as the saved baseline. Without this,
+  saveCombination called calculate() — which returned 0 EV for every
+  outcome whenever MarketPriceObservation was sparse, making
+  imported combos look wrong (Cost $62 · EV $0 · Profit -$62). The
+  tradeuplab importer now forwards its parsed published numbers via
+  thesisOverride. Recheck still uses calculate() against current
+  observations and reports drift vs the override.
 
-Next coding slice for Phase 8:
-1. CatalogSkinSelect companion combobox so calculator and (later)
-   watchlist inputs can carry a specific skin. Once an input has a
-   catalogSkinId, getCatalogSkinFloatRange gives us inputMinFloat /
-   inputMaxFloat, which unblocks output exterior projection in those
-   surfaces. Same UX shape as CatalogCollectionSelect; sourced from
-   /api/catalog/summary skins. Optional collection scoping prop to
-   filter the dropdown to a chosen collection.
-2. Watchlist combinations. Persist a 10-item proposal as a saved
-   combination (likely a new TradeupCombination model or a WATCHLIST
-   basket variant) with a snapshot of currentPrice and EV at save
-   time. Add POST /api/tradeups/combinations to save and
-   POST /api/tradeups/combinations/[id]/recheck to re-evaluate
-   against current observed prices and report a delta. UI: a save
-   button on /buy-queue and /calculator, a /watchlist or
-   /tradeups/watchlist page for review.
-3. (Optional, lower priority) /catalog browser page using the
-   combobox primitives plus skin/collection cards.
+Slice A — Calculator + Save-as-Combination:
+- /api/catalog/skins endpoint returns a lightweight skin list
+  (id, weapon|skin display, collection id+name, rarity, min/max
+  float, exteriors).
+- CatalogSkinSelect.svelte: combobox modeled on CatalogCollectionSelect
+  with optional collectionId/rarity scoping props, module-cached fetch.
+- Calculator service (src/lib/server/tradeups/calculatorService.ts)
+  rewritten with two modes:
+  * PLAN mode: outcomes from the chosen plan (isActive NOT enforced —
+    the calculator is a tweaking surface, not the planner).
+  * AD_HOC mode: outcomes synthesized from the catalog snapshot at
+    request.targetRarity for every collection seen in the inputs;
+    pricing falls back to latest market observation, otherwise 0 with
+    a warning.
+- Per-input catalogSkinId enables proper output exterior projection
+  via enrichSlotsWithInputRanges + averageWearProportion. Calculator
+  UI got mode tabs, target/input rarity selectors for ad-hoc, and a
+  per-row CatalogSkinSelect that auto-fills the collection field when
+  a skin is picked.
+- New schema models (migration 20260426165249_phase8_tradeup_combinations):
+  * TradeupCombination — frozen "thesis" totals + thesisPlanSnapshot
+    JSON so recheck math has a stable comparison even if the source
+    plan is edited or deleted. mode in {PLAN, AD_HOC}, isActive flag,
+    sourcePlanId nullable.
+  * TradeupCombinationInput — 10 rows per combination, slotIndex
+    unique per combination.
+  * TradeupCombinationSnapshot — appended on each recheck (history,
+    never overwritten).
+- combinationService: save (runs calculator first, freezes thesis,
+  builds snapshot of plan rules+outcomes), list/get/patch/delete,
+  recheck (re-evaluates against current prices, appends snapshot,
+  returns delta vs thesis).
+- POST/GET /api/tradeups/combinations, GET/PATCH/DELETE
+  /api/tradeups/combinations/[id], POST .../recheck.
+- Save panel on /calculator (after a successful calculation).
+  /tradeups/saved page lists combinations, shows thesis vs latest
+  recheck delta, with recheck/activate/delete actions and a sidebar
+  link.
 
-Order rationale: skin select unblocks correct exterior projection in
-the calculator and any future watchlist; watchlist depends on the
-proposal-with-snapshot persistence model. Catalog browser is purely
-operator UX and can defer.
+Slice B — Buy-queue listing reference:
+- Buy-queue page server batch-loads marketHashName, floatValue,
+  listingUrl for every assigned candidate/inventory item via two
+  scoped Prisma queries (no N+1).
+- Each row's "Item" cell now shows actual market hash name + exact
+  float alongside the float-fit explanation.
+- "View" button per candidate row opens a listing reference modal
+  with: market hash, exact price (with max-buy + over-cap warning),
+  exact float, link to the candidate's saved listingUrl if present,
+  link to the Steam listings page
+  (https://steamcommunity.com/market/listings/730/<encoded hash>),
+  Mark Bought + Discard actions. Discard hits PATCH /api/candidates/[id]
+  with status: PASSED, pinnedByUser: true so the planner won't
+  reassign it.
+
+Slice C — Steam inventory integration:
+- STEAM_ID env var (in .env.example).
+- src/lib/server/steam/inventoryAdapter.ts fetches the public
+  /inventory/<steamid>/730/2 endpoint, paginates via last_assetid,
+  builds normalized SteamInventoryItem (assetId, marketHashName,
+  exterior, rarity, inspect link, icon, tradable/marketable). 60s
+  in-memory cache. Throws SteamInventoryError with HTTP-friendly
+  status codes (403 = inventory private or wrong id, 429 = rate
+  limited).
+- GET /api/steam/inventory[?force=1] returns the normalized snapshot.
+- InventoryItem.steamAssetId added (unique, nullable). Migration
+  20260426180000_phase8_inventory_steam_asset. Test DB applies it
+  too — see tests/helpers/db.ts.
+- src/lib/server/inventory/steamLinkService.ts pairs Steam assets to
+  local InventoryItem rows by marketHashName (FIFO when multiple
+  share a name, since the public payload has no float). Returns
+  newly linked + already linked + unlinkedSteamItems +
+  missingFromSteam (linked rows whose Steam asset disappeared, never
+  auto-cleared because Steam's JSON occasionally drops items in
+  trade lock).
+- POST /api/inventory/link-steam runs the sync.
+- /inventory page got a "Sync with Steam" button next to "Manual
+  item" with a result banner (collapsible lists of unmatched and
+  missing items).
+- RecordResultModal.svelte got a "Pick from Steam" button that
+  loads the live inventory inline, filters by name, click an item
+  to auto-fill marketHashName + weapon + skin + exterior. Float
+  still manual (not in the public JSON).
+
+Slice D — UI polish:
+- docs/UI_STYLE_GUIDE.md "Improvement Areas" section codifies the
+  current charcoal+cyan palette (after iterating dark-blue →
+  slate+violet → charcoal+cyan).
+- src/app.css palette is now charcoal+cyan: bg-base #0d1117,
+  surfaces #161b22 / #1c232c / #222b35 / #14222b (accent), primary
+  #22d3ee (cyan), secondary #818cf8 (indigo, charts only),
+  semantic green/amber/red reserved for data meaning. Inter loaded
+  via Google Fonts.
+- Anti-monotony: body radial gradient (very subtle cyan + indigo
+  glow), .card-accent variant (Card now takes accent prop) for the
+  page's focal card, .section-anchor utility for H2 left-border
+  treatment.
+- Charts: src/lib/components/charts/theme.ts now resolves CSS
+  variables to hex at runtime via getComputedStyle (canvas renderer
+  cannot read CSS vars — was rendering black). chartPalette
+  exposes lazy getters; resolveChartPalette() / resolveChartSeriesColors()
+  for new code; baseChartOption() builds with resolved colors.
+- Dashboard hero card pinned at the top with inventory net-worth
+  chart. New analytics function getInventoryNetWorthSeries() and
+  GET /api/analytics/net-worth — weekly cumulative cost basis vs.
+  estimated value, accounting for items disposed before each
+  bucket boundary.
+- Dashboard activity table moved to a sidebar-triggered modal
+  (src/lib/components/ActivityDrawer.svelte). Dashboard load is
+  now 4 parallel queries instead of 5 (activity fetch dropped).
+  Activity drawer fetches its own data on open with a 30s cache.
+- Plan editor modal widened (size="xl").
+- Market Prices CSV/JSON imports collapsed to a single
+  <details> accordion at the top of the page.
+
+Pinning behavior to remember:
+- combinations.thesisPlanSnapshot is frozen at save time so recheck
+  math has a stable baseline even if the source plan is deleted.
+  Recheck appends to TradeupCombinationSnapshot — never overwrite.
+- Steam inventory linking now uses three-tier matching:
+  FLOAT_EXACT (marketHashName + float ± 1e-6) → FLOAT_BACKFILL
+  (local row had no float; we copy Steam's) → FIFO_FALLBACK
+  (oldest unmatched, logged for review). Pattern is also backfilled
+  when missing.
+- Chart palette exports values via getters (or resolveChartPalette()) —
+  do NOT pass raw `var(--...)` strings to ECharts canvas.
+- TradeupCombination.tradeupLabId is the dedupe key for the
+  tradeuplab importer. Adding similar importers should each get
+  their own unique-indexed external-id column so re-runs stay
+  idempotent.
+
+Likely next coding work:
+1. **Automated price ingestion (HIGHEST PRIORITY).** Recheck and
+   ad-hoc EV math both depend on MarketPriceObservation rows. The
+   operator cannot maintain ~12,000 CS2 item prices manually. Until
+   this is solved, /tradeups/saved is a research library with no
+   working drift signal. See the dedicated "Price Automation Plan"
+   section below.
+2. Light-theme audit. The new charcoal+cyan dark palette was tuned
+   in isolation; the .light variant in app.css hasn't been visually
+   verified under the new tokens. Walk every page in light mode and
+   adjust .light values where contrast or hierarchy reads wrong.
+3. Per-page accent / iconography pass if charcoal+cyan still feels
+   monotonous. Levers: subtle per-page primary tint, lightweight SVG
+   icon set next to H2s, KPI font sizes up, more whitespace, denser
+   tables.
+4. Steam inspect link/full-listing parity. Currently the buy-queue
+   modal links to the per-skin listings page (Steam has no
+   per-listing URL). Future browser-extension help could highlight
+   the matching row on Steam's page; tracked but not started.
+5. Items in the Running Queue section near the bottom of this file.
 
 Verification gates:
 - bun run check (0 errors, 0 warnings)
-- bun test tests/ (all green)
-- The known sandbox EPERM reading node_modules\esm-env counts as an
-  environment failure, not an application failure.
+- bun test tests/ (100 pass)
+- Prisma client regen on Windows can fail with EPERM on the engine
+  DLL when a dev server is running; stop the dev server and re-run
+  `bunx prisma generate`. Test DB migrations are listed in
+  tests/helpers/db.ts — keep that array in sync with new prisma/
+  migrations/ folders.
 
 Do not:
-- Do not automate Steam buying, selling, order placement, checkout, or
-  confirmation.
-- Do not implement Steam scraping/source adapters before the
-  watchlist/observation loop is in place.
-- Do not add historical chart backfill yet.
-- Do not silently accept free-text collection or skin names where the
-  combobox can be used. Author rules and outcomes through the
-  combobox.
-- Do not regress the wear-proportion math by passing raw input floats
-  to projectOutputFloat. The renamed BasketEVOptions field
-  (averageWearProportion) catches this at the type level — keep it.
+- Do not automate Steam buying, selling, order placement, checkout,
+  or confirmation.
+- Do not pass raw CSS-variable strings to ECharts; use the resolved
+  helpers in charts/theme.ts.
+- Do not overwrite TradeupCombinationSnapshot history; always
+  append.
+- Do not regress the wear-proportion math by passing raw input
+  floats to projectOutputFloat. The BasketEVOptions field
+  (averageWearProportion) catches this at the type level.
+- Do not silently accept free-text collection or skin names where
+  the combobox can be used.
+- Do not use semantic palette tokens (success/warning/danger) as
+  decoration. Reserve them for data with that meaning.
+- Do not reintroduce a third-party float resolver; Steam ships
+  float and paint seed in `asset_properties` natively now.
 ```
 
 ---
@@ -1501,13 +1651,106 @@ only then deepen analytics or scoring complexity.
 
 
 
-### Random things to fix/notes
-- calculator is incorrect, doesn't show all collections, no input for actual weapons, plans at the top are meaningless and limiting, need to be able to save as a plan
-- graphs on dashboard ui are bad, illegible
-- general ui is bad, needs brightening/improvement in dark mode
-- need to link to steam inventory automatically
-- ensure that clickable links appear in the buy queue, need to open in new tab and highlight the price and float so i know im getting the right one on the web page after clickinglink
-- remove the csv and json import full modals and just turn into buttons that extend the modal, won't really use this, all of this should be done autonomously
-- for tradeup executions, should be able to select result from steam inventory
-- need an inventory net worth graph on dashboard at top
-- need to improve new plan modal to make wider, tough to read
+### Price Automation Plan
+
+**Problem.** The trade-up calculator, planner, recheck flow, and saved-combinations drift signal all read `MarketPriceObservation` rows. CS2 has roughly 12,000 distinct skin × exterior × StatTrak combinations. The operator cannot maintain that table manually. Without automation, every dependent feature returns 0 EV.
+
+**Constraints.**
+- Single-user local-first app; no public server, no API keys we can ship safely.
+- Steam Marketplace official endpoints exist but are aggressively rate-limited and "unsupported" (Valve can change/remove them without notice).
+- Bot-style automation against Steam violates ToS and risks account bans.
+- The operator does NOT want any automated buying/selling — only price ingestion.
+- Existing `MarketPriceObservation` schema is source-tagged and freshness-aware, so we can mix multiple adapters cleanly.
+
+**Recommended primary source: Skinport public API.**
+
+- Endpoint: `https://api.skinport.com/v1/items?app_id=730&currency=USD`
+- Returns: every CS2 item Skinport tracks, with `market_hash_name`, `min_price`, `max_price`, `mean_price`, `median_price`, `quantity`, `created_at`, `updated_at`.
+- Single request returns the full catalog (~12k items, ~2 MB response).
+- Rate limit: 8 requests per 5 minutes (per IP). One refresh per hour is well under the limit.
+- Free, documented at `https://docs.skinport.com/`. CORS is enabled.
+- Authentication NOT required for the items endpoint.
+- Caveat: Skinport is a third-party marketplace, so its prices skew slightly lower than Steam Market. For relative drift / EV comparison this is fine; for an "exact Steam buy price" we'd want a second source.
+- Optional: their `/v1/sales/history` endpoint gives per-item daily/weekly aggregates if we ever want trend lines.
+
+**Recommended fallback / cross-check: Steam priceoverview endpoint.**
+
+- Endpoint: `https://steamcommunity.com/market/priceoverview/?appid=730&currency=1&market_hash_name=<encoded>`
+- Returns: `{ lowest_price, median_price, volume }` (Steam's own market).
+- Rate limit: ~20 requests/minute unauthenticated, with hard bans if abused. Cannot be used for bulk; only for spot-checking specific items.
+- Use for: items the operator is about to buy (just before purchase) and items where Skinport's price diverges from Steam suspiciously.
+- Implementation: a per-item resolver hit on demand from the buy-queue listing modal, NOT a bulk job.
+
+**Architecture sketch.**
+
+1. **Adapter pattern.** Each price source implements:
+   ```ts
+   interface PriceAdapter {
+     readonly source: string;          // 'SKINPORT' | 'STEAM_PRICEOVERVIEW' | ...
+     fetchAll?: () => Promise<NormalizedObservation[]>;     // bulk
+     fetchOne?: (marketHashName: string) => Promise<NormalizedObservation | null>;  // on-demand
+   }
+   ```
+   `NormalizedObservation` is the existing `MarketPriceObservation` insert shape.
+
+2. **Bulk refresh job.** A long-running script (`tools/refresh-prices.ts`) that runs adapters that implement `fetchAll`, normalizes results, deduplicates against existing recent observations, and bulk-inserts into `MarketPriceObservation`. Runnable manually OR via Windows Task Scheduler / cron on a daily/hourly cadence.
+
+3. **Manual trigger.** A "Refresh prices" button on `/market-prices` POSTs to `/api/market-prices/refresh` which invokes the same job in-process. Existing endpoint stub at `src/routes/api/market-prices/refresh/+server.ts` should be extended to wire up the adapter(s).
+
+4. **On-demand single-item lookup.** When the operator opens the buy-queue listing modal for a specific candidate, optionally fire `/api/market-prices/refresh-one?marketHashName=...` which uses Steam priceoverview for an authoritative latest. Surface the result inline in the modal.
+
+5. **Source freshness UI.** The market-prices page already shows freshness badges (FRESH/RECENT/STALE/OLD) per observation. Once multiple sources are in play, also let the operator filter by source and see "last refreshed" per source on the page header.
+
+6. **Dedupe & re-write rules.**
+   - When a Skinport bulk refresh writes 12k rows, that's fine — append-only history.
+   - The "latest" lookup (`getLatestMarketPricesForMarketHashNames`) already returns the newest by `observedAt`, so a new bulk run automatically shadows the old.
+   - Older rows aren't deleted; they form the trend history for future charting.
+
+**Implementation sequence (when this lands as a real coding slice).**
+
+1. Build `src/lib/server/marketPrices/adapters/skinport.ts` — fetches the items endpoint, parses, returns `NormalizedObservation[]` with `source: 'SKINPORT'`.
+2. Build `src/lib/server/marketPrices/refreshJob.ts` — orchestrates adapters, persists results in a transaction, returns a summary `{ adapter, written, errors }[]`.
+3. Wire `POST /api/market-prices/refresh` to invoke the refresh job. Already-existing endpoint stub should accept the new path.
+4. Add a "Refresh from Skinport" button to `/market-prices` that calls the endpoint and surfaces the summary. Keep the existing CSV/JSON accordion as the manual path.
+5. Build `src/lib/server/marketPrices/adapters/steamPriceoverview.ts` for single-item fallback. Add a small in-memory rate limiter (1 request per 3 seconds) so it can never accidentally be used for bulk.
+6. Add `tools/refresh-prices.ts` — CLI wrapper around the same job, for cron / task-scheduler use without needing the dev server. Hits Prisma directly, NOT the HTTP API.
+7. Once the bulk refresh has been running for a few days, recheck on saved combinations becomes meaningful and the saved-tradeups page (especially the 552 imported tradeuplab combos) becomes a live drift dashboard.
+
+**What NOT to build.**
+
+- A Steam scraping adapter that hits market listing pages or `/market/search` — those are the rate-limited, ban-risk endpoints. Use Steam priceoverview only as a per-item fallback, never for bulk.
+- A bot that logs into a Steam account. No account auth, no Steam Guard handling, nothing that touches Steam APIs requiring login.
+- Currency conversion. Skinport supports `currency=USD` natively; only multi-currency users need conversion and we don't.
+- Aggressive freshness thresholds that delete rows. Append-only history is cheap (SQLite, tens of MB at most) and the trend data is valuable.
+
+**Operator setup once this exists.**
+
+1. Click "Refresh from Skinport" on `/market-prices` once. Confirms the pipeline works.
+2. Set up a Windows Task that runs `bun run tools/refresh-prices.ts` every 6 hours (or whatever cadence the operator wants).
+3. Optionally add an authoritative cross-check for hot items by clicking the "Check Steam price" button on the buy-queue modal before purchase.
+
+### Running Queue (low-urgency, take when convenient)
+
+Each item is small and independent — pick whichever feels relevant when working in adjacent code. Not blocking anything.
+
+- **Surface accessoryCount on inventory rows.** Adapter already captures it. A skin with stickers/charms may be worth materially more than a base skin; today the operator can't see that from the inventory list. Add a small badge ("3 stickers") on InventoryRow + the Steam picker dropdown.
+- **Surface paintSeed (pattern) in inventory UI + as a filter.** Linker backfills `InventoryItem.pattern` from Steam, but it's not displayed or filterable. For most trade-ups this doesn't matter, but specific patterns command premiums (Case Hardened blue gems, Karambit Doppler phases, etc.).
+- **Steam picker on ManualAddInventoryModal.** Currently typing market-hash-name + float by hand. Share the picker logic from RecordResultModal so manual additions pull from the live Steam inventory the same way execution results do.
+- **Linker matching tests.** Three unit tests covering FLOAT_EXACT / FLOAT_BACKFILL / FIFO_FALLBACK paths in steamLinkService. Protects against regression when the adapter or matching logic shifts.
+- **Pattern-aware EV bonus.** TradeupOutcomeItem could carry an optional patternBonus map for known premium patterns (e.g., Case Hardened seed 387 = Scar Pattern → 5x base value). Out-of-MVP but worth a stub if it ever becomes load-bearing.
+- **Sticker-aware EV.** Stickers don't transfer through tradeups — they're destroyed when the contract executes. So a sticker-laden basket input is a *worse* trade-up input than its market price implies. Future: warn when a basket includes high-sticker-value items.
+- **Tradeuplab quarantine investigation.** The importer quarantined 6 very-low-ID cards (e.g., #1209, #1226, #1238, #1260, #1278, #11966) as "invalid card" — they predate the current DOM structure. Sub-1% of the import; only worth fixing if you actually want those specific historical combos.
+- **Bulk recheck across saved combinations.** With ~550 imported combos, hitting "Recheck" individually is tedious. A batch-recheck endpoint (POST /api/tradeups/combinations/recheck-all or similar) that runs through all active or all draft combinations in one go would let you sort by current delta vs thesis to find the still-profitable ones quickly. **Blocked on the Price Automation Plan landing — no point bulk-rechecking against an empty price table.**
+- **Filter / sort on /tradeups/saved.** With ~550 entries, the page becomes a wall. Add filters by target rarity / collection / source plus sort by latest profit delta. Currently it's a chronological scroll.
+- **Optional: seed MarketPriceObservation from imported tradeuplab outcome prices.** The importer stashes outcome prices in notes JSON with their `identifiedAt` date. Could be written as observations tagged `source: 'TRADEUPLAB_IMPORT'` so historical-but-better-than-nothing prices populate the table before automated price refresh exists. Caveat: many imported combos are months old, so the prices would be marked STALE/OLD by freshness logic. Useful as a stopgap; replaced once the Skinport adapter lands.
+
+### Random things to fix/notes (2026-04-26 — all addressed in 2026-04-27 session)
+- ~~calculator is incorrect, doesn't show all collections, no input for actual weapons, plans at the top are meaningless and limiting, need to be able to save as a plan~~ — Slice A: ad-hoc mode, CatalogSkinSelect, save → TradeupCombination.
+- ~~graphs on dashboard ui are bad, illegible~~ — Slice D: chart theme + CSS-var resolution fix.
+- ~~general ui is bad, needs brightening/improvement in dark mode~~ — Slice D: charcoal+cyan palette + anti-monotony mechanisms.
+- ~~need to link to steam inventory automatically~~ — Slice C: public inventory adapter + sync action.
+- ~~ensure that clickable links appear in the buy queue, need to open in new tab and highlight the price and float so i know im getting the right one on the web page after clickinglink~~ — Slice B: listing reference modal with hash/price/float and Steam links.
+- ~~remove the csv and json import full modals and just turn into buttons that extend the modal, won't really use this, all of this should be done autonomously~~ — Slice D: collapsed to <details> accordion.
+- ~~for tradeup executions, should be able to select result from steam inventory~~ — Slice C: "Pick from Steam" in RecordResultModal.
+- ~~need an inventory net worth graph on dashboard at top~~ — Slice D: hero card + /api/analytics/net-worth.
+- ~~need to improve new plan modal to make wider, tough to read~~ — Slice D: PlanEditorModal size="xl".

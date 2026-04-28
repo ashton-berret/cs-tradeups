@@ -2,10 +2,12 @@
 	import { page } from '$app/state';
 	import favicon from '$lib/assets/favicon.svg';
 	import { theme } from '$lib/stores/theme.svelte';
+	import ActivityDrawer from '$lib/components/ActivityDrawer.svelte';
 	import { onMount } from 'svelte';
 	import '../app.css';
 
 	let { children } = $props();
+	let activityOpen = $state(false);
 
 	const navItems = [
 		{ href: '/dashboard', label: 'Dashboard' },
@@ -16,6 +18,7 @@
 		{ href: '/tradeups/executions', label: 'Executions' },
 		{ href: '/buy-queue', label: 'Buy Queue' },
 		{ href: '/calculator', label: 'Calculator' },
+		{ href: '/tradeups/saved', label: 'Saved Tradeups' },
 		{ href: '/market-prices', label: 'Market Prices' }
 	];
 
@@ -60,7 +63,15 @@
 			{/each}
 		</nav>
 
-		<div class="border-t border-[var(--color-border)] p-4">
+		<div class="border-t border-[var(--color-border)] p-4 space-y-3">
+			<button
+				type="button"
+				onclick={() => (activityOpen = true)}
+				class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-surface-overlay)] hover:text-[var(--color-text-primary)]"
+			>
+				<span>Recent activity</span>
+				<span class="text-xs text-[var(--color-text-muted)]">↗</span>
+			</button>
 			<div class="flex items-center justify-between gap-3">
 				<span class="text-sm font-medium text-[var(--color-text-secondary)]">Theme</span>
 				<button
@@ -85,4 +96,6 @@
 	<main class="ml-64 min-h-screen bg-[var(--color-bg-base)] p-8">
 		{@render children()}
 	</main>
+
+	<ActivityDrawer bind:open={activityOpen} />
 </div>

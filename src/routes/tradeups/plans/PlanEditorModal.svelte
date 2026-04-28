@@ -28,7 +28,7 @@
 	}
 </script>
 
-<Modal bind:open title="Create trade-up plan">
+<Modal bind:open title="Create trade-up plan" size="xl">
 	<form method="POST" action="?/create" class="space-y-5">
 		{#if error}
 			<div class="rounded-md border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 p-3 text-sm text-[var(--color-danger)]">{error}</div>

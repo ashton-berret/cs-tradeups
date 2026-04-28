@@ -1,62 +1,86 @@
 @import "tailwindcss";
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
-	--color-bg-base: #0e100f;
-	--color-bg-surface: #161818;
-	--color-bg-surface-elevated: #1e2020;
-	--color-bg-surface-overlay: #262828;
-	--color-primary: #0ae448;
-	--color-primary-hover: #08c73d;
-	--color-primary-glow: rgba(10, 228, 72, 0.4);
-	--color-secondary: #00d4ff;
-	--color-success: #0ae448;
-	--color-warning: #ffb800;
-	--color-danger: #ff4757;
-	--color-text-primary: #f5f5f5;
-	--color-text-secondary: #a3a3a3;
-	--color-text-muted: #6b6b6b;
-	--color-border: #2d2d2d;
-	--color-border-hover: #3d3d3d;
-	font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	/* Charcoal + cyan palette. Primary accent is cyan; semantic tokens
+	   (success/warning/danger) reserved for data meaning. See
+	   docs/UI_STYLE_GUIDE.md "Improvement Areas". */
+	--color-bg-base: #0d1117;
+	--color-bg-surface: #161b22;
+	--color-bg-surface-elevated: #1c232c;
+	--color-bg-surface-overlay: #222b35;
+	/* Tinted surface for "hero" / accent cards — separates the focal card
+	   from the wall of regular cards on a page. */
+	--color-bg-surface-accent: #14222b;
+	--color-primary: #22d3ee;
+	--color-primary-hover: #06b6d4;
+	--color-primary-glow: rgba(34, 211, 238, 0.3);
+	--color-secondary: #818cf8;
+	--color-success: #10b981;
+	--color-warning: #f59e0b;
+	--color-danger: #ef4444;
+	--color-text-primary: #e6edf3;
+	--color-text-secondary: #9ba6b3;
+	--color-text-muted: #6b7684;
+	--color-border: #2d3441;
+	--color-border-hover: #3e4859;
+	font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 	color: var(--color-text-primary);
 	background: var(--color-bg-base);
+	font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 	transition:
 		background-color 0.2s ease,
 		color 0.2s ease;
 }
 
 .light {
-	--color-bg-base: #f3f4f6;
+	--color-bg-base: #f5f7fa;
 	--color-bg-surface: #ffffff;
 	--color-bg-surface-elevated: #ffffff;
-	--color-bg-surface-overlay: #f9fafb;
-	--color-primary: #2563eb;
-	--color-primary-hover: #1d4ed8;
-	--color-primary-glow: rgba(37, 99, 235, 0.3);
-	--color-secondary: #3b82f6;
+	--color-bg-surface-overlay: #f9fafc;
+	--color-bg-surface-accent: #ecfeff;
+	--color-primary: #0891b2;
+	--color-primary-hover: #0e7490;
+	--color-primary-glow: rgba(8, 145, 178, 0.25);
+	--color-secondary: #4f46e5;
 	--color-success: #10b981;
 	--color-warning: #f59e0b;
 	--color-danger: #ef4444;
-	--color-text-primary: #111827;
-	--color-text-secondary: #6b7280;
-	--color-text-muted: #9ca3af;
+	--color-text-primary: #0d1117;
+	--color-text-secondary: #4b5563;
+	--color-text-muted: #6b7280;
 	--color-border: #e5e7eb;
-	--color-border-hover: #d1d5db;
+	--color-border-hover: #cbd5e1;
 }
 
 html,
 body {
 	margin: 0;
 	min-height: 100%;
-	background: var(--color-bg-base);
 	color: var(--color-text-primary);
 	transition:
 		background-color 0.2s ease,
 		color 0.2s ease;
 }
 
+/* Canvas: subtle radial cyan glow anchored at the top-left so the page
+   doesn't read as a flat slab. The opacity is low (4%) — the goal is "lit",
+   not "tinted". */
 body {
 	min-height: 100vh;
+	background:
+		radial-gradient(ellipse 80% 50% at 0% 0%, rgba(34, 211, 238, 0.06), transparent 60%),
+		radial-gradient(ellipse 60% 40% at 100% 100%, rgba(129, 140, 248, 0.04), transparent 60%),
+		var(--color-bg-base);
+	background-attachment: fixed;
+}
+
+.light body {
+	background:
+		radial-gradient(ellipse 80% 50% at 0% 0%, rgba(8, 145, 178, 0.05), transparent 60%),
+		var(--color-bg-base);
+	background-attachment: fixed;
 }
 
 * {
@@ -75,14 +99,24 @@ textarea {
 	font: inherit;
 }
 
+.tabular-nums,
+table td,
+table th {
+	font-variant-numeric: tabular-nums;
+}
+
 .btn-glow {
-	transition: box-shadow 0.3s ease;
+	transition: box-shadow 0.3s ease, transform 0.1s ease;
 }
 
 .btn-glow:hover:not(:disabled) {
 	box-shadow:
 		0 0 15px var(--color-primary-glow),
 		0 0 30px var(--color-primary-glow);
+}
+
+.btn-glow:active:not(:disabled) {
+	transform: scale(0.98);
 }
 
 .card-glow {
@@ -96,4 +130,50 @@ textarea {
 	box-shadow:
 		0 0 20px var(--color-primary-glow),
 		0 0 40px var(--color-primary-glow);
+}
+
+/* Subtle inner highlight so dark surfaces don't read as flat panels. */
+.surface-depth {
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Hero/accent card. Use sparingly: one or two per page, on the row that
+   represents the page's primary value (current net worth, calculation
+   result totals, buy-queue summary, etc.). Provides a visual focal point
+   so pages don't read as a uniform stack of identical cards. */
+.card-accent {
+	background: var(--color-bg-surface-accent);
+	border-color: var(--color-border);
+	box-shadow:
+		inset 0 1px 0 rgba(34, 211, 238, 0.08),
+		0 0 0 1px rgba(34, 211, 238, 0.12);
+	position: relative;
+	overflow: hidden;
+}
+
+.card-accent::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: linear-gradient(135deg, rgba(34, 211, 238, 0.08), transparent 40%);
+}
+
+/* Section header treatment: a 2px primary-tinted left border so each H2
+   visually anchors its block. Apply to the wrapping element, not the H2
+   itself, so layout space matches existing cards. */
+.section-anchor {
+	position: relative;
+	padding-left: 0.875rem;
+}
+
+.section-anchor::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	top: 0.25rem;
+	bottom: 0.25rem;
+	width: 2px;
+	background: linear-gradient(to bottom, var(--color-primary), transparent);
+	border-radius: 2px;
 }

@@ -4,11 +4,11 @@
 	import DataTable from '$lib/components/DataTable.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import {
-		activityLabel,
 		evDelta,
 		planDelta,
 		toDashboardKpis,
 		toEvRealizedSeries,
+		toNetWorthSeries,
 		toPlanPerformanceBars
 	} from '$lib/client/viewModels/dashboard';
 	import type { PageData } from './$types';
@@ -17,7 +17,9 @@
 	const kpis = $derived(toDashboardKpis(data.summary));
 	const evRealizedOption = $derived(toEvRealizedSeries(data.evRealized));
 	const planPerformanceOption = $derived(toPlanPerformanceBars(data.planPerformance));
+	const netWorthOption = $derived(toNetWorthSeries(data.netWorth));
 	const planChartHeight = $derived(`${Math.max(280, data.planPerformance.length * 54 + 90)}px`);
+	const latestNetWorth = $derived(data.netWorth.at(-1) ?? null);
 </script>
 
 <div class="space-y-6">
@@ -27,6 +29,35 @@
 			Current workflow health, activity, and plan performance.
 		</p>
 	</div>
+
+	<section class="card-accent rounded-xl border p-5 shadow-sm">
+		<div class="flex flex-wrap items-end justify-between gap-3">
+			<div>
+				<div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+					Inventory net worth
+				</div>
+				{#if latestNetWorth}
+					<div class="mt-1 flex items-baseline gap-3">
+						<span class="text-3xl font-semibold tabular-nums text-[var(--color-text-primary)]">
+							<Money value={latestNetWorth.estValue} />
+						</span>
+						<span class="text-sm text-[var(--color-text-secondary)]">
+							est. value · cost basis <Money value={latestNetWorth.costBasis} />
+						</span>
+					</div>
+				{:else}
+					<div class="mt-1 text-sm text-[var(--color-text-muted)]">
+						No inventory yet — buy a candidate to start the chart.
+					</div>
+				{/if}
+			</div>
+		</div>
+		{#if data.netWorth.length > 1}
+			<div class="mt-4">
+				<LineChart option={netWorthOption} height="220px" />
+			</div>
+		{/if}
+	</section>
 
 	<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 		{#each kpis as kpi}
@@ -41,58 +72,40 @@
 		{/each}
 	</section>
 
-	<section class="grid gap-6 xl:grid-cols-[1fr_1fr]">
-		<div class="space-y-3">
-			<h2 class="text-lg font-semibold">Recent activity</h2>
-			<DataTable
-				columns={['When', 'Kind', 'Label']}
-				rows={data.activity}
-				emptyTitle="No activity yet."
-				emptyDescription="Candidate, basket, execution, and sale events will appear here."
+	<section class="space-y-3">
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<h2 class="section-anchor text-lg font-semibold">Expected vs realized</h2>
+			<a
+				href="/api/exports/expected-vs-realized.csv"
+				class="text-sm font-medium text-[var(--color-text-secondary)] underline hover:text-[var(--color-text-primary)]"
 			>
-				{#snippet row(entry)}
-					<td class="px-4 py-3">{new Date(entry.at).toLocaleString()}</td>
-					<td class="px-4 py-3 capitalize">{activityLabel(entry)}</td>
-					<td class="px-4 py-3">{entry.label}</td>
-				{/snippet}
-			</DataTable>
+				Export expected vs realized
+			</a>
 		</div>
-
-		<div class="space-y-3">
-			<div class="flex flex-wrap items-center justify-between gap-2">
-				<h2 class="text-lg font-semibold">Expected vs realized</h2>
-				<a
-					href="/api/exports/expected-vs-realized.csv"
-					class="text-sm font-medium text-[var(--color-text-secondary)] underline hover:text-[var(--color-text-primary)]"
+		<LineChart option={evRealizedOption} />
+		<details class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
+			<summary class="cursor-pointer px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)]">Raw expected vs realized rows</summary>
+			<div class="border-t border-[var(--color-border)]">
+				<DataTable
+					columns={['Executed', 'Plan', 'Expected', 'Realized', 'Delta']}
+					rows={data.evRealized}
+					emptyTitle="No completed execution sales yet."
+					emptyDescription="Record an execution result and sale to compare expected against realized profit."
 				>
-					Export expected vs realized
-				</a>
+					{#snippet row(point)}
+						<td class="px-4 py-3">{new Date(point.executedAt).toLocaleDateString()}</td>
+						<td class="px-4 py-3">{point.planName}</td>
+						<td class="px-4 py-3"><Money value={point.expectedProfit} /></td>
+						<td class="px-4 py-3"><Money value={point.realizedProfit} /></td>
+						<td class="px-4 py-3"><Money value={evDelta(point)} /></td>
+					{/snippet}
+				</DataTable>
 			</div>
-			<LineChart option={evRealizedOption} />
-			<details class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
-				<summary class="cursor-pointer px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)]">Raw expected vs realized rows</summary>
-				<div class="border-t border-[var(--color-border)]">
-					<DataTable
-						columns={['Executed', 'Plan', 'Expected', 'Realized', 'Delta']}
-						rows={data.evRealized}
-						emptyTitle="No completed execution sales yet."
-						emptyDescription="Record an execution result and sale to compare expected against realized profit."
-					>
-						{#snippet row(point)}
-							<td class="px-4 py-3">{new Date(point.executedAt).toLocaleDateString()}</td>
-							<td class="px-4 py-3">{point.planName}</td>
-							<td class="px-4 py-3"><Money value={point.expectedProfit} /></td>
-							<td class="px-4 py-3"><Money value={point.realizedProfit} /></td>
-							<td class="px-4 py-3"><Money value={evDelta(point)} /></td>
-						{/snippet}
-					</DataTable>
-				</div>
-			</details>
-		</div>
+		</details>
 	</section>
 
 	<section class="space-y-3">
-		<h2 class="text-lg font-semibold">Plan performance</h2>
+		<h2 class="section-anchor text-lg font-semibold">Plan performance</h2>
 		<BarChart option={planPerformanceOption} height={planChartHeight} />
 		<details class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
 			<summary class="cursor-pointer px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)]">Raw plan performance rows</summary>

@@ -8,9 +8,15 @@ export const load: PageServerLoad = async ({ fetch }) => {
 	try {
 		const plansPage = await apiFetch<PaginatedResponse<PlanDTO>>(
 			fetch,
-			'/api/tradeups/plans?isActive=true&limit=100',
+			'/api/tradeups/plans?limit=100',
 		);
-		return { plans: plansPage.data };
+		// Sort active plans to the top so the dropdown still favors them, but
+		// inactive (draft) plans remain reachable for tweaking and reuse.
+		const plans = [...plansPage.data].sort((a, b) => {
+			if (a.isActive === b.isActive) return a.name.localeCompare(b.name);
+			return a.isActive ? -1 : 1;
+		});
+		return { plans };
 	} catch (err) {
 		if (err instanceof ApiError) error(err.status, err.message);
 		throw err;

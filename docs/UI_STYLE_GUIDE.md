@@ -977,4 +977,75 @@ Follow Tailwind's default spacing scale:
 - **Icons:** Inline SVGs (Heroicons style)
 - **Theme Storage:** localStorage (`cs-tradeups-theme` key)
 
+---
 
+## Improvement Areas (Phase 8 Refresh)
+
+The original dark theme was anchored on neutral greys (`#0e100f` base, `#161818` surface). It is technically dark but visually flat, especially on chart-heavy pages like `/dashboard`. This section documents the direction the theme should move during the Phase 8 polish work, plus other UI improvements queued up by operator feedback.
+
+### Goals
+
+- Keep the dark mode as the default but stop it from feeling depressing.
+- Adopt a **slate + violet** palette (Linear-style) — deep neutral slate surfaces with a violet primary accent. Distinctive without being cold or generic.
+- One primary accent for non-semantic UI; success/warning/danger tokens are reserved strictly for data with that meaning (never used as decoration).
+- Improve legibility of chart axes, legends, and gridlines.
+- Make form controls feel intentional: rounded corners, consistent padding, visible focus rings on dark backgrounds.
+
+### Slate + Violet Palette (current)
+
+| Token                              | Value       | Notes |
+| ---------------------------------- | ----------- | --- |
+| `--color-bg-base`                  | `#0e0e12`   | App background. Deep slate, slight cool tint. |
+| `--color-bg-surface`               | `#16161f`   | Cards, sidebar. |
+| `--color-bg-surface-elevated`      | `#1c1c28`   | Modals, dropdowns, hover surfaces. |
+| `--color-bg-surface-overlay`       | `#20202d`   | Inputs, secondary surfaces. |
+| `--color-border`                   | `#2a2a38`   | Default borders. |
+| `--color-border-hover`             | `#3a3a4d`   | Hover/focus rings. |
+| `--color-text-primary`             | `#ecedf2`   | High-contrast body text. |
+| `--color-text-secondary`           | `#a8aabb`   | |
+| `--color-text-muted`               | `#6e7184`   | |
+| `--color-primary`                  | `#7c5cff`   | Violet accent for all non-semantic UI (buttons, focus rings, active nav, primary chart series). |
+| `--color-primary-hover`            | `#6d4dff`   | |
+| `--color-primary-glow`             | `rgba(124, 92, 255, 0.35)` | |
+| `--color-secondary`                | `#5cc8ff`   | Cool cyan companion for chart secondary series only — never used as a UI accent. |
+| `--color-success`                  | `#10b981`   | Reserved for positive metrics (realized profit, ready baskets, etc.). |
+| `--color-warning`                  | `#f59e0b`   | Reserved for warnings. |
+| `--color-danger`                   | `#ef4444`   | Reserved for errors / negative deltas. |
+
+**Rule of thumb:** if a color carries no data meaning, use violet (or a violet/cyan tint from the chart palette). The semantic colors should stand out *because* they're used sparingly.
+
+The light theme can stay roughly as-is; it's already readable.
+
+### Typography
+
+Replace the system-font stack with a single modern sans-serif loaded once at the root. Candidates:
+
+- **Inter** (default — most "neutral modern data tool" font; pairs well with dark blue).
+- **Geist Sans** (Vercel) if a tighter, more confident look is preferred.
+- Keep system font as the fallback in the same `font-family` stack.
+
+Numerical fields (price, float, EV) should set `font-variant-numeric: tabular-nums` so columns align cleanly. Many tables already do this implicitly via the components — verify and apply globally if missing.
+
+### Form Controls
+
+- All inputs, selects, and combobox dropdowns: `rounded-md` (already mostly applied) → bump to `rounded-lg` for a softer, more modern feel.
+- Focus ring: `ring-2 ring-[var(--color-primary)]/30` is fine but should be paired with `ring-offset-2 ring-offset-[var(--color-bg-base)]` so it doesn't blur into the surface on dark blue.
+- Consistent padding: `px-3 py-2` for compact rows (tables, filter bars), `px-4 py-2.5` for primary forms (modals, plan editor).
+
+### Chart Theming
+
+ECharts gridlines, axis labels, and tooltips are nearly invisible on the current palette. When the new palette lands, also update:
+
+- `axisLine.lineStyle.color` → `var(--color-border-hover)`
+- `splitLine.lineStyle.color` → `var(--color-border)` with `0.4` opacity
+- `axisLabel.color` → `var(--color-text-secondary)`
+- Tooltip background → `var(--color-bg-surface-elevated)` with a 1px `var(--color-border)` border
+- Series colors should default to `[--color-primary, --color-secondary, --color-success, --color-warning, --color-danger]` rotated; pages can override
+
+### General Polish Notes
+
+- **New plan modal:** widen to at least `max-w-3xl` (rule editor + outcome editor are too cramped at `max-w-xl`).
+- **Buttons:** add subtle `active:scale-[0.98]` for press feedback. Primary glow already exists; secondary buttons should pick up a faint border-hover transition.
+- **Cards:** consider a 1px inner highlight (`box-shadow: inset 0 1px 0 rgba(255,255,255,0.04)`) to give the dark-blue surfaces depth.
+- **Sidebar:** active item could pick up a blue gradient background instead of `bg-primary/10` — more visible against the new surface.
+- **CSV/JSON imports:** the full-modal import flow on `/candidates` and `/inventory` is overkill for the operator; collapse to small "Import" buttons that open a minimal inline form. The heavyweight flow stays available but doesn't dominate.

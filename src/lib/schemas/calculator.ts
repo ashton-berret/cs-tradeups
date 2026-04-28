@@ -1,25 +1,43 @@
 import { z } from 'zod';
-import { cuidSchema, floatValueSchema, moneySchema } from './shared';
+import { cuidSchema, floatValueSchema, itemRaritySchema, moneySchema } from './shared';
 
 // Calculator scratchpad — POST /api/tradeups/calculator.
 //
-// Operator describes a hypothetical 10-input basket without touching
-// inventory. Returns the same `BasketEVBreakdown` the basket builder uses,
-// plus convenience totals (cost, profit). v1 accepts collection + float +
-// price per input. Output exterior projection requires per-input skin
-// selection (so we know each input's min/max float for wear-proportion
-// math); deferred until a CatalogSkinSelect ships.
+// Sandbox EV evaluation. Two modes:
+//
+//   1. Plan mode: caller supplies `planId`. Plan rules and outcomes drive
+//      the evaluation. Inactive plans are allowed — the calculator is a
+//      tweaking surface, not the planner.
+//
+//   2. Ad-hoc mode: caller supplies `targetRarity` instead. Outcomes are
+//      derived from the catalog snapshot (every catalog skin at the target
+//      rarity in each input's collection). Pricing falls back to the latest
+//      observed market price; outcomes without an observation contribute 0
+//      with a warning. This is the "experiment with no plan yet" mode.
+//
+// Per-input `catalogSkinId` lets the service look up the input skin's
+// min/max float so output exterior projection is correct (CS2 wear math
+// uses normalized wear proportions, not raw floats).
 
 export const calculatorInputSchema = z.object({
   collection: z.string().min(1),
+  catalogSkinId: z.string().min(1).optional(),
+  catalogCollectionId: z.string().min(1).optional(),
   floatValue: floatValueSchema.optional(),
   price: moneySchema,
 });
 
-export const calculatorRequestSchema = z.object({
-  planId: cuidSchema,
-  inputs: z.array(calculatorInputSchema).min(1).max(10),
-});
+export const calculatorRequestSchema = z
+  .object({
+    planId: cuidSchema.optional(),
+    targetRarity: itemRaritySchema.optional(),
+    inputRarity: itemRaritySchema.optional(),
+    inputs: z.array(calculatorInputSchema).min(1).max(10),
+  })
+  .refine((data) => Boolean(data.planId) || Boolean(data.targetRarity), {
+    message: 'Either planId or targetRarity must be provided.',
+    path: ['targetRarity'],
+  });
 
 export type CalculatorInput = z.infer<typeof calculatorInputSchema>;
 export type CalculatorRequest = z.infer<typeof calculatorRequestSchema>;

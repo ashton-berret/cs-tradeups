@@ -70,6 +70,31 @@ export function getExpectedVsRealized(range?: {
   return getExpectedVsRealizedImpl(range);
 }
 
+/**
+ * Inventory net-worth time series.
+ *
+ * For each calendar week from the earliest purchase to today, returns the
+ * cumulative cost basis of items that were still held at the end of the week
+ * (i.e., purchased on or before, and either never sold or sold after the
+ * week boundary). Estimated value uses the most recent currentEstValue when
+ * present, otherwise falls back to purchase price.
+ *
+ * Approximation notes:
+ *   - We bucket by week to keep the chart legible and the query cheap.
+ *   - "Sold" is detected via the InventoryItem.status — there is no per-item
+ *     sale date column, so when an item moved to SOLD we treat its
+ *     `updatedAt` as the disposal time.
+ */
+export interface NetWorthPoint {
+  date: string; // ISO date at the end of the week bucket
+  costBasis: number;
+  estValue: number;
+}
+
+export function getInventoryNetWorthSeries(): Promise<NetWorthPoint[]> {
+  return getInventoryNetWorthSeriesImpl();
+}
+
 async function getDashboardSummaryImpl(): Promise<DashboardSummary> {
   const [
     candidateCount,
@@ -299,4 +324,61 @@ function averageOrNull(values: number[]): number | null {
   }
 
   return roundMoney(sumMoney(values) / values.length);
+}
+
+async function getInventoryNetWorthSeriesImpl(): Promise<NetWorthPoint[]> {
+  const items = await db.inventoryItem.findMany({
+    select: {
+      purchasePrice: true,
+      currentEstValue: true,
+      purchaseDate: true,
+      status: true,
+      updatedAt: true,
+    },
+    orderBy: { purchaseDate: 'asc' },
+  });
+
+  if (items.length === 0) {
+    return [];
+  }
+
+  const start = startOfWeek(items[0].purchaseDate);
+  const end = startOfWeek(new Date());
+  const points: NetWorthPoint[] = [];
+
+  for (let cursor = start; cursor.getTime() <= end.getTime(); cursor = addDays(cursor, 7)) {
+    const boundary = addDays(cursor, 7); // End-of-week (exclusive).
+    let costBasis = 0;
+    let estValue = 0;
+    for (const item of items) {
+      if (item.purchaseDate >= boundary) continue;
+      const disposed = item.status === 'SOLD' || item.status === 'ARCHIVED';
+      if (disposed && item.updatedAt < boundary) continue;
+      const cost = toNumber(item.purchasePrice) ?? 0;
+      const est = toNumber(item.currentEstValue);
+      costBasis += cost;
+      estValue += est ?? cost;
+    }
+    points.push({
+      date: cursor.toISOString().slice(0, 10),
+      costBasis: roundMoney(costBasis),
+      estValue: roundMoney(estValue),
+    });
+  }
+
+  return points;
+}
+
+function startOfWeek(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day); // Sunday-anchored week.
+  return d;
+}
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
 }

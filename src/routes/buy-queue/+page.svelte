@@ -15,8 +15,24 @@
 	let { data, form }: { data: PageData; form?: ActionData } = $props();
 
 	const queue = $derived(data.queue);
+	const itemDetails = $derived(data.itemDetails);
 	const groups = $derived(groupAssignments(queue.assignments, queue.baskets));
 	const expanded = $state<Record<string, boolean>>({});
+
+	// Listing reference modal state.
+	let activeRow = $state<CandidateAssignment | null>(null);
+
+	function steamListingsUrl(marketHashName: string): string {
+		return `https://steamcommunity.com/market/listings/730/${encodeURIComponent(marketHashName)}`;
+	}
+
+	function openListing(row: CandidateAssignment) {
+		activeRow = row;
+	}
+
+	function closeListing() {
+		activeRow = null;
+	}
 
 	function groupAssignments(
 		assignments: CandidateAssignment[],
@@ -116,7 +132,7 @@
 	</div>
 
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-		<Card padding="md">
+		<Card padding="md" accent>
 			<div class="text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
 				Total expected profit
 			</div>
@@ -210,13 +226,21 @@
 								{#each basket.rows as row (row.poolItemId)}
 									{@const candidate = row.poolItemKind === 'CANDIDATE'}
 									{@const overMax = priceOverMax(row.currentPrice, row.maxBuyPrice)}
+									{@const detail = itemDetails[row.poolItemId]}
 									<tr class="border-t border-[var(--color-border)] align-top">
 										<td class="px-2 py-2 font-mono text-xs text-[var(--color-text-secondary)]">
 											{row.basketSlotIndex + 1}
 										</td>
 										<td class="px-2 py-2">
-											<div class="font-medium">{candidate ? 'Candidate' : 'Inventory'}: {row.sourceId.slice(-8)}</div>
-											<div class="text-xs text-[var(--color-text-secondary)]">{row.floatFit.explanation}</div>
+											<div class="font-medium">
+												{detail?.marketHashName ?? (candidate ? 'Candidate' : 'Inventory') + ': ' + row.sourceId.slice(-8)}
+											</div>
+											<div class="text-xs text-[var(--color-text-secondary)]">
+												{#if detail?.floatValue != null}
+													Float {detail.floatValue.toFixed(6)} ·
+												{/if}
+												{row.floatFit.explanation}
+											</div>
 										</td>
 										<td class="px-2 py-2">
 											<Badge tone={roleTone(row.role)}>{roleLabel(row.role)}</Badge>
@@ -256,13 +280,9 @@
 										</td>
 										<td class="px-2 py-2">
 											{#if candidate && row.role !== 'RESERVE'}
-												<form method="post" action="?/markBought" use:enhance>
-													<input type="hidden" name="candidateId" value={row.sourceId} />
-													<input type="hidden" name="purchasePrice" value={row.currentPrice} />
-													<input type="hidden" name="intendedBasketId" value={row.basketId ?? ''} />
-													<input type="hidden" name="intendedSlotIndex" value={row.basketSlotIndex} />
-													<Button type="submit" size="sm" disabled={overMax}>Mark bought</Button>
-												</form>
+												<Button size="sm" variant="secondary" onclick={() => openListing(row)}>
+													View
+												</Button>
 											{/if}
 										</td>
 									</tr>
@@ -274,6 +294,114 @@
 			{/each}
 		</div>
 	{/each}
+
+	{#if activeRow}
+		{@const detail = itemDetails[activeRow.poolItemId]}
+		{@const overMaxModal = priceOverMax(activeRow.currentPrice, activeRow.maxBuyPrice)}
+		<!-- Listing reference modal: Steam has no per-listing URL, so we link to
+		     the per-skin listings page and surface the exact price + float here
+		     so the operator can pick the right row visually on Steam. -->
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+		<div
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="listing-modal-title"
+			class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+			onclick={closeListing}
+			onkeydown={(e) => e.key === 'Escape' && closeListing()}
+			tabindex="-1"
+		>
+			<div
+				role="document"
+				class="w-full max-w-lg rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 shadow-xl"
+				onclick={(e) => e.stopPropagation()}
+				onkeydown={(e) => e.stopPropagation()}
+			>
+				<div class="flex items-start justify-between gap-4">
+					<div>
+						<h2 id="listing-modal-title" class="text-lg font-semibold">
+							{detail?.marketHashName ?? 'Candidate ' + activeRow.sourceId.slice(-8)}
+						</h2>
+						<p class="mt-1 text-xs text-[var(--color-text-secondary)]">
+							Reference card. Use these values to find the matching listing on Steam.
+						</p>
+					</div>
+					<button
+						type="button"
+						onclick={closeListing}
+						class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+						aria-label="Close"
+					>
+						✕
+					</button>
+				</div>
+
+				<dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+					<div class="rounded border border-[var(--color-border)] p-3">
+						<dt class="text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
+							Price
+						</dt>
+						<dd class="mt-1 text-lg font-semibold tabular-nums">
+							<Money value={activeRow.currentPrice} />
+						</dd>
+						{#if activeRow.maxBuyPrice != null}
+							<dd class="mt-1 text-xs text-[var(--color-text-muted)]">
+								Max buy <Money value={activeRow.maxBuyPrice} />
+								{#if overMaxModal}
+									<span class="ml-1 text-[var(--color-danger)]">(over)</span>
+								{/if}
+							</dd>
+						{/if}
+					</div>
+					<div class="rounded border border-[var(--color-border)] p-3">
+						<dt class="text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
+							Float
+						</dt>
+						<dd class="mt-1 text-lg font-mono tabular-nums">
+							{detail?.floatValue != null ? detail.floatValue.toFixed(6) : '—'}
+						</dd>
+					</div>
+				</dl>
+
+				<div class="mt-4">
+					{#if detail?.listingUrl}
+						<a
+							href={detail.listingUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="inline-flex items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm hover:bg-[var(--color-primary)]/10"
+						>
+							Open listing URL ↗
+						</a>
+					{/if}
+					{#if detail?.marketHashName}
+						<a
+							href={steamListingsUrl(detail.marketHashName)}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="ml-2 inline-flex items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm hover:bg-[var(--color-primary)]/10"
+						>
+							Open Steam listings page ↗
+						</a>
+					{/if}
+				</div>
+
+				<div class="mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-[var(--color-border)] pt-4">
+					<form method="post" action="?/discard" use:enhance={() => async ({ update }) => { await update(); closeListing(); }}>
+						<input type="hidden" name="candidateId" value={activeRow.sourceId} />
+						<Button type="submit" variant="danger" size="sm">Discard</Button>
+					</form>
+					<form method="post" action="?/markBought" use:enhance={() => async ({ update }) => { await update(); closeListing(); }}>
+						<input type="hidden" name="candidateId" value={activeRow.sourceId} />
+						<input type="hidden" name="purchasePrice" value={activeRow.currentPrice} />
+						<input type="hidden" name="intendedBasketId" value={activeRow.basketId ?? ''} />
+						<input type="hidden" name="intendedSlotIndex" value={activeRow.basketSlotIndex} />
+						<Button type="submit" size="sm" disabled={overMaxModal}>Mark bought</Button>
+					</form>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	{#if queue.unassigned.length > 0}
 		<Card padding="md">

@@ -248,7 +248,53 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 		</div>
 	{/if}
 
-	<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+	<div class="space-y-4">
+		<details class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
+			<summary class="cursor-pointer px-4 py-2.5 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+				Import prices (CSV / JSON)
+			</summary>
+			<div class="grid gap-4 border-t border-[var(--color-border)] p-4 md:grid-cols-2">
+				<form method="POST" action="?/importCsv" enctype="multipart/form-data" class="space-y-3" use:enhance>
+					<div class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">CSV</div>
+					<p class="text-xs text-[var(--color-text-secondary)]">
+						Columns: marketHashName, currency, lowestSellPrice, medianSellPrice, volume, observedAt.
+					</p>
+					<Input name="csvSource" placeholder="Source" value={csvSource} />
+					<input
+						name="csvFile"
+						type="file"
+						accept=".csv,text/csv"
+						class="block w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[var(--color-bg-surface)] file:px-3 file:py-1.5 file:text-sm file:text-[var(--color-text-primary)]"
+					/>
+					<textarea
+						name="csvPayload"
+						class="min-h-32 w-full resize-y rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 font-mono text-xs text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+						spellcheck="false"
+						placeholder="Or paste CSV here…"
+						value={csvPayload}
+					></textarea>
+					<div class="flex justify-end">
+						<Button type="submit" size="sm">Import CSV</Button>
+					</div>
+				</form>
+				<form method="POST" action="?/importJson" class="space-y-3" use:enhance>
+					<div class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">JSON</div>
+					<p class="text-xs text-[var(--color-text-secondary)]">
+						Same payload as <code class="text-xs">POST /api/market-prices/import</code>.
+					</p>
+					<textarea
+						name="payload"
+						class="min-h-32 w-full resize-y rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 font-mono text-xs text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+						spellcheck="false"
+						value={importPayload}
+					></textarea>
+					<div class="flex justify-end">
+						<Button type="submit" size="sm">Import JSON</Button>
+					</div>
+				</form>
+			</div>
+		</details>
+
 		<div class="space-y-4">
 			<FilterBar resetHref="/market-prices">
 				<Input name="search" placeholder="Search item or catalog id" value={data.filter.search ?? ''} class="w-72" />
@@ -361,56 +407,5 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 			/>
 		</div>
 
-		<div class="space-y-4">
-			<Card>
-				<form method="POST" action="?/importCsv" enctype="multipart/form-data" class="space-y-4" use:enhance>
-					<div>
-						<h2 class="text-base font-semibold text-[var(--color-text-primary)]">CSV import</h2>
-						<p class="mt-1 text-sm text-[var(--color-text-secondary)]">
-							Columns: marketHashName, currency, lowestSellPrice, medianSellPrice, volume, observedAt.
-						</p>
-					</div>
-					<Input name="csvSource" placeholder="Source" value={csvSource} />
-					<label class="block text-sm text-[var(--color-text-secondary)]">
-						<span class="mb-1 block text-xs font-medium uppercase tracking-wider text-[var(--color-text-muted)]">CSV file</span>
-						<input
-							name="csvFile"
-							type="file"
-							accept=".csv,text/csv"
-							class="block w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[var(--color-bg-surface)] file:px-3 file:py-1.5 file:text-sm file:text-[var(--color-text-primary)]"
-						/>
-					</label>
-					<textarea
-						name="csvPayload"
-						class="min-h-56 w-full resize-y rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 font-mono text-xs text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-						spellcheck="false"
-						value={csvPayload}
-					></textarea>
-					<div class="flex justify-end">
-						<Button type="submit">Import CSV</Button>
-					</div>
-				</form>
-			</Card>
-
-			<Card>
-				<form method="POST" action="?/importJson" class="space-y-4" use:enhance>
-					<div>
-						<h2 class="text-base font-semibold text-[var(--color-text-primary)]">JSON import</h2>
-						<p class="mt-1 text-sm text-[var(--color-text-secondary)]">
-							Accepts the same payload as <code class="text-xs">POST /api/market-prices/import</code>.
-						</p>
-					</div>
-					<textarea
-						name="payload"
-						class="min-h-72 w-full resize-y rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 font-mono text-xs text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-						spellcheck="false"
-						value={importPayload}
-					></textarea>
-					<div class="flex justify-end">
-						<Button type="submit">Import JSON</Button>
-					</div>
-				</form>
-			</Card>
-		</div>
 	</div>
 </div>

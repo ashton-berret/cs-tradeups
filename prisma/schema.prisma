@@ -118,6 +118,12 @@ model InventoryItem {
   currentEstValue Decimal?
   notes        String?
 
+  // Link to the live Steam inventory asset id (public inventory JSON), set
+  // by the inventory sync action. Unique because a Steam asset is one
+  // physical item; multiple operator-tracked rows must not point at the same
+  // asset.
+  steamAssetId String? @unique
+
   // Relations
   candidateId String?
   candidate   CandidateListing? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
@@ -157,6 +163,7 @@ model TradeupPlan {
   baskets           TradeupBasket[]
   executions        TradeupExecution[]
   matchedCandidates CandidateListing[]
+  combinations      TradeupCombination[]
 }
 
 model TradeupPlanRule {
@@ -290,6 +297,96 @@ model TradeupExecution {
 
   @@index([planId])
   @@index([executedAt])
+}
+
+// Saved calculator combinations: a "thesis" snapshot of a tweaked plan +
+// 10 specific inputs. Frozen at save time so the original reasoning is
+// preserved even when prices or the source plan change. Recheck appends a
+// row to TradeupCombinationSnapshot for trend analysis without overwriting
+// the thesis.
+model TradeupCombination {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name     String
+  notes    String?
+  isActive Boolean @default(false)
+
+  // Mode at save time: 'PLAN' or 'AD_HOC'
+  mode String
+
+  // Source plan when saved from a plan-mode calculation. Nullable because
+  // ad-hoc combinations have no plan, and PLAN-mode plans may be deleted later.
+  sourcePlanId String?
+  sourcePlan   TradeupPlan? @relation(fields: [sourcePlanId], references: [id], onDelete: SetNull)
+
+  // Rarities at save time. For PLAN mode these mirror the source plan's
+  // rarities at thesis time; for AD_HOC they're the user's choice.
+  inputRarity  String
+  targetRarity String
+
+  // Frozen "thesis" totals at save time.
+  thesisTotalCost         Decimal
+  thesisTotalEV           Decimal
+  thesisExpectedProfit    Decimal
+  thesisExpectedProfitPct Float
+  thesisAt                DateTime @default(now())
+
+  // Frozen rule + outcome state so recheck math has a stable comparison
+  // even if the source plan was edited or deleted.
+  thesisPlanSnapshot Json
+
+  inputs           TradeupCombinationInput[]
+  recheckSnapshots TradeupCombinationSnapshot[]
+
+  // External source dedupe — set when the combination was imported from
+  // tradeuplab.com via tools/import-tradeuplab.ts. Unique so re-running the
+  // importer is idempotent.
+  tradeupLabId Int? @unique
+
+  @@index([isActive, createdAt])
+  @@index([sourcePlanId])
+}
+
+model TradeupCombinationInput {
+  id            String @id @default(cuid())
+  combinationId String
+  slotIndex     Int
+
+  collection          String
+  catalogSkinId       String?
+  catalogCollectionId String?
+  weaponName          String?
+  skinName            String?
+  floatValue          Float?
+  price               Decimal
+
+  combination TradeupCombination @relation(fields: [combinationId], references: [id], onDelete: Cascade)
+
+  @@unique([combinationId, slotIndex])
+  @@index([combinationId])
+  @@index([catalogSkinId])
+  @@index([catalogCollectionId])
+}
+
+model TradeupCombinationSnapshot {
+  id            String   @id @default(cuid())
+  combinationId String
+  observedAt    DateTime @default(now())
+
+  totalCost         Decimal
+  totalEV           Decimal
+  expectedProfit    Decimal
+  expectedProfitPct Float
+
+  // Full breakdown so historical views can show per-collection / per-outcome
+  // state at the time of the recheck.
+  evBreakdown Json?
+
+  combination TradeupCombination @relation(fields: [combinationId], references: [id], onDelete: Cascade)
+
+  @@index([combinationId, observedAt])
 }
 
 model MarketPriceObservation {

@@ -2,6 +2,12 @@ import type { ActivityEntry, EvRealizedPoint, PlanPerformanceRow } from '$lib/ty
 import type { EChartsOption } from 'echarts';
 import { baseChartOption, chartPalette } from '$lib/components/charts/theme';
 
+export interface NetWorthPoint {
+	date: string;
+	costBasis: number;
+	estValue: number;
+}
+
 export interface AnalyticsSummaryDTO {
 	candidateCount: number;
 	goodBuyCount: number;
@@ -118,6 +124,52 @@ export function toPlanPerformanceBars(rows: PlanPerformanceRow[]): EChartsOption
 				type: 'bar',
 				data: rows.map((row) => row.avgRealizedProfit),
 				itemStyle: { color: chartPalette.barRealized }
+			}
+		]
+	};
+}
+
+export function toNetWorthSeries(points: NetWorthPoint[]): EChartsOption {
+	return {
+		...baseChartOption(),
+		legend: {
+			top: 0,
+			textStyle: { color: chartPalette.text },
+			icon: 'roundRect'
+		},
+		xAxis: {
+			type: 'category',
+			boundaryGap: false,
+			data: points.map((p) => p.date),
+			axisLabel: { color: chartPalette.text },
+			axisLine: { lineStyle: { color: chartPalette.borderHover } },
+			axisTick: { show: false }
+		},
+		yAxis: {
+			type: 'value',
+			axisLabel: {
+				color: chartPalette.text,
+				formatter: (value: number) => currency(value)
+			},
+			splitLine: { lineStyle: { color: chartPalette.border, opacity: 0.5 } }
+		},
+		series: [
+			{
+				name: 'Cost basis',
+				type: 'line',
+				smooth: true,
+				symbolSize: 0,
+				lineStyle: { width: 2 },
+				areaStyle: { opacity: 0.15 },
+				data: points.map((p) => p.costBasis)
+			},
+			{
+				name: 'Estimated value',
+				type: 'line',
+				smooth: true,
+				symbolSize: 0,
+				lineStyle: { width: 2 },
+				data: points.map((p) => p.estValue)
 			}
 		]
 	};
