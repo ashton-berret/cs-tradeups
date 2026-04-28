@@ -1,11 +1,17 @@
 import { db } from '$lib/server/db/client';
 import { reevaluateOpenCandidates } from '$lib/server/candidates/candidateService';
 import { recomputeMetrics } from '$lib/server/tradeups/basketService';
+import { refreshSteamMarketWatchlist, type MarketPriceRefreshJobResult } from './refreshJob';
 
 export interface MarketPriceImportRefreshResult {
   candidatesReevaluated: number;
   basketsRecomputed: number;
   basketErrors: Array<{ id: string; message: string }>;
+}
+
+export interface MarketPriceFullRefreshResult {
+  prices: MarketPriceRefreshJobResult;
+  dependents: MarketPriceImportRefreshResult;
 }
 
 export async function refreshAfterMarketPriceImport(): Promise<MarketPriceImportRefreshResult> {
@@ -34,4 +40,11 @@ export async function refreshAfterMarketPriceImport(): Promise<MarketPriceImport
     basketsRecomputed,
     basketErrors,
   };
+}
+
+export async function refreshMarketPricesAndDependents(): Promise<MarketPriceFullRefreshResult> {
+  const prices = await refreshSteamMarketWatchlist();
+  const dependents = await refreshAfterMarketPriceImport();
+
+  return { prices, dependents };
 }

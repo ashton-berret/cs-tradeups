@@ -92,6 +92,13 @@
 		return value === 'OBSERVED_MARKET' ? 'Observed market' : 'Plan fallback';
 	}
 
+	function priceBasisLabel(value: BasketEvaluation['ev']['perOutcomeContribution'][number]['priceBasis']) {
+		if (value === 'STEAM_NET') return 'Steam net';
+		if (value === 'STEAM_GROSS') return 'Steam gross';
+		if (value === 'THIRD_PARTY_REFERENCE') return 'Third-party ref';
+		return 'Manual estimate';
+	}
+
 	function freshnessLabel(value: string | null) {
 		if (!value) return 'Fallback';
 		return value.toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase());
@@ -202,7 +209,7 @@
 										</td>
 										<td class="px-3 py-2">
 											<Badge tone={outcome.priceSource === 'OBSERVED_MARKET' ? 'success' : 'muted'}>
-												{priceSourceLabel(outcome.priceSource)}
+												{outcome.priceSource === 'OBSERVED_MARKET' ? priceBasisLabel(outcome.priceBasis) : priceSourceLabel(outcome.priceSource)}
 											</Badge>
 											<div class="mt-1 text-[var(--color-text-muted)]">
 												<Badge tone={freshnessTone(outcome.priceFreshness)}>

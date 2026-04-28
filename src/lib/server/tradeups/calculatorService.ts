@@ -192,6 +192,7 @@ async function synthesizeAdHocPlan(request: CalculatorRequest) {
       .map((price) => ({
         marketHashName: price.marketHashName,
         marketValue: price.marketValue,
+        source: price.source,
         observedAt: price.observedAt,
         freshness: price.freshness as string,
       }));

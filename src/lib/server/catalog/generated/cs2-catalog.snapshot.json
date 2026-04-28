@@ -1,20 +1,20 @@
 {
   "snapshotVersion": 1,
-  "generatedAt": "2026-04-23T21:04:00.488Z",
+  "generatedAt": "2026-04-28T19:51:07.310Z",
   "gamePath": "D:\\SteamLibrary\\steamapps\\common\\Counter-Strike Global Offensive",
   "sourceFiles": [
     {
       "kind": "LOCAL_CS2_VPK",
       "path": "D:\\SteamLibrary\\steamapps\\common\\Counter-Strike Global Offensive\\game\\csgo\\pak01_dir.vpk",
       "entryPath": "scripts/items/items_game.txt",
-      "lastModified": "2026-04-23T00:08:45.277Z",
+      "lastModified": "2026-04-24T23:12:51.298Z",
       "sha256": "2f6c74b1fbee0362886f403db5be011873b75418d45e07b1e097363d6d185774"
     },
     {
       "kind": "LOCAL_CS2_VPK",
       "path": "D:\\SteamLibrary\\steamapps\\common\\Counter-Strike Global Offensive\\game\\csgo\\pak01_dir.vpk",
       "entryPath": "resource/csgo_english.txt",
-      "lastModified": "2026-04-23T00:08:45.277Z",
+      "lastModified": "2026-04-24T23:12:51.298Z",
       "sha256": "ed5c643f2d3ab09436c2ca645398eec789fba1b9d5cb784beb6f14e319fb0b6e"
     }
   ],
@@ -40082,7 +40082,7 @@
       "baseMarketHashName": "AK-47 | Aphrodite",
       "collectionId": "set_xpshop_wpn_01",
       "collectionName": "Limited Edition Item",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -40133,7 +40133,7 @@
       "baseMarketHashName": "AK-47 | Aquamarine Revenge",
       "collectionId": "set_community_8",
       "collectionName": "The Falchion Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -40184,7 +40184,7 @@
       "baseMarketHashName": "AK-47 | Asiimov",
       "collectionId": "set_community_21",
       "collectionName": "The Danger Zone Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0.05,
       "maxFloat": 0.7,
       "exteriors": [
@@ -40235,7 +40235,7 @@
       "baseMarketHashName": "AK-47 | B the Monster",
       "collectionId": "set_overpass_2024",
       "collectionName": "The Overpass 2024 Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -40286,7 +40286,7 @@
       "baseMarketHashName": "AK-47 | Baroque Purple",
       "collectionId": "set_canals",
       "collectionName": "The Canals Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -40337,7 +40337,7 @@
       "baseMarketHashName": "AK-47 | Black Laminate",
       "collectionId": "set_vertigo",
       "collectionName": "The Vertigo Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -40388,7 +40388,7 @@
       "baseMarketHashName": "AK-47 | Bloodsport",
       "collectionId": "set_community_16",
       "collectionName": "The Spectrum Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.45,
       "exteriors": [
@@ -40434,7 +40434,7 @@
       "baseMarketHashName": "AK-47 | Blue Laminate",
       "collectionId": "set_esports_ii",
       "collectionName": "The eSports 2013 Winter Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0.02,
       "maxFloat": 0.4,
       "exteriors": [
@@ -40480,7 +40480,7 @@
       "baseMarketHashName": "AK-47 | Breakthrough",
       "collectionId": "set_timed_drops_achroma",
       "collectionName": "The Achroma Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -40531,7 +40531,7 @@
       "baseMarketHashName": "AK-47 | Cartel",
       "collectionId": "set_community_6",
       "collectionName": "The Chroma Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -40582,7 +40582,7 @@
       "baseMarketHashName": "AK-47 | Case Hardened",
       "collectionId": "set_weapons_i",
       "collectionName": "The Arms Deal Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -40633,7 +40633,7 @@
       "baseMarketHashName": "AK-47 | Crane Flight",
       "collectionId": "set_community_37",
       "collectionName": "The Dead Hand Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -40684,7 +40684,7 @@
       "baseMarketHashName": "AK-47 | Crossfade",
       "collectionId": "set_graphic_design",
       "collectionName": "The Graphic Design Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -40735,7 +40735,7 @@
       "baseMarketHashName": "AK-47 | Elite Build",
       "collectionId": "set_community_7",
       "collectionName": "The Chroma 2 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -40786,7 +40786,7 @@
       "baseMarketHashName": "AK-47 | Emerald Pinstripe",
       "collectionId": "set_bank",
       "collectionName": "The Bank Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -40837,7 +40837,7 @@
       "baseMarketHashName": "AK-47 | Fire Serpent",
       "collectionId": "set_bravo_i",
       "collectionName": "The Bravo Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.76,
       "exteriors": [
@@ -40888,7 +40888,7 @@
       "baseMarketHashName": "AK-47 | First Class",
       "collectionId": "set_baggage",
       "collectionName": "The Baggage Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -40939,7 +40939,7 @@
       "baseMarketHashName": "AK-47 | Frontside Misty",
       "collectionId": "set_community_9",
       "collectionName": "The Shadow Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0.02,
       "maxFloat": 0.87,
       "exteriors": [
@@ -40990,7 +40990,7 @@
       "baseMarketHashName": "AK-47 | Fuel Injector",
       "collectionId": "set_community_11",
       "collectionName": "The Wildfire Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -41041,7 +41041,7 @@
       "baseMarketHashName": "AK-47 | Gold Arabesque",
       "collectionId": "set_dust_2_2021",
       "collectionName": "The 2021 Dust 2 Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -41092,7 +41092,7 @@
       "baseMarketHashName": "AK-47 | Green Laminate",
       "collectionId": "set_vertigo_2021",
       "collectionName": "The 2021 Vertigo Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0.02,
       "maxFloat": 0.4,
       "exteriors": [
@@ -41138,7 +41138,7 @@
       "baseMarketHashName": "AK-47 | Head Shot",
       "collectionId": "set_community_32",
       "collectionName": "The Revolution Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -41189,7 +41189,7 @@
       "baseMarketHashName": "AK-47 | Hydroponic",
       "collectionId": "set_kimono",
       "collectionName": "The Rising Sun Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -41240,7 +41240,7 @@
       "baseMarketHashName": "AK-47 | Ice Coaled",
       "collectionId": "set_community_31",
       "collectionName": "The Recoil Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.77,
       "exteriors": [
@@ -41291,7 +41291,7 @@
       "baseMarketHashName": "AK-47 | Inheritance",
       "collectionId": "set_community_33",
       "collectionName": "The Kilowatt Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.797346,
       "exteriors": [
@@ -41342,7 +41342,7 @@
       "baseMarketHashName": "AK-47 | Jaguar",
       "collectionId": "set_esports_iii",
       "collectionName": "The eSports 2014 Summer Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -41393,7 +41393,7 @@
       "baseMarketHashName": "AK-47 | Jet Set",
       "collectionId": "set_baggage",
       "collectionName": "The Baggage Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -41444,7 +41444,7 @@
       "baseMarketHashName": "AK-47 | Jungle Spray",
       "collectionId": "set_aztec",
       "collectionName": "The Aztec Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -41495,7 +41495,7 @@
       "baseMarketHashName": "AK-47 | Leet Museo",
       "collectionId": "set_community_29",
       "collectionName": "The Operation Riptide Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.65,
       "exteriors": [
@@ -41546,7 +41546,7 @@
       "baseMarketHashName": "AK-47 | Legion of Anubis",
       "collectionId": "set_community_26",
       "collectionName": "The Fracture Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -41597,7 +41597,7 @@
       "baseMarketHashName": "AK-47 | Midnight Laminate",
       "collectionId": "set_timed_drops_cool",
       "collectionName": "The Ascent Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -41648,7 +41648,7 @@
       "baseMarketHashName": "AK-47 | Neon Revolution",
       "collectionId": "set_gamma_2",
       "collectionName": "The Gamma 2 Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -41699,7 +41699,7 @@
       "baseMarketHashName": "AK-47 | Neon Rider",
       "collectionId": "set_community_20",
       "collectionName": "The Horizon Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -41750,7 +41750,7 @@
       "baseMarketHashName": "AK-47 | Nightwish",
       "collectionId": "set_community_30",
       "collectionName": "The Dreams & Nightmares Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -41801,7 +41801,7 @@
       "baseMarketHashName": "AK-47 | Nouveau Rouge",
       "collectionId": "set_timed_drops_warm",
       "collectionName": "The Radiant Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -41852,7 +41852,7 @@
       "baseMarketHashName": "AK-47 | Olive Polycam",
       "collectionId": "set_realism_camo",
       "collectionName": "The Sport & Field Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -41903,7 +41903,7 @@
       "baseMarketHashName": "AK-47 | Orbit Mk01",
       "collectionId": "set_community_17",
       "collectionName": "The Operation Hydra Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.55,
       "exteriors": [
@@ -41954,7 +41954,7 @@
       "baseMarketHashName": "AK-47 | Panthera onca",
       "collectionId": "set_op10_ancient",
       "collectionName": "The Ancient Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -42005,7 +42005,7 @@
       "baseMarketHashName": "AK-47 | Phantom Disruptor",
       "collectionId": "set_community_25",
       "collectionName": "The Prisma 2 Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.65,
       "exteriors": [
@@ -42056,7 +42056,7 @@
       "baseMarketHashName": "AK-47 | Point Disarray",
       "collectionId": "set_community_10",
       "collectionName": "The Revolver Case Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.67,
       "exteriors": [
@@ -42107,7 +42107,7 @@
       "baseMarketHashName": "AK-47 | Predator",
       "collectionId": "set_dust",
       "collectionName": "The Dust Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -42158,7 +42158,7 @@
       "baseMarketHashName": "AK-47 | Rat Rod",
       "collectionId": "set_community_23",
       "collectionName": "The Shattered Web Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -42209,7 +42209,7 @@
       "baseMarketHashName": "AK-47 | Red Laminate",
       "collectionId": "set_esports",
       "collectionName": "The eSports 2013 Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -42260,7 +42260,7 @@
       "baseMarketHashName": "AK-47 | Redline",
       "collectionId": "set_community_2",
       "collectionName": "The Phoenix Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0.1,
       "maxFloat": 0.7,
       "exteriors": [
@@ -42306,7 +42306,7 @@
       "baseMarketHashName": "AK-47 | Safari Mesh",
       "collectionId": "set_dust_2",
       "collectionName": "The Dust 2 Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -42357,7 +42357,7 @@
       "baseMarketHashName": "AK-47 | Safety Net",
       "collectionId": "set_inferno_2",
       "collectionName": "The 2018 Inferno Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -42408,7 +42408,7 @@
       "baseMarketHashName": "AK-47 | Searing Rage",
       "collectionId": "set_community_35",
       "collectionName": "The Fever Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -42459,7 +42459,7 @@
       "baseMarketHashName": "AK-47 | Slate",
       "collectionId": "set_community_28",
       "collectionName": "The Snakebite Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -42510,7 +42510,7 @@
       "baseMarketHashName": "AK-47 | Steel Delta",
       "collectionId": "set_anubis",
       "collectionName": "The Anubis Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.73,
       "exteriors": [
@@ -42561,7 +42561,7 @@
       "baseMarketHashName": "AK-47 | The Empress",
       "collectionId": "set_community_18",
       "collectionName": "The Spectrum 2 Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -42612,7 +42612,7 @@
       "baseMarketHashName": "AK-47 | The Oligarch",
       "collectionId": "set_community_36",
       "collectionName": "The Genesis Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -42663,7 +42663,7 @@
       "baseMarketHashName": "AK-47 | The Outsiders",
       "collectionId": "set_community_34",
       "collectionName": "The Gallery Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.9,
       "exteriors": [
@@ -42714,7 +42714,7 @@
       "baseMarketHashName": "AK-47 | Uncharted",
       "collectionId": "set_community_22",
       "collectionName": "The Prisma Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -42765,7 +42765,7 @@
       "baseMarketHashName": "AK-47 | VariCamo Grey",
       "collectionId": "set_timed_drops_neutral",
       "collectionName": "The Boreal Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.671875,
       "exteriors": [
@@ -42816,7 +42816,7 @@
       "baseMarketHashName": "AK-47 | Vulcan",
       "collectionId": "set_community_3",
       "collectionName": "The Huntsman Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.9,
       "exteriors": [
@@ -42867,7 +42867,7 @@
       "baseMarketHashName": "AK-47 | Wasteland Rebel",
       "collectionId": "set_community_5",
       "collectionName": "The Vanguard Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0.05,
       "maxFloat": 0.7,
       "exteriors": [
@@ -42918,7 +42918,7 @@
       "baseMarketHashName": "AK-47 | Wild Lotus",
       "collectionId": "set_stmarc",
       "collectionName": "The St. Marc Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -42969,7 +42969,7 @@
       "baseMarketHashName": "AK-47 | Wintergreen",
       "collectionId": "set_timed_drops_neutral",
       "collectionName": "The Boreal Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -43020,7 +43020,7 @@
       "baseMarketHashName": "AK-47 | X-Ray",
       "collectionId": "set_op10_t",
       "collectionName": "The Havoc Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -45235,7 +45235,7 @@
       "baseMarketHashName": "AWP | Acheron",
       "collectionId": "set_nuke_2",
       "collectionName": "The 2018 Nuke Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.83,
       "exteriors": [
@@ -45286,7 +45286,7 @@
       "baseMarketHashName": "AWP | Arsenic Spill",
       "collectionId": "set_timed_drops_warm",
       "collectionName": "The Radiant Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.501961,
       "exteriors": [
@@ -45337,7 +45337,7 @@
       "baseMarketHashName": "AWP | Asiimov",
       "collectionId": "set_community_2",
       "collectionName": "The Phoenix Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0.18,
       "maxFloat": 1,
       "exteriors": [
@@ -45378,7 +45378,7 @@
       "baseMarketHashName": "AWP | Atheris",
       "collectionId": "set_community_22",
       "collectionName": "The Prisma Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -45429,7 +45429,7 @@
       "baseMarketHashName": "AWP | Black Nile",
       "collectionId": "set_anubis",
       "collectionName": "The Anubis Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -45480,7 +45480,7 @@
       "baseMarketHashName": "AWP | BOOM",
       "collectionId": "set_esports",
       "collectionName": "The eSports 2013 Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.28,
       "exteriors": [
@@ -45521,7 +45521,7 @@
       "baseMarketHashName": "AWP | Capillary",
       "collectionId": "set_community_25",
       "collectionName": "The Prisma 2 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0.05,
       "maxFloat": 0.7,
       "exteriors": [
@@ -45572,7 +45572,7 @@
       "baseMarketHashName": "AWP | Chromatic Aberration",
       "collectionId": "set_community_31",
       "collectionName": "The Recoil Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -45623,7 +45623,7 @@
       "baseMarketHashName": "AWP | Chrome Cannon",
       "collectionId": "set_community_33",
       "collectionName": "The Kilowatt Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -45674,7 +45674,7 @@
       "baseMarketHashName": "AWP | CMYK",
       "collectionId": "set_graphic_design",
       "collectionName": "The Graphic Design Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -45725,7 +45725,7 @@
       "baseMarketHashName": "AWP | Containment Breach",
       "collectionId": "set_community_23",
       "collectionName": "The Shattered Web Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -45776,7 +45776,7 @@
       "baseMarketHashName": "AWP | Corticera",
       "collectionId": "set_esports_iii",
       "collectionName": "The eSports 2014 Summer Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.3,
       "exteriors": [
@@ -45817,7 +45817,7 @@
       "baseMarketHashName": "AWP | Crakow!",
       "collectionId": "set_overpass_2024",
       "collectionName": "The Overpass 2024 Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -45868,7 +45868,7 @@
       "baseMarketHashName": "AWP | Desert Hydra",
       "collectionId": "set_mirage_2021",
       "collectionName": "The 2021 Mirage Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -45919,7 +45919,7 @@
       "baseMarketHashName": "AWP | Dragon Lore",
       "collectionId": "set_cobblestone",
       "collectionName": "The Cobblestone Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -45970,7 +45970,7 @@
       "baseMarketHashName": "AWP | Duality",
       "collectionId": "set_community_32",
       "collectionName": "The Revolution Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -46021,7 +46021,7 @@
       "baseMarketHashName": "AWP | Electric Hive",
       "collectionId": "set_esports_ii",
       "collectionName": "The eSports 2013 Winter Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.4,
       "exteriors": [
@@ -46067,7 +46067,7 @@
       "baseMarketHashName": "AWP | Elite Build",
       "collectionId": "set_community_11",
       "collectionName": "The Wildfire Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -46118,7 +46118,7 @@
       "baseMarketHashName": "AWP | Exoskeleton",
       "collectionId": "set_community_27",
       "collectionName": "The Operation Broken Fang Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -46169,7 +46169,7 @@
       "baseMarketHashName": "AWP | Exothermic",
       "collectionId": "set_timed_drops_exuberant",
       "collectionName": "The Harlequin Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -46220,7 +46220,7 @@
       "baseMarketHashName": "AWP | Fade",
       "collectionId": "set_op10_ct",
       "collectionName": "The Control Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.08,
       "exteriors": [
@@ -46256,7 +46256,7 @@
       "baseMarketHashName": "AWP | Fever Dream",
       "collectionId": "set_community_16",
       "collectionName": "The Spectrum Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.55,
       "exteriors": [
@@ -46307,7 +46307,7 @@
       "baseMarketHashName": "AWP | Graphite",
       "collectionId": "set_bravo_i",
       "collectionName": "The Bravo Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.12,
       "exteriors": [
@@ -46343,7 +46343,7 @@
       "baseMarketHashName": "AWP | Green Energy",
       "collectionId": "set_timed_drops_neutral",
       "collectionName": "The Boreal Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -46394,7 +46394,7 @@
       "baseMarketHashName": "AWP | Gungnir",
       "collectionId": "set_norse",
       "collectionName": "The Norse Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -46445,7 +46445,7 @@
       "baseMarketHashName": "AWP | Hyper Beast",
       "collectionId": "set_community_8",
       "collectionName": "The Falchion Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -46496,7 +46496,7 @@
       "baseMarketHashName": "AWP | Ice Coaled",
       "collectionId": "set_community_36",
       "collectionName": "The Genesis Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -46547,7 +46547,7 @@
       "baseMarketHashName": "AWP | Lightning Strike",
       "collectionId": "set_weapons_i",
       "collectionName": "The Arms Deal Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.08,
       "exteriors": [
@@ -46583,7 +46583,7 @@
       "baseMarketHashName": "AWP | LongDog",
       "collectionId": "set_train_2025",
       "collectionName": "The Train 2025 Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -46634,7 +46634,7 @@
       "baseMarketHashName": "AWP | Man-o'-war",
       "collectionId": "set_community_6",
       "collectionName": "The Chroma Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0.1,
       "maxFloat": 0.2,
       "exteriors": [
@@ -46670,7 +46670,7 @@
       "baseMarketHashName": "AWP | Medusa",
       "collectionId": "set_gods_and_monsters",
       "collectionName": "The Gods and Monsters Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -46721,7 +46721,7 @@
       "baseMarketHashName": "AWP | Mortis",
       "collectionId": "set_community_19",
       "collectionName": "The Clutch Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.64,
       "exteriors": [
@@ -46772,7 +46772,7 @@
       "baseMarketHashName": "AWP | Neo-Noir",
       "collectionId": "set_community_21",
       "collectionName": "The Danger Zone Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -46823,7 +46823,7 @@
       "baseMarketHashName": "AWP | Oni Taiji",
       "collectionId": "set_community_17",
       "collectionName": "The Operation Hydra Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -46874,7 +46874,7 @@
       "baseMarketHashName": "AWP | PAW",
       "collectionId": "set_community_20",
       "collectionName": "The Horizon Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -46925,7 +46925,7 @@
       "baseMarketHashName": "AWP | Phobos",
       "collectionId": "set_community_13",
       "collectionName": "The Gamma Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.4,
       "exteriors": [
@@ -46971,7 +46971,7 @@
       "baseMarketHashName": "AWP | Pink DDPAT",
       "collectionId": "set_overpass",
       "collectionName": "The Overpass Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -47022,7 +47022,7 @@
       "baseMarketHashName": "AWP | Pit Viper",
       "collectionId": "set_italy",
       "collectionName": "The Italy Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0.08,
       "maxFloat": 0.5,
       "exteriors": [
@@ -47068,7 +47068,7 @@
       "baseMarketHashName": "AWP | POP AWP",
       "collectionId": "set_train_2021",
       "collectionName": "The 2021 Train Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.44,
       "exteriors": [
@@ -47114,7 +47114,7 @@
       "baseMarketHashName": "AWP | Printstream",
       "collectionId": "set_community_35",
       "collectionName": "The Fever Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -47165,7 +47165,7 @@
       "baseMarketHashName": "AWP | Queen's Gambit",
       "collectionId": "set_community_37",
       "collectionName": "The Dead Hand Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -47216,7 +47216,7 @@
       "baseMarketHashName": "AWP | Redline",
       "collectionId": "set_community_1",
       "collectionName": "The Winter Offensive Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0.1,
       "maxFloat": 0.4,
       "exteriors": [
@@ -47257,7 +47257,7 @@
       "baseMarketHashName": "AWP | Safari Mesh",
       "collectionId": "set_lake",
       "collectionName": "The Lake Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -47308,7 +47308,7 @@
       "baseMarketHashName": "AWP | Silk Tiger",
       "collectionId": "set_op10_t",
       "collectionName": "The Havoc Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -47359,7 +47359,7 @@
       "baseMarketHashName": "AWP | Snake Camo",
       "collectionId": "set_dust",
       "collectionName": "The Dust Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -47410,7 +47410,7 @@
       "baseMarketHashName": "AWP | Sun in Leo",
       "collectionId": "set_gods_and_monsters",
       "collectionName": "The Gods and Monsters Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -47461,7 +47461,7 @@
       "baseMarketHashName": "AWP | The End",
       "collectionId": "set_timed_drops_achroma",
       "collectionName": "The Achroma Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -47512,7 +47512,7 @@
       "baseMarketHashName": "AWP | The Prince",
       "collectionId": "set_canals",
       "collectionName": "The Canals Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -47563,7 +47563,7 @@
       "baseMarketHashName": "AWP | Wildfire",
       "collectionId": "set_community_24",
       "collectionName": "The CS20 Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0.01,
       "maxFloat": 0.7,
       "exteriors": [
@@ -47614,7 +47614,7 @@
       "baseMarketHashName": "AWP | Worm God",
       "collectionId": "set_community_7",
       "collectionName": "The Chroma 2 Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.45,
       "exteriors": [
@@ -49421,7 +49421,7 @@
       "baseMarketHashName": "Desert Eagle | Blaze",
       "collectionId": "set_dust",
       "collectionName": "The Dust Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.08,
       "exteriors": [
@@ -49457,7 +49457,7 @@
       "baseMarketHashName": "Desert Eagle | Blue Ply",
       "collectionId": "set_community_25",
       "collectionName": "The Prisma 2 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -49508,7 +49508,7 @@
       "baseMarketHashName": "Desert Eagle | Bronze Deco",
       "collectionId": "set_community_7",
       "collectionName": "The Chroma 2 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.46,
       "exteriors": [
@@ -49559,7 +49559,7 @@
       "baseMarketHashName": "Desert Eagle | Calligraffiti",
       "collectionId": "set_community_34",
       "collectionName": "The Gallery Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -49610,7 +49610,7 @@
       "baseMarketHashName": "Desert Eagle | Cobalt Disruption",
       "collectionId": "set_esports_ii",
       "collectionName": "The eSports 2013 Winter Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.2,
       "exteriors": [
@@ -49651,7 +49651,7 @@
       "baseMarketHashName": "Desert Eagle | Code Red",
       "collectionId": "set_community_20",
       "collectionName": "The Horizon Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -49702,7 +49702,7 @@
       "baseMarketHashName": "Desert Eagle | Conspiracy",
       "collectionId": "set_community_4",
       "collectionName": "The Breakout Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.3,
       "exteriors": [
@@ -49743,7 +49743,7 @@
       "baseMarketHashName": "Desert Eagle | Corinthian",
       "collectionId": "set_community_10",
       "collectionName": "The Revolver Case Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.44,
       "exteriors": [
@@ -49789,7 +49789,7 @@
       "baseMarketHashName": "Desert Eagle | Crimson Web",
       "collectionId": "set_esports_iii",
       "collectionName": "The eSports 2014 Summer Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -49840,7 +49840,7 @@
       "baseMarketHashName": "Desert Eagle | Directive",
       "collectionId": "set_gamma_2",
       "collectionName": "The Gamma 2 Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0.06,
       "maxFloat": 1,
       "exteriors": [
@@ -49891,7 +49891,7 @@
       "baseMarketHashName": "Desert Eagle | Emerald Jörmungandr",
       "collectionId": "set_norse",
       "collectionName": "The Norse Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -49942,7 +49942,7 @@
       "baseMarketHashName": "Desert Eagle | Fennec Fox",
       "collectionId": "set_mirage_2021",
       "collectionName": "The 2021 Mirage Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -49993,7 +49993,7 @@
       "baseMarketHashName": "Desert Eagle | Firebreathing",
       "collectionId": "set_community_37",
       "collectionName": "The Dead Hand Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -50044,7 +50044,7 @@
       "baseMarketHashName": "Desert Eagle | Golden Koi",
       "collectionId": "set_bravo_i",
       "collectionName": "The Bravo Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.12,
       "exteriors": [
@@ -50080,7 +50080,7 @@
       "baseMarketHashName": "Desert Eagle | Hand Cannon",
       "collectionId": "set_cobblestone",
       "collectionName": "The Cobblestone Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0.01,
       "maxFloat": 0.7,
       "exteriors": [
@@ -50131,7 +50131,7 @@
       "baseMarketHashName": "Desert Eagle | Heat Treated",
       "collectionId": "set_xpshop_wpn_01",
       "collectionName": "Limited Edition Item",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -50182,7 +50182,7 @@
       "baseMarketHashName": "Desert Eagle | Heirloom",
       "collectionId": "set_weapons_iii",
       "collectionName": "The Arms Deal 3 Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -50233,7 +50233,7 @@
       "baseMarketHashName": "Desert Eagle | Hypnotic",
       "collectionId": "set_weapons_i",
       "collectionName": "The Arms Deal Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.08,
       "exteriors": [
@@ -50269,7 +50269,7 @@
       "baseMarketHashName": "Desert Eagle | Kumicho Dragon",
       "collectionId": "set_community_11",
       "collectionName": "The Wildfire Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.76,
       "exteriors": [
@@ -50320,7 +50320,7 @@
       "baseMarketHashName": "Desert Eagle | Light Rail",
       "collectionId": "set_community_22",
       "collectionName": "The Prisma Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.9,
       "exteriors": [
@@ -50371,7 +50371,7 @@
       "baseMarketHashName": "Desert Eagle | Mecha Industries",
       "collectionId": "set_community_21",
       "collectionName": "The Danger Zone Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -50422,7 +50422,7 @@
       "baseMarketHashName": "Desert Eagle | Meteorite",
       "collectionId": "set_bank",
       "collectionName": "The Bank Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.18,
       "exteriors": [
@@ -50463,7 +50463,7 @@
       "baseMarketHashName": "Desert Eagle | Midnight Storm",
       "collectionId": "set_kimono",
       "collectionName": "The Rising Sun Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -50514,7 +50514,7 @@
       "baseMarketHashName": "Desert Eagle | Mint Fan",
       "collectionId": "set_timed_drops_cool",
       "collectionName": "The Ascent Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -50565,7 +50565,7 @@
       "baseMarketHashName": "Desert Eagle | Mudder",
       "collectionId": "set_lake",
       "collectionName": "The Lake Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -50616,7 +50616,7 @@
       "baseMarketHashName": "Desert Eagle | Mulberry",
       "collectionId": "set_timed_drops_warm",
       "collectionName": "The Radiant Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -50667,7 +50667,7 @@
       "baseMarketHashName": "Desert Eagle | Naga",
       "collectionId": "set_community_6",
       "collectionName": "The Chroma Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -50718,7 +50718,7 @@
       "baseMarketHashName": "Desert Eagle | Night",
       "collectionId": "set_chopshop",
       "collectionName": "The Chop Shop Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -50769,7 +50769,7 @@
       "baseMarketHashName": "Desert Eagle | Night Heist",
       "collectionId": "set_op10_t",
       "collectionName": "The Havoc Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.65,
       "exteriors": [
@@ -50820,7 +50820,7 @@
       "baseMarketHashName": "Desert Eagle | Ocean Drive",
       "collectionId": "set_community_29",
       "collectionName": "The Operation Riptide Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -50871,7 +50871,7 @@
       "baseMarketHashName": "Desert Eagle | Oxide Blaze",
       "collectionId": "set_community_16",
       "collectionName": "The Spectrum Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -50922,7 +50922,7 @@
       "baseMarketHashName": "Desert Eagle | Pilot",
       "collectionId": "set_baggage",
       "collectionName": "The Baggage Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -50973,7 +50973,7 @@
       "baseMarketHashName": "Desert Eagle | Printstream",
       "collectionId": "set_community_26",
       "collectionName": "The Fracture Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -51024,7 +51024,7 @@
       "baseMarketHashName": "Desert Eagle | Serpent Strike",
       "collectionId": "set_community_35",
       "collectionName": "The Fever Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.57,
       "exteriors": [
@@ -51075,7 +51075,7 @@
       "baseMarketHashName": "Desert Eagle | Sputnik",
       "collectionId": "set_train_2021",
       "collectionName": "The 2021 Train Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -51126,7 +51126,7 @@
       "baseMarketHashName": "Desert Eagle | Starcade",
       "collectionId": "set_graphic_design",
       "collectionName": "The Graphic Design Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -51177,7 +51177,7 @@
       "baseMarketHashName": "Desert Eagle | Sunset Storm 壱",
       "collectionId": "set_kimono",
       "collectionName": "The Rising Sun Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -51228,7 +51228,7 @@
       "baseMarketHashName": "Desert Eagle | Sunset Storm 弐",
       "collectionId": "set_kimono",
       "collectionName": "The Rising Sun Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -51279,7 +51279,7 @@
       "baseMarketHashName": "Desert Eagle | The Bronze",
       "collectionId": "set_op10_ct",
       "collectionName": "The Control Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.3,
       "exteriors": [
@@ -51320,7 +51320,7 @@
       "baseMarketHashName": "Desert Eagle | The Daily Deagle",
       "collectionId": "set_timed_drops_achroma",
       "collectionName": "The Achroma Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.58,
       "exteriors": [
@@ -51371,7 +51371,7 @@
       "baseMarketHashName": "Desert Eagle | Tilted",
       "collectionId": "set_overpass_2024",
       "collectionName": "The Overpass 2024 Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -51422,7 +51422,7 @@
       "baseMarketHashName": "Desert Eagle | Trigger Discipline",
       "collectionId": "set_community_28",
       "collectionName": "The Snakebite Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.97,
       "exteriors": [
@@ -51473,7 +51473,7 @@
       "baseMarketHashName": "Desert Eagle | Urban DDPAT",
       "collectionId": "set_overpass",
       "collectionName": "The Overpass Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -51524,7 +51524,7 @@
       "baseMarketHashName": "Desert Eagle | Urban Rubble",
       "collectionId": "set_train",
       "collectionName": "The Train Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -61409,7 +61409,7 @@
       "baseMarketHashName": "Glock-18 | AXIA",
       "collectionId": "set_realism_camo",
       "collectionName": "The Sport & Field Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -61460,7 +61460,7 @@
       "baseMarketHashName": "Glock-18 | Block-18",
       "collectionId": "set_community_33",
       "collectionName": "The Kilowatt Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.671875,
       "exteriors": [
@@ -61511,7 +61511,7 @@
       "baseMarketHashName": "Glock-18 | Blue Fissure",
       "collectionId": "set_weapons_iii",
       "collectionName": "The Arms Deal 3 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0.06,
       "maxFloat": 0.58,
       "exteriors": [
@@ -61562,7 +61562,7 @@
       "baseMarketHashName": "Glock-18 | Brass",
       "collectionId": "set_dust",
       "collectionName": "The Dust Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -61613,7 +61613,7 @@
       "baseMarketHashName": "Glock-18 | Bullet Queen",
       "collectionId": "set_community_25",
       "collectionName": "The Prisma 2 Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -61664,7 +61664,7 @@
       "baseMarketHashName": "Glock-18 | Bunsen Burner",
       "collectionId": "set_community_8",
       "collectionName": "The Falchion Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -61715,7 +61715,7 @@
       "baseMarketHashName": "Glock-18 | Candy Apple",
       "collectionId": "set_italy",
       "collectionName": "The Italy Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.3,
       "exteriors": [
@@ -61756,7 +61756,7 @@
       "baseMarketHashName": "Glock-18 | Catacombs",
       "collectionId": "set_community_6",
       "collectionName": "The Chroma Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -61807,7 +61807,7 @@
       "baseMarketHashName": "Glock-18 | Clear Polymer",
       "collectionId": "set_community_28",
       "collectionName": "The Snakebite Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -61858,7 +61858,7 @@
       "baseMarketHashName": "Glock-18 | Coral Bloom",
       "collectionId": "set_timed_drops_warm",
       "collectionName": "The Radiant Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.752941,
       "exteriors": [
@@ -61909,7 +61909,7 @@
       "baseMarketHashName": "Glock-18 | Death Rattle",
       "collectionId": "set_bank",
       "collectionName": "The Bank Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0.08,
       "maxFloat": 0.5,
       "exteriors": [
@@ -61955,7 +61955,7 @@
       "baseMarketHashName": "Glock-18 | Dragon Tattoo",
       "collectionId": "set_weapons_i",
       "collectionName": "The Arms Deal Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.08,
       "exteriors": [
@@ -61991,7 +61991,7 @@
       "baseMarketHashName": "Glock-18 | Fade",
       "collectionId": "set_assault",
       "collectionName": "The Assault Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.08,
       "exteriors": [
@@ -62027,7 +62027,7 @@
       "baseMarketHashName": "Glock-18 | Franklin",
       "collectionId": "set_op10_t",
       "collectionName": "The Havoc Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.4,
       "exteriors": [
@@ -62073,7 +62073,7 @@
       "baseMarketHashName": "Glock-18 | Fully Tuned",
       "collectionId": "set_community_37",
       "collectionName": "The Dead Hand Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -62124,7 +62124,7 @@
       "baseMarketHashName": "Glock-18 | Gamma Doppler",
       "collectionId": "set_train_2021",
       "collectionName": "The 2021 Train Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -62175,7 +62175,7 @@
       "baseMarketHashName": "Glock-18 | Gamma Doppler",
       "collectionId": "set_train_2021",
       "collectionName": "The 2021 Train Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -62226,7 +62226,7 @@
       "baseMarketHashName": "Glock-18 | Gamma Doppler",
       "collectionId": "set_train_2021",
       "collectionName": "The 2021 Train Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -62277,7 +62277,7 @@
       "baseMarketHashName": "Glock-18 | Gamma Doppler",
       "collectionId": "set_train_2021",
       "collectionName": "The 2021 Train Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -62328,7 +62328,7 @@
       "baseMarketHashName": "Glock-18 | Gamma Doppler",
       "collectionId": "set_train_2021",
       "collectionName": "The 2021 Train Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -62379,7 +62379,7 @@
       "baseMarketHashName": "Glock-18 | Glockingbird",
       "collectionId": "set_timed_drops_neutral",
       "collectionName": "The Boreal Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.67,
       "exteriors": [
@@ -62430,7 +62430,7 @@
       "baseMarketHashName": "Glock-18 | Gold Toof",
       "collectionId": "set_community_34",
       "collectionName": "The Gallery Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.730496,
       "exteriors": [
@@ -62481,7 +62481,7 @@
       "baseMarketHashName": "Glock-18 | Green Line",
       "collectionId": "set_train_2025",
       "collectionName": "The Train 2025 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -62532,7 +62532,7 @@
       "baseMarketHashName": "Glock-18 | Grinder",
       "collectionId": "set_community_5",
       "collectionName": "The Vanguard Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0.02,
       "maxFloat": 0.25,
       "exteriors": [
@@ -62573,7 +62573,7 @@
       "baseMarketHashName": "Glock-18 | Groundwater",
       "collectionId": "set_mirage",
       "collectionName": "The Mirage Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -62624,7 +62624,7 @@
       "baseMarketHashName": "Glock-18 | High Beam",
       "collectionId": "set_inferno_2",
       "collectionName": "The 2018 Inferno Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.08,
       "exteriors": [
@@ -62660,7 +62660,7 @@
       "baseMarketHashName": "Glock-18 | Ironwork",
       "collectionId": "set_community_15",
       "collectionName": "The Glove Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -62711,7 +62711,7 @@
       "baseMarketHashName": "Glock-18 | Mirror Mosaic",
       "collectionId": "set_community_36",
       "collectionName": "The Genesis Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -62762,7 +62762,7 @@
       "baseMarketHashName": "Glock-18 | Moonrise",
       "collectionId": "set_community_19",
       "collectionName": "The Clutch Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.65,
       "exteriors": [
@@ -62813,7 +62813,7 @@
       "baseMarketHashName": "Glock-18 | Neo-Noir",
       "collectionId": "set_community_27",
       "collectionName": "The Operation Broken Fang Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -62864,7 +62864,7 @@
       "baseMarketHashName": "Glock-18 | Night",
       "collectionId": "set_overpass",
       "collectionName": "The Overpass Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -62915,7 +62915,7 @@
       "baseMarketHashName": "Glock-18 | Nuclear Garden",
       "collectionId": "set_nuke_2",
       "collectionName": "The 2018 Nuke Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -62966,7 +62966,7 @@
       "baseMarketHashName": "Glock-18 | Ocean Topo",
       "collectionId": "set_timed_drops_cool",
       "collectionName": "The Ascent Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -63017,7 +63017,7 @@
       "baseMarketHashName": "Glock-18 | Off World",
       "collectionId": "set_community_18",
       "collectionName": "The Spectrum 2 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -63068,7 +63068,7 @@
       "baseMarketHashName": "Glock-18 | Oxide Blaze",
       "collectionId": "set_community_21",
       "collectionName": "The Danger Zone Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.85,
       "exteriors": [
@@ -63119,7 +63119,7 @@
       "baseMarketHashName": "Glock-18 | Pink DDPAT",
       "collectionId": "set_mirage_2021",
       "collectionName": "The 2021 Mirage Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -63170,7 +63170,7 @@
       "baseMarketHashName": "Glock-18 | Ramese's Reach",
       "collectionId": "set_anubis",
       "collectionName": "The Anubis Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -63221,7 +63221,7 @@
       "baseMarketHashName": "Glock-18 | Reactor",
       "collectionId": "set_cache",
       "collectionName": "The Cache Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -63272,7 +63272,7 @@
       "baseMarketHashName": "Glock-18 | Red Tire",
       "collectionId": "set_vertigo_2021",
       "collectionName": "The 2021 Vertigo Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.55,
       "exteriors": [
@@ -63323,7 +63323,7 @@
       "baseMarketHashName": "Glock-18 | Royal Legion",
       "collectionId": "set_community_11",
       "collectionName": "The Wildfire Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -63374,7 +63374,7 @@
       "baseMarketHashName": "Glock-18 | Sacrifice",
       "collectionId": "set_community_24",
       "collectionName": "The CS20 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -63425,7 +63425,7 @@
       "baseMarketHashName": "Glock-18 | Sand Dune",
       "collectionId": "set_bravo_ii",
       "collectionName": "The Alpha Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -63476,7 +63476,7 @@
       "baseMarketHashName": "Glock-18 | Shinobu",
       "collectionId": "set_community_35",
       "collectionName": "The Fever Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -63527,7 +63527,7 @@
       "baseMarketHashName": "Glock-18 | Snack Attack",
       "collectionId": "set_community_29",
       "collectionName": "The Operation Riptide Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -63578,7 +63578,7 @@
       "baseMarketHashName": "Glock-18 | Steel Disruption",
       "collectionId": "set_esports_iii",
       "collectionName": "The eSports 2014 Summer Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.2,
       "exteriors": [
@@ -63619,7 +63619,7 @@
       "baseMarketHashName": "Glock-18 | Synth Leaf",
       "collectionId": "set_stmarc",
       "collectionName": "The St. Marc Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -63670,7 +63670,7 @@
       "baseMarketHashName": "Glock-18 | Teal Graf",
       "collectionId": "set_overpass_2024",
       "collectionName": "The Overpass 2024 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -63721,7 +63721,7 @@
       "baseMarketHashName": "Glock-18 | Trace Lock",
       "collectionId": "set_timed_drops_achroma",
       "collectionName": "The Achroma Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -63772,7 +63772,7 @@
       "baseMarketHashName": "Glock-18 | Twilight Galaxy",
       "collectionId": "set_chopshop",
       "collectionName": "The Chop Shop Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.2,
       "exteriors": [
@@ -63813,7 +63813,7 @@
       "baseMarketHashName": "Glock-18 | Umbral Rabbit",
       "collectionId": "set_community_32",
       "collectionName": "The Revolution Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -63864,7 +63864,7 @@
       "baseMarketHashName": "Glock-18 | Vogue",
       "collectionId": "set_community_26",
       "collectionName": "The Fracture Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -63915,7 +63915,7 @@
       "baseMarketHashName": "Glock-18 | Warhawk",
       "collectionId": "set_community_20",
       "collectionName": "The Horizon Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -63966,7 +63966,7 @@
       "baseMarketHashName": "Glock-18 | Wasteland Rebel",
       "collectionId": "set_community_13",
       "collectionName": "The Gamma Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.54,
       "exteriors": [
@@ -64017,7 +64017,7 @@
       "baseMarketHashName": "Glock-18 | Water Elemental",
       "collectionId": "set_community_4",
       "collectionName": "The Breakout Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -64068,7 +64068,7 @@
       "baseMarketHashName": "Glock-18 | Weasel",
       "collectionId": "set_gamma_2",
       "collectionName": "The Gamma 2 Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -64119,7 +64119,7 @@
       "baseMarketHashName": "Glock-18 | Winterized",
       "collectionId": "set_community_31",
       "collectionName": "The Recoil Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -64170,7 +64170,7 @@
       "baseMarketHashName": "Glock-18 | Wraiths",
       "collectionId": "set_community_9",
       "collectionName": "The Shadow Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -65542,7 +65542,7 @@
       "baseMarketHashName": "M4A1-S | Atomic Alloy",
       "collectionId": "set_community_3",
       "collectionName": "The Huntsman Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.9,
       "exteriors": [
@@ -65593,7 +65593,7 @@
       "baseMarketHashName": "M4A1-S | Basilisk",
       "collectionId": "set_community_5",
       "collectionName": "The Vanguard Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.68,
       "exteriors": [
@@ -65644,7 +65644,7 @@
       "baseMarketHashName": "M4A1-S | Black Lotus",
       "collectionId": "set_community_33",
       "collectionName": "The Kilowatt Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -65695,7 +65695,7 @@
       "baseMarketHashName": "M4A1-S | Blood Tiger",
       "collectionId": "set_weapons_ii",
       "collectionName": "The Arms Deal 2 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.3,
       "exteriors": [
@@ -65736,7 +65736,7 @@
       "baseMarketHashName": "M4A1-S | Blue Phosphor",
       "collectionId": "set_op10_ct",
       "collectionName": "The Control Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.08,
       "exteriors": [
@@ -65772,7 +65772,7 @@
       "baseMarketHashName": "M4A1-S | Boreal Forest",
       "collectionId": "set_italy",
       "collectionName": "The Italy Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -65823,7 +65823,7 @@
       "baseMarketHashName": "M4A1-S | Briefing",
       "collectionId": "set_community_17",
       "collectionName": "The Operation Hydra Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -65874,7 +65874,7 @@
       "baseMarketHashName": "M4A1-S | Bright Water",
       "collectionId": "set_bravo_i",
       "collectionName": "The Bravo Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0.1,
       "maxFloat": 0.22,
       "exteriors": [
@@ -65910,7 +65910,7 @@
       "baseMarketHashName": "M4A1-S | Chantico's Fire",
       "collectionId": "set_community_12",
       "collectionName": "The Chroma 3 Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.99,
       "exteriors": [
@@ -65961,7 +65961,7 @@
       "baseMarketHashName": "M4A1-S | Control Panel",
       "collectionId": "set_nuke_2",
       "collectionName": "The 2018 Nuke Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -66012,7 +66012,7 @@
       "baseMarketHashName": "M4A1-S | Cyrex",
       "collectionId": "set_community_4",
       "collectionName": "The Breakout Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -66063,7 +66063,7 @@
       "baseMarketHashName": "M4A1-S | Dark Water",
       "collectionId": "set_weapons_i",
       "collectionName": "The Arms Deal Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0.1,
       "maxFloat": 0.26,
       "exteriors": [
@@ -66099,7 +66099,7 @@
       "baseMarketHashName": "M4A1-S | Decimator",
       "collectionId": "set_community_16",
       "collectionName": "The Spectrum Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.85,
       "exteriors": [
@@ -66150,7 +66150,7 @@
       "baseMarketHashName": "M4A1-S | Electrum",
       "collectionId": "set_community_37",
       "collectionName": "The Dead Hand Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -66201,7 +66201,7 @@
       "baseMarketHashName": "M4A1-S | Emphorosaur-S",
       "collectionId": "set_community_32",
       "collectionName": "The Revolution Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -66252,7 +66252,7 @@
       "baseMarketHashName": "M4A1-S | Fade",
       "collectionId": "set_realism_camo",
       "collectionName": "The Sport & Field Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.08,
       "exteriors": [
@@ -66288,7 +66288,7 @@
       "baseMarketHashName": "M4A1-S | Fizzy POP",
       "collectionId": "set_train_2021",
       "collectionName": "The 2021 Train Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.57,
       "exteriors": [
@@ -66339,7 +66339,7 @@
       "baseMarketHashName": "M4A1-S | Flashback",
       "collectionId": "set_community_15",
       "collectionName": "The Glove Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -66390,7 +66390,7 @@
       "baseMarketHashName": "M4A1-S | Glitched Paint",
       "collectionId": "set_timed_drops_warm",
       "collectionName": "The Radiant Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.67,
       "exteriors": [
@@ -66441,7 +66441,7 @@
       "baseMarketHashName": "M4A1-S | Golden Coil",
       "collectionId": "set_community_9",
       "collectionName": "The Shadow Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -66492,7 +66492,7 @@
       "baseMarketHashName": "M4A1-S | Guardian",
       "collectionId": "set_community_1",
       "collectionName": "The Winter Offensive Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -66543,7 +66543,7 @@
       "baseMarketHashName": "M4A1-S | Hot Rod",
       "collectionId": "set_chopshop",
       "collectionName": "The Chop Shop Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.08,
       "exteriors": [
@@ -66579,7 +66579,7 @@
       "baseMarketHashName": "M4A1-S | Hyper Beast",
       "collectionId": "set_community_7",
       "collectionName": "The Chroma 2 Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -66630,7 +66630,7 @@
       "baseMarketHashName": "M4A1-S | Icarus Fell",
       "collectionId": "set_gods_and_monsters",
       "collectionName": "The Gods and Monsters Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.1,
       "exteriors": [
@@ -66666,7 +66666,7 @@
       "baseMarketHashName": "M4A1-S | Imminent Danger",
       "collectionId": "set_vertigo_2021",
       "collectionName": "The 2021 Vertigo Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -66717,7 +66717,7 @@
       "baseMarketHashName": "M4A1-S | Knight",
       "collectionId": "set_cobblestone",
       "collectionName": "The Cobblestone Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.1,
       "exteriors": [
@@ -66753,7 +66753,7 @@
       "baseMarketHashName": "M4A1-S | Leaded Glass",
       "collectionId": "set_community_18",
       "collectionName": "The Spectrum 2 Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -66804,7 +66804,7 @@
       "baseMarketHashName": "M4A1-S | Liquidation",
       "collectionId": "set_community_36",
       "collectionName": "The Genesis Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -66855,7 +66855,7 @@
       "baseMarketHashName": "M4A1-S | Master Piece",
       "collectionId": "set_overpass",
       "collectionName": "The Overpass Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -66906,7 +66906,7 @@
       "baseMarketHashName": "M4A1-S | Mecha Industries",
       "collectionId": "set_community_13",
       "collectionName": "The Gamma Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -66957,7 +66957,7 @@
       "baseMarketHashName": "M4A1-S | Moss Quartz",
       "collectionId": "set_norse",
       "collectionName": "The Norse Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -67008,7 +67008,7 @@
       "baseMarketHashName": "M4A1-S | Mud-Spec",
       "collectionId": "set_anubis",
       "collectionName": "The Anubis Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.73,
       "exteriors": [
@@ -67059,7 +67059,7 @@
       "baseMarketHashName": "M4A1-S | Night Terror",
       "collectionId": "set_community_30",
       "collectionName": "The Dreams & Nightmares Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -67110,7 +67110,7 @@
       "baseMarketHashName": "M4A1-S | Nightmare",
       "collectionId": "set_community_20",
       "collectionName": "The Horizon Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -67161,7 +67161,7 @@
       "baseMarketHashName": "M4A1-S | Nitro",
       "collectionId": "set_safehouse",
       "collectionName": "The Safehouse Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -67212,7 +67212,7 @@
       "baseMarketHashName": "M4A1-S | Party Animal",
       "collectionId": "set_timed_drops_exuberant",
       "collectionName": "The Harlequin Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -67263,7 +67263,7 @@
       "baseMarketHashName": "M4A1-S | Player Two",
       "collectionId": "set_community_25",
       "collectionName": "The Prisma 2 Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.84,
       "exteriors": [
@@ -67314,7 +67314,7 @@
       "baseMarketHashName": "M4A1-S | Printstream",
       "collectionId": "set_community_27",
       "collectionName": "The Operation Broken Fang Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -67365,7 +67365,7 @@
       "baseMarketHashName": "M4A1-S | Rose Hex",
       "collectionId": "set_timed_drops_warm",
       "collectionName": "The Radiant Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -67416,7 +67416,7 @@
       "baseMarketHashName": "M4A1-S | Solitude",
       "collectionId": "set_xpshop_wpn_01",
       "collectionName": "Limited Edition Item",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -67467,7 +67467,7 @@
       "baseMarketHashName": "M4A1-S | Stratosphere",
       "collectionId": "set_timed_drops_cool",
       "collectionName": "The Ascent Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -67518,7 +67518,7 @@
       "baseMarketHashName": "M4A1-S | Vaporwave",
       "collectionId": "set_community_34",
       "collectionName": "The Gallery Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.597321,
       "exteriors": [
@@ -67569,7 +67569,7 @@
       "baseMarketHashName": "M4A1-S | VariCamo",
       "collectionId": "set_dust_2",
       "collectionName": "The Dust 2 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -67620,7 +67620,7 @@
       "baseMarketHashName": "M4A1-S | Wash me plz",
       "collectionId": "set_overpass_2024",
       "collectionName": "The Overpass 2024 Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.58,
       "exteriors": [
@@ -67671,7 +67671,7 @@
       "baseMarketHashName": "M4A1-S | Welcome to the Jungle",
       "collectionId": "set_op10_ancient",
       "collectionName": "The Ancient Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -67722,7 +67722,7 @@
       "baseMarketHashName": "M4A4 | Aeolian Dark",
       "collectionId": "set_timed_drops_achroma",
       "collectionName": "The Achroma Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.65,
       "exteriors": [
@@ -67773,7 +67773,7 @@
       "baseMarketHashName": "M4A4 | Asiimov",
       "collectionId": "set_community_1",
       "collectionName": "The Winter Offensive Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0.18,
       "maxFloat": 1,
       "exteriors": [
@@ -67865,7 +67865,7 @@
       "baseMarketHashName": "M4A4 | Buzz Kill",
       "collectionId": "set_community_15",
       "collectionName": "The Glove Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -67916,7 +67916,7 @@
       "baseMarketHashName": "M4A4 | Choppa",
       "collectionId": "set_community_35",
       "collectionName": "The Fever Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -67967,7 +67967,7 @@
       "baseMarketHashName": "M4A4 | Converter",
       "collectionId": "set_inferno_2",
       "collectionName": "The 2018 Inferno Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.4,
       "exteriors": [
@@ -68013,7 +68013,7 @@
       "baseMarketHashName": "M4A4 | Cyber Security",
       "collectionId": "set_community_27",
       "collectionName": "The Operation Broken Fang Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.98,
       "exteriors": [
@@ -68064,7 +68064,7 @@
       "baseMarketHashName": "M4A4 | Dark Blossom",
       "collectionId": "set_stmarc",
       "collectionName": "The St. Marc Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -68115,7 +68115,7 @@
       "baseMarketHashName": "M4A4 | Daybreak",
       "collectionId": "set_kimono",
       "collectionName": "The Rising Sun Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -68166,7 +68166,7 @@
       "baseMarketHashName": "M4A4 | Desert Storm",
       "collectionId": "set_dust",
       "collectionName": "The Dust Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -68217,7 +68217,7 @@
       "baseMarketHashName": "M4A4 | Desert-Strike",
       "collectionId": "set_community_3",
       "collectionName": "The Huntsman Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -68268,7 +68268,7 @@
       "baseMarketHashName": "M4A4 | Desolate Space",
       "collectionId": "set_community_13",
       "collectionName": "The Gamma Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -68319,7 +68319,7 @@
       "baseMarketHashName": "M4A4 | Etch Lord",
       "collectionId": "set_community_33",
       "collectionName": "The Kilowatt Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -68370,7 +68370,7 @@
       "baseMarketHashName": "M4A4 | Evil Daimyo",
       "collectionId": "set_community_8",
       "collectionName": "The Falchion Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.52,
       "exteriors": [
@@ -68421,7 +68421,7 @@
       "baseMarketHashName": "M4A4 | Eye of Horus",
       "collectionId": "set_anubis",
       "collectionName": "The Anubis Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -68472,7 +68472,7 @@
       "baseMarketHashName": "M4A4 | Faded Zebra",
       "collectionId": "set_esports",
       "collectionName": "The eSports 2013 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -68523,7 +68523,7 @@
       "baseMarketHashName": "M4A4 | Full Throttle",
       "collectionId": "set_community_36",
       "collectionName": "The Genesis Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -68574,7 +68574,7 @@
       "baseMarketHashName": "M4A4 | Global Offensive",
       "collectionId": "set_op10_ct",
       "collectionName": "The Control Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -68625,7 +68625,7 @@
       "baseMarketHashName": "M4A4 | Griffin",
       "collectionId": "set_community_5",
       "collectionName": "The Vanguard Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -68676,7 +68676,7 @@
       "baseMarketHashName": "M4A4 | Hellfire",
       "collectionId": "set_community_17",
       "collectionName": "The Operation Hydra Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -68727,7 +68727,7 @@
       "baseMarketHashName": "M4A4 | Hellish",
       "collectionId": "set_train_2025",
       "collectionName": "The Train 2025 Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -68778,7 +68778,7 @@
       "baseMarketHashName": "M4A4 | In Living Color",
       "collectionId": "set_community_28",
       "collectionName": "The Snakebite Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.79,
       "exteriors": [
@@ -68829,7 +68829,7 @@
       "baseMarketHashName": "M4A4 | Jungle Tiger",
       "collectionId": "set_aztec",
       "collectionName": "The Aztec Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -68880,7 +68880,7 @@
       "baseMarketHashName": "M4A4 | Magnesium",
       "collectionId": "set_community_21",
       "collectionName": "The Danger Zone Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -68931,7 +68931,7 @@
       "baseMarketHashName": "M4A4 | Mainframe",
       "collectionId": "set_nuke_2",
       "collectionName": "The 2018 Nuke Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -68982,7 +68982,7 @@
       "baseMarketHashName": "M4A4 | Modern Hunter",
       "collectionId": "set_militia",
       "collectionName": "The Militia Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -69033,7 +69033,7 @@
       "baseMarketHashName": "M4A4 | Naval Shred Camo",
       "collectionId": "set_timed_drops_cool",
       "collectionName": "The Ascent Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -69084,7 +69084,7 @@
       "baseMarketHashName": "M4A4 | Neo-Noir",
       "collectionId": "set_community_19",
       "collectionName": "The Clutch Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.9,
       "exteriors": [
@@ -69135,7 +69135,7 @@
       "baseMarketHashName": "M4A4 | Poly Mag",
       "collectionId": "set_community_31",
       "collectionName": "The Recoil Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -69186,7 +69186,7 @@
       "baseMarketHashName": "M4A4 | Polysoup",
       "collectionId": "set_graphic_design",
       "collectionName": "The Graphic Design Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.64,
       "exteriors": [
@@ -69237,7 +69237,7 @@
       "baseMarketHashName": "M4A4 | Poseidon",
       "collectionId": "set_gods_and_monsters",
       "collectionName": "The Gods and Monsters Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.33,
       "exteriors": [
@@ -69278,7 +69278,7 @@
       "baseMarketHashName": "M4A4 | Radiation Hazard",
       "collectionId": "set_nuke",
       "collectionName": "The Nuke Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -69329,7 +69329,7 @@
       "baseMarketHashName": "M4A4 | Red DDPAT",
       "collectionId": "set_dust_2_2021",
       "collectionName": "The 2021 Dust 2 Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -69380,7 +69380,7 @@
       "baseMarketHashName": "M4A4 | Royal Paladin",
       "collectionId": "set_community_10",
       "collectionName": "The Revolver Case Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -69431,7 +69431,7 @@
       "baseMarketHashName": "M4A4 | Sheet Lightning",
       "collectionId": "set_timed_drops_neutral",
       "collectionName": "The Boreal Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -69482,7 +69482,7 @@
       "baseMarketHashName": "M4A4 | Spider Lily",
       "collectionId": "set_community_29",
       "collectionName": "The Operation Riptide Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -69533,7 +69533,7 @@
       "baseMarketHashName": "M4A4 | Steel Work",
       "collectionId": "set_timed_drops_warm",
       "collectionName": "The Radiant Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -69584,7 +69584,7 @@
       "baseMarketHashName": "M4A4 | Temukau",
       "collectionId": "set_community_32",
       "collectionName": "The Revolution Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -69635,7 +69635,7 @@
       "baseMarketHashName": "M4A4 | The Battlestar",
       "collectionId": "set_community_11",
       "collectionName": "The Wildfire Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.64,
       "exteriors": [
@@ -69686,7 +69686,7 @@
       "baseMarketHashName": "M4A4 | The Coalition",
       "collectionId": "set_train_2021",
       "collectionName": "The 2021 Train Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -69737,7 +69737,7 @@
       "baseMarketHashName": "M4A4 | The Emperor",
       "collectionId": "set_community_22",
       "collectionName": "The Prisma Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -69788,7 +69788,7 @@
       "baseMarketHashName": "M4A4 | Tooth Fairy",
       "collectionId": "set_community_26",
       "collectionName": "The Fracture Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.73,
       "exteriors": [
@@ -69839,7 +69839,7 @@
       "baseMarketHashName": "M4A4 | Tornado",
       "collectionId": "set_inferno",
       "collectionName": "The Inferno Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -69890,7 +69890,7 @@
       "baseMarketHashName": "M4A4 | Turbine",
       "collectionId": "set_community_34",
       "collectionName": "The Gallery Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.85,
       "exteriors": [
@@ -69941,7 +69941,7 @@
       "baseMarketHashName": "M4A4 | Urban DDPAT",
       "collectionId": "set_train",
       "collectionName": "The Train Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -70033,7 +70033,7 @@
       "baseMarketHashName": "M4A4 | Zirka",
       "collectionId": "set_bravo_i",
       "collectionName": "The Bravo Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.42,
       "exteriors": [
@@ -70079,7 +70079,7 @@
       "baseMarketHashName": "M4A4 | Zubastick",
       "collectionId": "set_community_37",
       "collectionName": "The Dead Hand Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -70130,7 +70130,7 @@
       "baseMarketHashName": "M4A4 | 龍王 (Dragon King)",
       "collectionId": "set_community_6",
       "collectionName": "The Chroma Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -83436,7 +83436,7 @@
       "baseMarketHashName": "P2000 | Acid Etched",
       "collectionId": "set_community_25",
       "collectionName": "The Prisma 2 Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -83487,7 +83487,7 @@
       "baseMarketHashName": "P2000 | Amber Fade",
       "collectionId": "set_dust_2",
       "collectionName": "The Dust 2 Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.4,
       "exteriors": [
@@ -83533,7 +83533,7 @@
       "baseMarketHashName": "P2000 | Chainmail",
       "collectionId": "set_cobblestone",
       "collectionName": "The Cobblestone Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.22,
       "exteriors": [
@@ -83574,7 +83574,7 @@
       "baseMarketHashName": "P2000 | Coach Class",
       "collectionId": "set_baggage",
       "collectionName": "The Baggage Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -83625,7 +83625,7 @@
       "baseMarketHashName": "P2000 | Coral Halftone",
       "collectionId": "set_graphic_design",
       "collectionName": "The Graphic Design Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.52,
       "exteriors": [
@@ -83676,7 +83676,7 @@
       "baseMarketHashName": "P2000 | Corticera",
       "collectionId": "set_esports_iii",
       "collectionName": "The eSports 2014 Summer Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.3,
       "exteriors": [
@@ -83717,7 +83717,7 @@
       "baseMarketHashName": "P2000 | Dispatch",
       "collectionId": "set_op10_ct",
       "collectionName": "The Control Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.65,
       "exteriors": [
@@ -83768,7 +83768,7 @@
       "baseMarketHashName": "P2000 | Fire Elemental",
       "collectionId": "set_community_5",
       "collectionName": "The Vanguard Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -83819,7 +83819,7 @@
       "baseMarketHashName": "P2000 | Gnarled",
       "collectionId": "set_community_26",
       "collectionName": "The Fracture Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -83870,7 +83870,7 @@
       "baseMarketHashName": "P2000 | Granite Marbleized",
       "collectionId": "set_italy",
       "collectionName": "The Italy Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -83921,7 +83921,7 @@
       "baseMarketHashName": "P2000 | Grassland",
       "collectionId": "set_overpass",
       "collectionName": "The Overpass Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -83972,7 +83972,7 @@
       "baseMarketHashName": "P2000 | Grassland Leaves",
       "collectionId": "set_militia",
       "collectionName": "The Militia Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -84023,7 +84023,7 @@
       "baseMarketHashName": "P2000 | Grip Tape",
       "collectionId": "set_timed_drops_achroma",
       "collectionName": "The Achroma Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.75,
       "exteriors": [
@@ -84074,7 +84074,7 @@
       "baseMarketHashName": "P2000 | Handgun",
       "collectionId": "set_community_8",
       "collectionName": "The Falchion Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -84125,7 +84125,7 @@
       "baseMarketHashName": "P2000 | Imperial",
       "collectionId": "set_community_10",
       "collectionName": "The Revolver Case Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.2,
       "exteriors": [
@@ -84166,7 +84166,7 @@
       "baseMarketHashName": "P2000 | Imperial Dragon",
       "collectionId": "set_community_13",
       "collectionName": "The Gamma Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.63,
       "exteriors": [
@@ -84217,7 +84217,7 @@
       "baseMarketHashName": "P2000 | Ivory",
       "collectionId": "set_community_4",
       "collectionName": "The Breakout Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -84268,7 +84268,7 @@
       "baseMarketHashName": "P2000 | Lifted Spirits",
       "collectionId": "set_community_30",
       "collectionName": "The Dreams & Nightmares Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -84319,7 +84319,7 @@
       "baseMarketHashName": "P2000 | Marsh",
       "collectionId": "set_timed_drops_neutral",
       "collectionName": "The Boreal Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -84370,7 +84370,7 @@
       "baseMarketHashName": "P2000 | Obsidian",
       "collectionId": "set_community_23",
       "collectionName": "The Shattered Web Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -84421,7 +84421,7 @@
       "baseMarketHashName": "P2000 | Ocean Foam",
       "collectionId": "set_bravo_i",
       "collectionName": "The Bravo Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.12,
       "exteriors": [
@@ -84457,7 +84457,7 @@
       "baseMarketHashName": "P2000 | Oceanic",
       "collectionId": "set_community_12",
       "collectionName": "The Chroma 3 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -84508,7 +84508,7 @@
       "baseMarketHashName": "P2000 | Panther Camo",
       "collectionId": "set_op10_ancient",
       "collectionName": "The Ancient Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -84559,7 +84559,7 @@
       "baseMarketHashName": "P2000 | Pathfinder",
       "collectionId": "set_gods_and_monsters",
       "collectionName": "The Gods and Monsters Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.35,
       "exteriors": [
@@ -84600,7 +84600,7 @@
       "baseMarketHashName": "P2000 | Pulse",
       "collectionId": "set_community_3",
       "collectionName": "The Huntsman Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -84651,7 +84651,7 @@
       "baseMarketHashName": "P2000 | Red FragCam",
       "collectionId": "set_weapons_iii",
       "collectionName": "The Arms Deal 3 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -84702,7 +84702,7 @@
       "baseMarketHashName": "P2000 | Red Wing",
       "collectionId": "set_community_36",
       "collectionName": "The Genesis Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -84753,7 +84753,7 @@
       "baseMarketHashName": "P2000 | Royal Baroque",
       "collectionId": "set_timed_drops_cool",
       "collectionName": "The Ascent Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -84804,7 +84804,7 @@
       "baseMarketHashName": "P2000 | Scorpion",
       "collectionId": "set_dust",
       "collectionName": "The Dust Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.08,
       "exteriors": [
@@ -84840,7 +84840,7 @@
       "baseMarketHashName": "P2000 | Silver",
       "collectionId": "set_office",
       "collectionName": "The Office Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.08,
       "exteriors": [
@@ -84876,7 +84876,7 @@
       "baseMarketHashName": "P2000 | Space Race",
       "collectionId": "set_train_2021",
       "collectionName": "The 2021 Train Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -84927,7 +84927,7 @@
       "baseMarketHashName": "P2000 | Sure Grip",
       "collectionId": "set_community_35",
       "collectionName": "The Fever Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.9,
       "exteriors": [
@@ -84978,7 +84978,7 @@
       "baseMarketHashName": "P2000 | Turf",
       "collectionId": "set_community_15",
       "collectionName": "The Glove Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -85029,7 +85029,7 @@
       "baseMarketHashName": "P2000 | Urban Hazard",
       "collectionId": "set_community_19",
       "collectionName": "The Clutch Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -85080,7 +85080,7 @@
       "baseMarketHashName": "P2000 | Wicked Sick",
       "collectionId": "set_community_32",
       "collectionName": "The Revolution Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -85131,7 +85131,7 @@
       "baseMarketHashName": "P2000 | Woodsman",
       "collectionId": "set_community_17",
       "collectionName": "The Operation Hydra Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -105533,7 +105533,7 @@
       "baseMarketHashName": "USP-S | 27",
       "collectionId": "set_community_34",
       "collectionName": "The Gallery Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -105584,7 +105584,7 @@
       "baseMarketHashName": "USP-S | Alpine Camo",
       "collectionId": "set_realism_camo",
       "collectionName": "The Sport & Field Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.68,
       "exteriors": [
@@ -105635,7 +105635,7 @@
       "baseMarketHashName": "USP-S | Ancient Visions",
       "collectionId": "set_op10_ancient",
       "collectionName": "The Ancient Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.45,
       "exteriors": [
@@ -105681,7 +105681,7 @@
       "baseMarketHashName": "USP-S | Black Lotus",
       "collectionId": "set_community_29",
       "collectionName": "The Operation Riptide Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.9,
       "exteriors": [
@@ -105732,7 +105732,7 @@
       "baseMarketHashName": "USP-S | Bleeding Edge",
       "collectionId": "set_timed_drops_warm",
       "collectionName": "The Radiant Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -105783,7 +105783,7 @@
       "baseMarketHashName": "USP-S | Blood Tiger",
       "collectionId": "set_esports_iii",
       "collectionName": "The eSports 2014 Summer Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.3,
       "exteriors": [
@@ -105824,7 +105824,7 @@
       "baseMarketHashName": "USP-S | Blueprint",
       "collectionId": "set_community_17",
       "collectionName": "The Operation Hydra Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.86,
       "exteriors": [
@@ -105875,7 +105875,7 @@
       "baseMarketHashName": "USP-S | Business Class",
       "collectionId": "set_baggage",
       "collectionName": "The Baggage Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -105926,7 +105926,7 @@
       "baseMarketHashName": "USP-S | Caiman",
       "collectionId": "set_community_3",
       "collectionName": "The Huntsman Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.4,
       "exteriors": [
@@ -105972,7 +105972,7 @@
       "baseMarketHashName": "USP-S | Check Engine",
       "collectionId": "set_inferno_2",
       "collectionName": "The 2018 Inferno Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -106023,7 +106023,7 @@
       "baseMarketHashName": "USP-S | Cortex",
       "collectionId": "set_community_19",
       "collectionName": "The Clutch Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -106074,7 +106074,7 @@
       "baseMarketHashName": "USP-S | Cyrex",
       "collectionId": "set_community_15",
       "collectionName": "The Glove Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.55,
       "exteriors": [
@@ -106125,7 +106125,7 @@
       "baseMarketHashName": "USP-S | Dark Water",
       "collectionId": "set_weapons_i",
       "collectionName": "The Arms Deal Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0.1,
       "maxFloat": 0.26,
       "exteriors": [
@@ -106161,7 +106161,7 @@
       "baseMarketHashName": "USP-S | Desert Tactical",
       "collectionId": "set_anubis",
       "collectionName": "The Anubis Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -106212,7 +106212,7 @@
       "baseMarketHashName": "USP-S | Flashback",
       "collectionId": "set_community_21",
       "collectionName": "The Danger Zone Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -106263,7 +106263,7 @@
       "baseMarketHashName": "USP-S | Forest Leaves",
       "collectionId": "set_safehouse",
       "collectionName": "The Safehouse Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -106314,7 +106314,7 @@
       "baseMarketHashName": "USP-S | Guardian",
       "collectionId": "set_community_2",
       "collectionName": "The Phoenix Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.38,
       "exteriors": [
@@ -106355,7 +106355,7 @@
       "baseMarketHashName": "USP-S | Jawbreaker",
       "collectionId": "set_community_33",
       "collectionName": "The Kilowatt Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -106406,7 +106406,7 @@
       "baseMarketHashName": "USP-S | Kill Confirmed",
       "collectionId": "set_community_9",
       "collectionName": "The Shadow Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -106457,7 +106457,7 @@
       "baseMarketHashName": "USP-S | Lead Conduit",
       "collectionId": "set_community_11",
       "collectionName": "The Wildfire Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -106508,7 +106508,7 @@
       "baseMarketHashName": "USP-S | Monster Mashup",
       "collectionId": "set_community_27",
       "collectionName": "The Operation Broken Fang Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -106559,7 +106559,7 @@
       "baseMarketHashName": "USP-S | Neo-Noir",
       "collectionId": "set_community_16",
       "collectionName": "The Spectrum Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -106610,7 +106610,7 @@
       "baseMarketHashName": "USP-S | Night Ops",
       "collectionId": "set_lake",
       "collectionName": "The Lake Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -106661,7 +106661,7 @@
       "baseMarketHashName": "USP-S | Orange Anolis",
       "collectionId": "set_dust_2_2021",
       "collectionName": "The 2021 Dust 2 Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.37,
       "exteriors": [
@@ -106753,7 +106753,7 @@
       "baseMarketHashName": "USP-S | Overgrowth",
       "collectionId": "set_bravo_i",
       "collectionName": "The Bravo Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -106804,7 +106804,7 @@
       "baseMarketHashName": "USP-S | Para Green",
       "collectionId": "set_chopshop",
       "collectionName": "The Chop Shop Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -106855,7 +106855,7 @@
       "baseMarketHashName": "USP-S | Pathfinder",
       "collectionId": "set_norse",
       "collectionName": "The Norse Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0,
       "maxFloat": 0.35,
       "exteriors": [
@@ -106896,7 +106896,7 @@
       "baseMarketHashName": "USP-S | PC-GRN",
       "collectionId": "set_community_35",
       "collectionName": "The Fever Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.9,
       "exteriors": [
@@ -106947,7 +106947,7 @@
       "baseMarketHashName": "USP-S | Printstream",
       "collectionId": "set_community_31",
       "collectionName": "The Recoil Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 0.85,
       "exteriors": [
@@ -106998,7 +106998,7 @@
       "baseMarketHashName": "USP-S | Purple DDPAT",
       "collectionId": "set_mirage_2021",
       "collectionName": "The 2021 Mirage Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.55,
       "exteriors": [
@@ -107049,7 +107049,7 @@
       "baseMarketHashName": "USP-S | Road Rash",
       "collectionId": "set_overpass",
       "collectionName": "The Overpass Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -107100,7 +107100,7 @@
       "baseMarketHashName": "USP-S | Royal Blue",
       "collectionId": "set_cobblestone",
       "collectionName": "The Cobblestone Collection",
-      "rarity": "CONSUMER_GRADE",
+      "rarity": "INDUSTRIAL_GRADE",
       "minFloat": 0.06,
       "maxFloat": 0.8,
       "exteriors": [
@@ -107151,7 +107151,7 @@
       "baseMarketHashName": "USP-S | Royal Guard",
       "collectionId": "set_timed_drops_cool",
       "collectionName": "The Ascent Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.6,
       "exteriors": [
@@ -107202,7 +107202,7 @@
       "baseMarketHashName": "USP-S | Serum",
       "collectionId": "set_weapons_ii",
       "collectionName": "The Arms Deal 2 Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.25,
       "exteriors": [
@@ -107243,7 +107243,7 @@
       "baseMarketHashName": "USP-S | Silent Shot",
       "collectionId": "set_community_37",
       "collectionName": "The Dead Hand Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -107294,7 +107294,7 @@
       "baseMarketHashName": "USP-S | Sleeping Potion",
       "collectionId": "set_timed_drops_exuberant",
       "collectionName": "The Harlequin Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.7,
       "exteriors": [
@@ -107345,7 +107345,7 @@
       "baseMarketHashName": "USP-S | Stainless",
       "collectionId": "set_weapons_iii",
       "collectionName": "The Arms Deal 3 Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.8,
       "exteriors": [
@@ -107396,7 +107396,7 @@
       "baseMarketHashName": "USP-S | Target Acquired",
       "collectionId": "set_op10_ct",
       "collectionName": "The Control Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 0.5,
       "exteriors": [
@@ -107447,7 +107447,7 @@
       "baseMarketHashName": "USP-S | The Traitor",
       "collectionId": "set_community_28",
       "collectionName": "The Snakebite Collection",
-      "rarity": "CLASSIFIED",
+      "rarity": "COVERT",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [
@@ -107498,7 +107498,7 @@
       "baseMarketHashName": "USP-S | Ticket to Hell",
       "collectionId": "set_community_30",
       "collectionName": "The Dreams & Nightmares Collection",
-      "rarity": "MIL_SPEC",
+      "rarity": "RESTRICTED",
       "minFloat": 0,
       "maxFloat": 0.76,
       "exteriors": [
@@ -107549,7 +107549,7 @@
       "baseMarketHashName": "USP-S | Torque",
       "collectionId": "set_community_8",
       "collectionName": "The Falchion Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.46,
       "exteriors": [
@@ -107600,7 +107600,7 @@
       "baseMarketHashName": "USP-S | Tropical Breeze",
       "collectionId": "set_timed_drops_neutral",
       "collectionName": "The Boreal Collection",
-      "rarity": "INDUSTRIAL_GRADE",
+      "rarity": "MIL_SPEC",
       "minFloat": 0,
       "maxFloat": 0.55,
       "exteriors": [
@@ -107651,7 +107651,7 @@
       "baseMarketHashName": "USP-S | Whiteout",
       "collectionId": "set_train_2021",
       "collectionName": "The 2021 Train Collection",
-      "rarity": "RESTRICTED",
+      "rarity": "CLASSIFIED",
       "minFloat": 0,
       "maxFloat": 1,
       "exteriors": [

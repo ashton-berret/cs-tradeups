@@ -133,6 +133,48 @@ candidate listings and price observations, the planner assigns candidates to
 specific plan/basket needs, and the operator only performs the final purchase
 decision/action.
 
+Plan authoring should optimize for the common operator workflow, not expose the
+full persistence model up front. The default create flow should ask for the
+minimum strategy inputs: input collection, input rarity, exterior condition,
+maximum input float, and maximum input price. From those, the app should derive
+the target rarity, basket max price, initial preferred 10-input rule, and
+catalog-linked output rows. Advanced rule/outcome editing can remain available
+after creation for edge cases.
+
+### Discovery Versus Pricing
+
+Two automation tracks must stay distinct:
+
+- **Pricing / valuation** answers: "What is this known market hash worth now?"
+  It refreshes prices for active plan outcomes, saved-combination outcomes,
+  candidate hashes, inventory, and result items. It supports EV, max-buy, and
+  drift calculations, but it does not find new listings by itself.
+- **Discovery / candidate capture** answers: "Which exact Steam listing should
+  I look at and maybe buy right now?" It gathers visible listing facts for the
+  small set of market hashes/exteriors implied by active plans, then submits
+  normalized candidates to the app for scoring, basket assignment, and buy-queue
+  display.
+
+The product goal is the discovery loop: the operator should not have to browse
+Steam manually looking for matches. Pricing is supporting infrastructure for
+that loop. A healthy mature workflow is:
+
+1. Active plans produce a targeted discovery watchlist.
+2. A local browser-assisted collector opens or monitors only those relevant
+   Steam Market pages.
+3. The collector reads visible listing rows, listing IDs/URLs, prices, inspect
+   links, and float-enriched DOM when available.
+4. The app normalizes, deduplicates, catalog-links, evaluates, and assigns
+   candidates.
+5. `/buy-queue` shows actionable listings with max-buy, float, plan/basket
+   reason, and the Steam link.
+6. The operator opens the listing and performs the purchase manually.
+
+Do not replace this with backend all-market scraping. Steam's public market
+surface is too rate-limited and unstable for global discovery. The app should
+scan narrowly from plan-derived needs, cache aggressively, and treat the browser
+extension/collector as the approved collection mechanism for listing facts.
+
 ---
 
 ## Operating Assumptions
@@ -192,13 +234,19 @@ decision/action.
 - `/dashboard`
 - `/candidates`
 - `/inventory`
+- `/explore`
 - `/tradeups/plans`
 - `/tradeups/baskets`
 - `/tradeups/executions`
+- `/tradeups/saved`
+- `/buy-queue`
+- `/calculator`
+- `/market-prices`
 
 ### Core Programmatic Endpoints
 
 - `POST /api/extension/candidates`
+- `GET /api/discovery/targets`
 - `GET /api/candidates`
 - `POST /api/candidates`
 - `GET /api/candidates/[id]`
@@ -511,6 +559,10 @@ fixed and optimizes the remainder around them.
 - Static CS2 catalog data stays separate from dynamic operator data. The app
   serves the catalog from a generated snapshot file, not runtime database
   tables.
+- Catalog skin rarity should prefer case/collection `client_loot_lists`
+  buckets for each weapon/paint-kit pair when available. Global
+  `paint_kits_rarity` is a fallback only; it can be too coarse for actual
+  trade-up tiers in case collections.
 - Dynamic rows may store nullable catalog identity references so real matched
   candidates, inventory, plan rules, and outcomes can use stable IDs while
   unmatched manual/filler rows remain valid.
@@ -532,9 +584,28 @@ fixed and optimizes the remainder around them.
   identity fields when a static catalog match exists.
 - Projected-exterior EV should select the observed price for the projected
   market hash name when available.
+- Price observations and EV must be venue-consistent. For the operator's
+  current workflow, Steam is the actionable venue: input costs are Steam prices
+  actually paid, output values are Steam Market sale proceeds net of fees, and
+  profitability should eventually be ranked by both raw EV and capital
+  turnover. Third-party prices may be stored as reference observations, but
+  they must not silently drive Steam buy/sell decisions.
+- The pricing layer should distinguish gross market prices from net realizable
+  sale values. Steam output valuation needs a configurable CS2 Community Market
+  fee model, including cent rounding / minimum-fee behavior when implemented.
+- EV displays should surface valuation basis clearly, such as `Steam net`,
+  `Steam gross`, `Manual estimate`, or `Third-party reference`, so the operator
+  can tell whether a number is actionable or merely comparative.
+- Cycle-time assumptions are part of profitability. Third-party marketplaces
+  may introduce extra 7-day waits around inputs and outputs under trade
+  protection, which can destroy monthly return for sub-$10 contracts even when
+  raw EV is positive. Keep capital-lock assumptions configurable until verified
+  against the real Steam workflow.
 - The first ingestion path should be local import or manual/API insertion.
   Automated Steam scraping or third-party price adapters should be added only
-  after the local observation model is proven.
+  after the local observation model is proven. The first automation target
+  should be targeted Steam Market watchlist refresh, not all-catalog
+  third-party bulk import.
 - Finished price automation should still be inspectable and operator-owned:
   source adapters produce normalized latest-price observations, the app stores
   them with source/freshness/history metadata, EV refreshes run explicitly or
@@ -611,6 +682,13 @@ browser-assisted collectors or source adapters may gather many visible listing
 facts, but they should submit normalized observations/candidates, receive
 visible assignment and pricing diagnostics, and leave final marketplace action
 execution to the operator.
+
+Discovery automation is explicitly in scope when it is plan-targeted and
+human-final-action. It should generate a narrow Steam Market page/search queue
+from active plan rules and current basket needs, read listing rows through the
+local browser context, and push candidates into the existing ingestion endpoint.
+It should not run as an unauthenticated backend crawler that tries to enumerate
+the whole market.
 
 ### MVP Security
 

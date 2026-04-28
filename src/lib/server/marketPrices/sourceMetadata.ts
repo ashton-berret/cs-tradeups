@@ -1,4 +1,11 @@
-export type MarketPriceSourceType = 'MANUAL' | 'CSV_IMPORT' | 'JSON_IMPORT' | 'LOCAL_IMPORT' | 'ADAPTER' | 'UNKNOWN';
+export type MarketPriceSourceType =
+  | 'MANUAL'
+  | 'CSV_IMPORT'
+  | 'JSON_IMPORT'
+  | 'LOCAL_IMPORT'
+  | 'STEAM_MARKET'
+  | 'ADAPTER'
+  | 'UNKNOWN';
 
 export interface MarketPriceSourceMetadata {
   sourceType: MarketPriceSourceType;
@@ -18,6 +25,10 @@ export function describeMarketPriceSource(source: string): MarketPriceSourceMeta
 
   if (normalized.includes('MANUAL')) {
     return { sourceType: 'MANUAL', sourceLabel: 'Manual' };
+  }
+
+  if (normalized.startsWith('STEAM_')) {
+    return { sourceType: 'STEAM_MARKET', sourceLabel: 'Steam Market' };
   }
 
   if (normalized.includes('ADAPTER')) {

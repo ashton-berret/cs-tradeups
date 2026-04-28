@@ -4,6 +4,7 @@ import { ApiError, apiFetch } from '$lib/client/api';
 import type { BuyQueueResult, CandidateDTO, InventoryItemDTO, PlanDTO } from '$lib/types/services';
 import type { PaginatedResponse } from '$lib/types/domain';
 import { db } from '$lib/server/db/client';
+import { buildDiscoveryTargets } from '$lib/server/discovery/watchlistService';
 
 export interface BuyQueueItemDetail {
 	marketHashName: string;
@@ -17,9 +18,10 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		const queuePath = planId
 			? `/api/tradeups/buy-queue?planId=${encodeURIComponent(planId)}`
 			: '/api/tradeups/buy-queue';
-		const [queue, plansPage] = await Promise.all([
+		const [queue, plansPage, discovery] = await Promise.all([
 			apiFetch<BuyQueueResult>(fetch, queuePath),
-			apiFetch<PaginatedResponse<PlanDTO>>(fetch, '/api/tradeups/plans?isActive=true&limit=100')
+			apiFetch<PaginatedResponse<PlanDTO>>(fetch, '/api/tradeups/plans?isActive=true&limit=100'),
+			buildDiscoveryTargets()
 		]);
 
 		// Batch-load reference data for every assigned row so the listing card
@@ -61,7 +63,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			};
 		}
 
-		return { queue, plans: plansPage.data, planId: planId ?? null, itemDetails };
+		return { queue, plans: plansPage.data, planId: planId ?? null, itemDetails, discovery };
 	} catch (err) {
 		if (err instanceof ApiError) error(err.status, err.message);
 		throw err;

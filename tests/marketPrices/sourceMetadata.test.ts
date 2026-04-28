@@ -22,4 +22,11 @@ describe('market price source metadata', () => {
       sourceLabel: 'Manual',
     });
   });
+
+  it('classifies Steam Market adapters', () => {
+    expect(describeMarketPriceSource('STEAM_PRICEOVERVIEW')).toEqual({
+      sourceType: 'STEAM_MARKET',
+      sourceLabel: 'Steam Market',
+    });
+  });
 });

@@ -18,9 +18,27 @@
 	const itemDetails = $derived(data.itemDetails);
 	const groups = $derived(groupAssignments(queue.assignments, queue.baskets));
 	const expanded = $state<Record<string, boolean>>({});
+	const discoveryLimit = $state({ value: 50 });
+	let discoveryStatus = $state<DiscoveryRunStatus | null>(null);
+	let discoveryMessage = $state<string | null>(null);
+	let discoveryBusy = $state(false);
 
 	// Listing reference modal state.
 	let activeRow = $state<CandidateAssignment | null>(null);
+
+	type DiscoveryRunStatus = {
+		running?: boolean;
+		startedAt?: string | null;
+		finishedAt?: string | null;
+		targetCount?: number;
+		currentTargetIndex?: number;
+		currentTarget?: string | null;
+		submitted?: number;
+		saved?: number;
+		duplicates?: number;
+		skipped?: number;
+		errors?: Array<{ target?: string; listingId?: string; message?: string }>;
+	};
 
 	function steamListingsUrl(marketHashName: string): string {
 		return `https://steamcommunity.com/market/listings/730/${encodeURIComponent(marketHashName)}`;
@@ -106,6 +124,87 @@
 	function toggle(key: string) {
 		expanded[key] = !expanded[key];
 	}
+
+	async function startDiscovery() {
+		discoveryBusy = true;
+		discoveryMessage = 'Starting discovery...';
+		try {
+			const response = await sendExtensionMessage({
+				type: 'bridge:start-discovery',
+				options: { limit: discoveryLimit.value }
+			});
+			handleDiscoveryResponse(response);
+		} finally {
+			discoveryBusy = false;
+		}
+	}
+
+	async function stopDiscovery() {
+		discoveryBusy = true;
+		discoveryMessage = 'Stopping discovery...';
+		try {
+			const response = await sendExtensionMessage({ type: 'bridge:stop-discovery' });
+			handleDiscoveryResponse(response);
+		} finally {
+			discoveryBusy = false;
+		}
+	}
+
+	async function refreshDiscoveryStatus() {
+		discoveryBusy = true;
+		try {
+			const response = await sendExtensionMessage({ type: 'bridge:get-discovery-status' });
+			handleDiscoveryResponse(response);
+		} finally {
+			discoveryBusy = false;
+		}
+	}
+
+	function handleDiscoveryResponse(response: { ok?: boolean; message?: string; status?: DiscoveryRunStatus }) {
+		if (!response?.ok) {
+			discoveryMessage =
+				response?.message ??
+				'The Steam Market Bridge did not respond. Reload the unpacked extension, then refresh this page.';
+			return;
+		}
+		discoveryStatus = response.status ?? null;
+		discoveryMessage = discoveryStatus?.running ? 'Discovery is running.' : 'Discovery is idle.';
+	}
+
+	function sendExtensionMessage(message: unknown): Promise<{ ok?: boolean; message?: string; status?: DiscoveryRunStatus }> {
+		return new Promise((resolve) => {
+			if (typeof window === 'undefined') {
+				resolve({ ok: false, message: 'Browser window is unavailable.' });
+				return;
+			}
+
+			const requestId = `buy_queue_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+			const timeoutId = window.setTimeout(() => {
+				window.removeEventListener('message', listener);
+				resolve({
+					ok: false,
+					message: 'Steam Market Bridge extension did not respond. Reload it in chrome://extensions.'
+				});
+			}, 3000);
+
+			function listener(event: MessageEvent) {
+				if (event.source !== window) return;
+				const data = event.data;
+				if (!data || data.type !== 'cs-tradeups:extension-response' || data.requestId !== requestId) {
+					return;
+				}
+				window.clearTimeout(timeoutId);
+				window.removeEventListener('message', listener);
+				resolve(data.response ?? { ok: false, message: 'Empty extension response.' });
+			}
+
+			window.addEventListener('message', listener);
+			window.postMessage(
+				{ type: 'cs-tradeups:extension-request', requestId, message },
+				window.location.origin
+			);
+		});
+	}
 </script>
 
 <div class="space-y-6">
@@ -153,6 +252,89 @@
 			<div class="mt-1 text-2xl font-semibold">{queue.baskets.length}</div>
 		</Card>
 	</div>
+
+	<Card padding="md">
+		<div class="flex flex-wrap items-start justify-between gap-4">
+			<div>
+				<div class="text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
+					Steam discovery
+				</div>
+				<div class="mt-1 text-lg font-semibold text-[var(--color-text-primary)]">
+					{data.discovery.counts.targets} target page{data.discovery.counts.targets === 1 ? '' : 's'}
+				</div>
+				<p class="mt-1 text-sm text-[var(--color-text-secondary)]">
+					{data.discovery.counts.activePlans} active plan{data.discovery.counts.activePlans === 1 ? '' : 's'},
+					{data.discovery.counts.activeRules} rule{data.discovery.counts.activeRules === 1 ? '' : 's'},
+					{data.discovery.counts.matchedSkins} catalog skin match{data.discovery.counts.matchedSkins === 1 ? '' : 'es'}.
+				</p>
+			</div>
+			<div class="max-w-xl text-sm text-[var(--color-text-secondary)]">
+				Run the Steam Market Bridge collector from here or from the extension options page. It fetches
+				<code class="rounded bg-[var(--color-bg-surface-overlay)] px-1">/api/discovery/targets</code>,
+				opens only these plan-derived Steam pages, submits matching visible rows, then this queue
+				recomputes after refresh.
+			</div>
+		</div>
+		<div class="mt-4 flex flex-wrap items-end gap-3 border-t border-[var(--color-border)] pt-4">
+			<label class="grid gap-1 text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
+				Target limit
+				<input
+					type="number"
+					min="1"
+					max="500"
+					step="1"
+					bind:value={discoveryLimit.value}
+					class="w-24 rounded border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-2 py-1 text-sm text-[var(--color-text-primary)]"
+				/>
+			</label>
+			<Button type="button" size="sm" onclick={startDiscovery} disabled={discoveryBusy || data.discovery.counts.targets === 0}>
+				Run Discovery
+			</Button>
+			<Button type="button" size="sm" variant="secondary" onclick={stopDiscovery} disabled={discoveryBusy}>
+				Stop
+			</Button>
+			<Button type="button" size="sm" variant="secondary" onclick={refreshDiscoveryStatus} disabled={discoveryBusy}>
+				Status
+			</Button>
+			{#if discoveryMessage}
+				<span class="text-sm text-[var(--color-text-secondary)]">{discoveryMessage}</span>
+			{/if}
+		</div>
+		{#if discoveryStatus}
+			<div class="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--color-text-secondary)] md:grid-cols-6">
+				<div>Targets: {discoveryStatus.currentTargetIndex ?? 0}/{discoveryStatus.targetCount ?? 0}</div>
+				<div>Saved: {discoveryStatus.saved ?? 0}</div>
+				<div>Duplicates: {discoveryStatus.duplicates ?? 0}</div>
+				<div>Submitted: {discoveryStatus.submitted ?? 0}</div>
+				<div>Skipped: {discoveryStatus.skipped ?? 0}</div>
+				<div>Errors: {discoveryStatus.errors?.length ?? 0}</div>
+			</div>
+			{#if discoveryStatus.currentTarget}
+				<div class="mt-2 text-xs text-[var(--color-text-muted)]">
+					Current: {discoveryStatus.currentTarget}
+				</div>
+			{/if}
+		{/if}
+		{#if data.discovery.targets.length > 0}
+			<div class="mt-3 flex flex-wrap gap-2">
+				{#each data.discovery.targets.slice(0, 8) as target}
+					<a
+						href={target.listingUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="rounded border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+					>
+						{target.marketHashName}
+					</a>
+				{/each}
+				{#if data.discovery.targets.length > 8}
+					<span class="px-2 py-1 text-xs text-[var(--color-text-muted)]">
+						+{data.discovery.targets.length - 8} more
+					</span>
+				{/if}
+			</div>
+		{/if}
+	</Card>
 
 	{#if form?.error}
 		<Card padding="sm">

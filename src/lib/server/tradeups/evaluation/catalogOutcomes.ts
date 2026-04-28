@@ -19,6 +19,7 @@ export async function withCatalogOutcomeFloatRanges<TOutcome extends TradeupOutc
         latestMarketPrices: Array<{
           marketHashName: string;
           marketValue: number | null;
+          source: string;
           observedAt: Date;
           freshness: string;
         }>;
@@ -52,6 +53,7 @@ export async function withCatalogOutcomeFloatRanges<TOutcome extends TradeupOutc
         .map((price) => ({
           marketHashName: price.marketHashName,
           marketValue: price.marketValue,
+          source: price.source,
           observedAt: price.observedAt,
           freshness: price.freshness,
         }));

@@ -73,6 +73,7 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 		if (value === 'CSV_IMPORT') return 'primary';
 		if (value === 'JSON_IMPORT') return 'success';
 		if (value === 'MANUAL') return 'warning';
+		if (value === 'STEAM_MARKET') return 'success';
 		return 'muted';
 	}
 
@@ -131,6 +132,16 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 					basketsRecomputed: number;
 					basketErrors: Array<{ id: string; message: string }>;
 				};
+				priceRefresh?: {
+					watchlistCount: number;
+					summaries: Array<{
+						adapter: string;
+						requested: number;
+						written: number;
+						skipped: number;
+						errors: Array<{ marketHashName: string; message: string }>;
+					}>;
+				};
 		  }
 		| undefined {
 		if (!form || !('importResult' in form) || !form.importResult) return undefined;
@@ -181,11 +192,11 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 			<div>
 				<h1 class="text-2xl font-semibold text-[var(--color-text-primary)]">Market Prices</h1>
 				<p class="mt-1 text-sm text-[var(--color-text-secondary)]">
-					Inspect local price observations and import operator-controlled batches.
+					Inspect local price observations and refresh Steam watchlist prices for EV.
 				</p>
 			</div>
 			<form method="POST" action="?/refreshDependent" use:enhance>
-				<Button type="submit" variant="secondary">Refresh EV</Button>
+				<Button type="submit" variant="secondary">Refresh Steam watchlist</Button>
 			</form>
 		</div>
 	</div>
@@ -215,7 +226,7 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 				<div class="grid gap-2 text-xs text-[var(--color-text-secondary)] sm:grid-cols-5">
 					<div class="rounded-md border border-[var(--color-success)]/30 bg-[var(--color-bg-surface)]/70 p-2">
 						<div class="font-semibold text-[var(--color-text-primary)]">{importResult.count}</div>
-						<div>observations imported</div>
+						<div>{importResult.priceRefresh ? 'Steam observations written' : 'observations imported'}</div>
 					</div>
 					<div class="rounded-md border border-[var(--color-success)]/30 bg-[var(--color-bg-surface)]/70 p-2">
 						<div class="font-semibold text-[var(--color-text-primary)]">{importedDistinctCount(importResult)}</div>
@@ -234,6 +245,23 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 						<div>active baskets recomputed</div>
 					</div>
 				</div>
+				{#if importResult.priceRefresh}
+					<div class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)]/70 p-2 text-xs text-[var(--color-text-secondary)]">
+						<div class="font-semibold text-[var(--color-text-primary)]">Steam watchlist refresh</div>
+						<div class="mt-1">Watchlist: {importResult.priceRefresh.watchlistCount} item{importResult.priceRefresh.watchlistCount === 1 ? '' : 's'}</div>
+						<div class="mt-2 grid gap-2 sm:grid-cols-3">
+							{#each importResult.priceRefresh.summaries as summary}
+								<div class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)]/40 p-2">
+									<div class="font-semibold text-[var(--color-text-primary)]">{summary.adapter}</div>
+									<div>{summary.written} written · {summary.skipped} skipped · {summary.requested} requested</div>
+									{#if summary.errors.length > 0}
+										<div class="mt-1 text-[var(--color-warning)]">{summary.errors.length} error{summary.errors.length === 1 ? '' : 's'}</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
 				{#if importResult.refresh && importResult.refresh.basketErrors.length > 0}
 					<div class="rounded-md border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 p-2 text-xs text-[var(--color-warning)]">
 						<div class="font-semibold">Basket refresh errors</div>

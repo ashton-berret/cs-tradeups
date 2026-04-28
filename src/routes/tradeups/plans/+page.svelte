@@ -20,7 +20,8 @@
 
 	const cards = $derived(toPlanCards(data.page.data));
 	const hasFilters = $derived(hasPlanFilters(data.filter));
-	const issueText = $derived(JSON.stringify(form?.issues ?? []));
+	const formIssues = $derived((form as { issues?: unknown[] } | undefined)?.issues ?? null);
+	const issueText = $derived(JSON.stringify(formIssues ?? []));
 	const ruleError = $derived(issueText.includes('minFloat must be <= maxFloat') ? 'minFloat must be <= maxFloat' : null);
 
 	function hrefForPage(nextPage: number) {
@@ -102,7 +103,7 @@
 	/>
 </div>
 
-<PlanEditorModal bind:open={createOpen} error={form?.error ?? null} issues={form?.issues ?? null} />
+<PlanEditorModal bind:open={createOpen} error={form?.error ?? null} issues={formIssues ?? null} />
 <ConfirmModal
 	bind:open={deleteOpen}
 	title="Delete plan"

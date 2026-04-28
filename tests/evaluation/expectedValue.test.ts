@@ -105,6 +105,38 @@ describe('expected value', () => {
       priceMarketHashName: 'Output Skin (Well-Worn)',
       priceObservedAt: new Date('2026-04-24T18:00:00Z'),
       priceFreshness: 'FRESH',
+      priceBasis: 'MANUAL_ESTIMATE',
+    });
+  });
+
+  it('uses Steam observed prices as net sale proceeds', () => {
+    const testPlan = plan({}, {
+      outcomeItems: [
+        withLatestPrices(
+          outcome({
+            id: 'steam-priced-output',
+            estimatedMarketValue: decimal(20),
+          }),
+          [
+            {
+              marketHashName: 'Output Skin',
+              marketValue: 11.5,
+              source: 'STEAM_PRICEOVERVIEW',
+              observedAt: new Date('2026-04-24T18:00:00Z'),
+              freshness: 'FRESH',
+            },
+          ],
+        ),
+      ],
+    });
+    const slots = Array.from({ length: 10 }, (_, index) => slot({ inventoryItemId: `item-${index}` }));
+    const ev = computeBasketEV(slots, testPlan);
+
+    expect(ev.totalEV).toBe(10);
+    expect(ev.perOutcomeContribution[0]).toMatchObject({
+      estimatedValue: 10,
+      priceSource: 'OBSERVED_MARKET',
+      priceBasis: 'STEAM_NET',
     });
   });
 
@@ -127,6 +159,7 @@ describe('expected value', () => {
     expect(ev.perOutcomeContribution[0]).toMatchObject({
       priceSource: 'PLAN_FALLBACK',
       priceMarketHashName: 'Output Skin (Well-Worn)',
+      priceBasis: 'MANUAL_ESTIMATE',
     });
   });
 
@@ -148,4 +181,17 @@ function withProjection<T extends ReturnType<typeof outcome>>(base: T) {
       { exterior: 'WELL_WORN' as const, marketHashName: 'Output Skin (Well-Worn)' },
     ],
   };
+}
+
+function withLatestPrices<T extends ReturnType<typeof outcome>>(
+  base: T,
+  latestMarketPrices: Array<{
+    marketHashName: string;
+    marketValue: number;
+    source?: string;
+    observedAt: Date;
+    freshness: string;
+  }>,
+) {
+  return { ...base, latestMarketPrices };
 }

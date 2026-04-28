@@ -33,6 +33,11 @@ import { exteriorForFloat, projectOutputFloat } from '$lib/server/utils/float';
 import { multiplyMoney, roundMoney } from '$lib/server/utils/money';
 import type { ItemExterior } from '$lib/types/enums';
 import type { PriceFreshness } from '$lib/server/marketPrices/freshness';
+import {
+  marketPriceBasisForSource,
+  netSaleValueForObservedPrice,
+  type MarketPriceBasis,
+} from '$lib/server/marketPrices/fees';
 import { DEFAULT_MAX_BUY_MARGIN_PCT } from './tuning';
 
 export interface BasketSlotContext {
@@ -68,6 +73,7 @@ type OutcomeLike = {
   latestMarketPrices?: Array<{
     marketHashName: string;
     marketValue: number | null;
+    source?: string;
     observedAt?: Date;
     freshness?: PriceFreshness | string;
   }>;
@@ -168,6 +174,7 @@ export function computeBasketEV(
         priceMarketHashName: price.marketHashName,
         priceObservedAt: price.observedAt,
         priceFreshness: price.freshness,
+        priceBasis: price.basis,
       });
     }
   }
@@ -312,17 +319,24 @@ function resolveOutcomePrice(
   marketHashName: string;
   observedAt: Date | null;
   freshness: PriceFreshness | null;
+  basis: MarketPriceBasis;
 } {
   const marketHashName = projectedMarketHashName ?? outcome.marketHashName;
   const dynamicPrice = findLatestMarketPrice(outcome, marketHashName);
 
   if (dynamicPrice?.marketValue != null) {
+    const netValue = netSaleValueForObservedPrice({
+      marketValue: dynamicPrice.marketValue,
+      source: dynamicPrice.source,
+    });
+
     return {
-      estimatedValue: dynamicPrice.marketValue,
+      estimatedValue: netValue.value,
       source: 'OBSERVED_MARKET',
       marketHashName,
       observedAt: dynamicPrice.observedAt ?? null,
       freshness: isPriceFreshness(dynamicPrice.freshness) ? dynamicPrice.freshness : null,
+      basis: netValue.basis,
     };
   }
 
@@ -332,6 +346,7 @@ function resolveOutcomePrice(
     marketHashName,
     observedAt: null,
     freshness: null,
+    basis: marketPriceBasisForSource(null),
   };
 }
 

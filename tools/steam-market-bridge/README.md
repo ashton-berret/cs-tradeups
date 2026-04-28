@@ -42,6 +42,29 @@ The extension reports whether the candidate was saved or merged as a duplicate,
 whether the app catalog-linked the item, and whether normalization warnings
 were returned.
 
+## Discovery collector
+
+The app's `/buy-queue` page and the extension options page include a
+`Run Discovery` control. It:
+
+1. Fetches `GET /api/discovery/targets` from the local app using the shared
+   secret.
+2. Opens the returned Steam Market listing pages one at a time in a background
+   tab.
+3. Waits for Steam and float-enrichment DOM to render.
+4. Extracts visible listing rows and filters them against the target's
+   max-buy, exterior, and float constraints.
+5. Posts matching rows to `POST /api/extension/candidates`.
+
+The collector does not click buy buttons, create orders, confirm purchases,
+log in, answer Steam Guard, list items, or create trade offers. It only reads
+visible listing facts and submits candidate observations.
+
+If the `/buy-queue` button does not respond, reload the unpacked extension in
+`chrome://extensions`, then refresh the app page. The app talks to the
+extension through a local-only content bridge injected on `localhost` and
+`127.0.0.1`.
+
 For live smoke testing, ingest a small spread of rows:
 
 - a normal catalog-match row with float enrichment

@@ -3,7 +3,7 @@
   "name": "cs-tradeups Steam Market Bridge",
   "version": "0.1.0",
   "description": "Reads float-enriched Steam Market listings and posts them to the local cs-tradeups app.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "tabs"],
   "host_permissions": [
     "https://steamcommunity.com/*",
     "http://127.0.0.1/*",
@@ -20,6 +20,11 @@
     {
       "matches": ["https://steamcommunity.com/market/listings/*"],
       "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://127.0.0.1/*", "http://localhost/*"],
+      "js": ["app-bridge.js"],
       "run_at": "document_idle"
     }
   ],

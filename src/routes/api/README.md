@@ -86,6 +86,19 @@ don't check it into the repo.
 
 - `POST /api/extension/candidates`
 
+### Discovery
+
+- `GET /api/discovery/targets`
+  - Requires `X-Extension-Secret`, same as candidate ingestion.
+  - Returns plan-derived Steam Market listing page targets for the local
+    browser collector. Targets are narrowed by active plan rules, catalog
+    collection/rarity/exterior/float constraints, max-buy thresholds, and
+    current basket/planner demand. The app does not scrape Steam from the
+    backend; the bridge visits these URLs in the operator's browser and posts
+    matching rows to `POST /api/extension/candidates`.
+  - `/buy-queue` can ask the installed bridge extension to run the collector
+    through a local content bridge. The endpoint itself remains read-only.
+
 ### Catalog
 
 - `GET /api/catalog`
@@ -105,8 +118,13 @@ don't check it into the repo.
   - Successful imports refresh open candidate evaluations and active basket
     metrics; the response includes `refresh` counts.
 - `POST /api/market-prices/refresh`
-  - Re-runs the same dependent EV refresh without importing observations.
-  - Returns candidate and basket refresh counts plus basket refresh errors.
+  - Refreshes targeted Steam Market watchlist observations, then re-runs the
+    dependent EV refresh.
+  - Watchlist sources: active plan outcomes, active saved-combination outcome
+    snapshots, open candidates, held/reserved inventory, and recent execution
+    results.
+  - Returns price requested/written/skipped/error counts plus candidate and
+    basket refresh counts.
 - `GET /api/market-prices/summary`
   - Returns source/currency groups for all observations matching
     `search`/`source`/`currency` and `latestOnly`, including counts,

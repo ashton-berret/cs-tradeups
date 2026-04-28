@@ -326,6 +326,7 @@ export interface BasketEVBreakdown {
     priceMarketHashName: string;
     priceObservedAt: Date | null;
     priceFreshness: 'FRESH' | 'RECENT' | 'STALE' | 'OLD' | null;
+    priceBasis: 'STEAM_NET' | 'STEAM_GROSS' | 'MANUAL_ESTIMATE' | 'THIRD_PARTY_REFERENCE';
   }>;
 }
 
@@ -506,6 +507,59 @@ export interface BuyQueueResult {
   totalExpectedProfit: number;
   /** Count of baskets that would be full (10/10) under this assignment. */
   viableBasketCount: number;
+}
+
+// ---------------------------------------------------------------------------
+// Discovery
+// ---------------------------------------------------------------------------
+
+export interface DiscoveryTargetConstraint {
+  planId: string;
+  planName: string;
+  ruleId: string;
+  collection: string | null;
+  catalogCollectionId: string | null;
+  rarity: ItemRarity;
+  exterior: ItemExterior | null;
+  minFloat: number | null;
+  maxFloat: number | null;
+  maxBuyPrice: number | null;
+  priority: number;
+  reason: string;
+}
+
+export interface DiscoveryTarget {
+  id: string;
+  marketHashName: string;
+  listingUrl: string;
+  exterior: ItemExterior;
+  catalogSkinId: string;
+  catalogCollectionId: string;
+  catalogWeaponDefIndex: number;
+  catalogPaintIndex: number;
+  weaponName: string;
+  skinName: string;
+  collection: string;
+  rarity: ItemRarity;
+  minFloat: number;
+  maxFloat: number;
+  constraints: DiscoveryTargetConstraint[];
+  priority: number;
+  demand: {
+    openBasketSlots: number;
+    queueSlots: number;
+  };
+}
+
+export interface DiscoveryTargetsResult {
+  generatedAt: Date;
+  targets: DiscoveryTarget[];
+  counts: {
+    activePlans: number;
+    activeRules: number;
+    matchedSkins: number;
+    targets: number;
+  };
 }
 
 // ---------------------------------------------------------------------------

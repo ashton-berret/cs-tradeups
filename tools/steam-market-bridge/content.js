@@ -13,6 +13,7 @@
   injectStyles();
   injectPageBridge();
   window.addEventListener('message', handlePageMessage);
+  chrome.runtime.onMessage.addListener(handleRuntimeMessage);
   scanListingBlocks();
 
   const observer = new MutationObserver(() => {
@@ -132,6 +133,68 @@
     }
 
     pending.reject(new Error(data.message || 'Failed to extract listing data from the page'));
+  }
+
+  function handleRuntimeMessage(message, _sender, sendResponse) {
+    if (message?.type !== 'bridge:scan-target') {
+      return false;
+    }
+
+    void scanTarget(message.target, message.delayMs)
+      .then(sendResponse)
+      .catch((err) => {
+        sendResponse({
+          ok: false,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
+
+    return true;
+  }
+
+  async function scanTarget(target, delayMs) {
+    if (!target || !target.marketHashName) {
+      return { ok: false, message: 'Discovery target is missing marketHashName.' };
+    }
+
+    await sleep(Number.isFinite(delayMs) ? delayMs : 1000);
+    scanListingBlocks();
+
+    const listingIds = extractVisibleListingIds();
+    const payloads = [];
+    let skipped = 0;
+    const errors = [];
+
+    for (const listingId of listingIds) {
+      try {
+        const payload = await requestCandidatePayload(listingId);
+        if (payloadMatchesTarget(payload, target)) {
+          payloads.push({
+            ...payload,
+            discoveryTargetId: target.id,
+            discoveryTargetMarketHashName: target.marketHashName,
+          });
+        } else {
+          skipped += 1;
+        }
+      } catch (err) {
+        skipped += 1;
+        errors.push({
+          listingId,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    return {
+      ok: true,
+      target: target.marketHashName,
+      visibleRows: listingIds.length,
+      submittedRows: payloads.length,
+      skipped,
+      errors,
+      payloads,
+    };
   }
 
   function scanListingBlocks() {
@@ -291,6 +354,52 @@
     return null;
   }
 
+  function extractVisibleListingIds() {
+    const ids = new Set();
+    for (const row of document.querySelectorAll('.market_listing_row')) {
+      const listingId = extractListingId(row);
+      if (listingId) ids.add(listingId);
+    }
+    return [...ids];
+  }
+
+  function payloadMatchesTarget(payload, target) {
+    if (!payload || payload.marketHashName !== target.marketHashName) {
+      return false;
+    }
+
+    if (!Array.isArray(target.constraints) || target.constraints.length === 0) {
+      return true;
+    }
+
+    return target.constraints.some((constraint) => payloadMatchesConstraint(payload, constraint));
+  }
+
+  function payloadMatchesConstraint(payload, constraint) {
+    if (constraint.exterior && payload.exterior && payload.exterior !== constraint.exterior) {
+      return false;
+    }
+
+    if (constraint.maxBuyPrice != null && Number(payload.listPrice) > Number(constraint.maxBuyPrice)) {
+      return false;
+    }
+
+    const hasFloatConstraint = constraint.minFloat != null || constraint.maxFloat != null;
+    if (hasFloatConstraint && payload.floatValue == null) {
+      return false;
+    }
+
+    if (payload.floatValue != null && constraint.minFloat != null && payload.floatValue < constraint.minFloat) {
+      return false;
+    }
+
+    if (payload.floatValue != null && constraint.maxFloat != null && payload.floatValue > constraint.maxFloat) {
+      return false;
+    }
+
+    return true;
+  }
+
   function requestCandidatePayload(listingId) {
     return new Promise((resolve, reject) => {
       const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -315,6 +424,10 @@
         resolve(response);
       });
     });
+  }
+
+  function sleep(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
   }
 
   function setStatus(node, message, state) {

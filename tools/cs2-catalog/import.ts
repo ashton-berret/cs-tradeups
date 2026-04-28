@@ -262,6 +262,7 @@ function buildCatalog(itemsGameDocument: KeyValueObject, localization: Localizat
 	const itemSetsSection = kvMergedObject(root.item_sets) ?? {};
 	const prefabsSection = kvMergedObject(root.prefabs) ?? {};
 	const weaponIconsSection = kvMergedObject(kvMergedObject(root.alternate_icons2)?.weapon_icons) ?? {};
+	const clientLootListsSection = kvMergedObject(root.client_loot_lists) ?? {};
 
 	const weaponDefs = extractWeaponDefinitions(itemsSection, prefabsSection, localization);
 	const collectionDefs = extractCollections(itemSetsSection, localization);
@@ -271,6 +272,7 @@ function buildCatalog(itemsGameDocument: KeyValueObject, localization: Localizat
 	const collectionBySetKey = new Map(collectionDefs.map((collection) => [collection.itemSetKey, collection]));
 	const weaponByKey = new Map(weaponDefs.map((weapon) => [weapon.key, weapon]));
 	const paintKitByKey = new Map(paintKitDefs.map((paintKit) => [paintKit.key, paintKit]));
+	const lootListRarityByRef = extractLootListRarityMap(clientLootListsSection);
 
 	const skins: CatalogSkin[] = [];
 	const seenSkinIds = new Set<string>();
@@ -299,6 +301,10 @@ function buildCatalog(itemsGameDocument: KeyValueObject, localization: Localizat
 				continue;
 			}
 
+			const skinRarity =
+				lootListRarityByRef.get(collectionItemRefKey(itemRef.weaponKey, itemRef.paintKitKey)) ??
+				paintKit.rarity;
+
 			const marketHashNames = paintKit.exteriors.map((exterior) => ({
 				exterior,
 				marketHashName: `${weapon.marketName} | ${paintKit.name} (${EXTERIOR_LABELS[exterior]})`,
@@ -314,7 +320,7 @@ function buildCatalog(itemsGameDocument: KeyValueObject, localization: Localizat
 				baseMarketHashName: `${weapon.marketName} | ${paintKit.name}`,
 				collectionId: collection.id,
 				collectionName: collection.name,
-				rarity: paintKit.rarity,
+				rarity: skinRarity,
 				minFloat: paintKit.minFloat,
 				maxFloat: paintKit.maxFloat,
 				exteriors: paintKit.exteriors,
@@ -516,6 +522,68 @@ function extractCollectionItemRefs(itemSet: KeyValueObject): Array<{ weaponKey: 
 	}
 
 	return refs;
+}
+
+function extractLootListRarityMap(clientLootListsSection: KeyValueObject): Map<string, ItemRarity> {
+	const rarityByRef = new Map<string, ItemRarity>();
+
+	for (const [listKey, rawList] of kvEntries(clientLootListsSection)) {
+		const rarity = rarityFromLootListKey(listKey);
+		if (!rarity) continue;
+
+		const list = kvObject(rawList);
+		if (!list) continue;
+
+		for (const { weaponKey, paintKitKey } of extractLootListItemRefs(list)) {
+			rarityByRef.set(collectionItemRefKey(weaponKey, paintKitKey), rarity);
+		}
+	}
+
+	return rarityByRef;
+}
+
+function extractLootListItemRefs(list: KeyValueObject): Array<{ weaponKey: string; paintKitKey: string }> {
+	const refs: Array<{ weaponKey: string; paintKitKey: string }> = [];
+
+	for (const [rawItemRef] of kvEntries(list)) {
+		const match =
+			/^\[(?<paintKit>[^\]]+)\](?<weapon>weapon_[^ ]+)$/i.exec(rawItemRef) ??
+			/^(?<weapon>weapon_[^ ]+)\[(?<paintKit>[^\]]+)\]$/i.exec(rawItemRef);
+
+		if (!match?.groups) continue;
+
+		refs.push({
+			weaponKey: match.groups.weapon,
+			paintKitKey: match.groups.paintKit,
+		});
+	}
+
+	return refs;
+}
+
+function collectionItemRefKey(weaponKey: string, paintKitKey: string): string {
+	return `${weaponKey.toLowerCase()}|${paintKitKey.toLowerCase()}`;
+}
+
+function rarityFromLootListKey(listKey: string): ItemRarity | null {
+	const suffix = /_(common|uncommon|rare|mythical|legendary|ancient)$/i.exec(listKey)?.[1]?.toLowerCase();
+
+	switch (suffix) {
+		case 'common':
+			return 'CONSUMER_GRADE';
+		case 'uncommon':
+			return 'INDUSTRIAL_GRADE';
+		case 'rare':
+			return 'MIL_SPEC';
+		case 'mythical':
+			return 'RESTRICTED';
+		case 'legendary':
+			return 'CLASSIFIED';
+		case 'ancient':
+			return 'COVERT';
+		default:
+			return null;
+	}
 }
 
 function extractWeaponPaintPairs(weaponIconsSection: KeyValueObject): Array<{ weaponKey: string; paintKitKey: string }> {

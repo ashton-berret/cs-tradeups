@@ -7,7 +7,9 @@ import type {
 	MarketPriceObservedSourceDTO,
 	MarketPriceObservationSummaryDTO
 } from '$lib/server/marketPrices/priceService';
-import type { MarketPriceImportRefreshResult } from '$lib/server/marketPrices/refreshService';
+import type {
+	MarketPriceFullRefreshResult
+} from '$lib/server/marketPrices/refreshService';
 
 const filterKeys = ['search', 'source', 'currency', 'latestOnly', 'sortBy', 'sortDir', 'page', 'limit'];
 
@@ -33,14 +35,14 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 export const actions: Actions = {
 	refreshDependent: async ({ fetch }) => {
 		try {
-			const result = await apiFetch<MarketPriceImportRefreshResult>(
+			const result = await apiFetch<MarketPriceFullRefreshResult>(
 				fetch,
 				'/api/market-prices/refresh',
 				{ method: 'POST' }
 			);
 			return {
 				success: refreshSuccessMessage(result),
-				importResult: { count: 0, refresh: result }
+				importResult: { count: priceRefreshWritten(result), priceRefresh: result.prices, refresh: result.dependents }
 			};
 		} catch (err) {
 			return actionError(err, {});
@@ -101,6 +103,7 @@ export const actions: Actions = {
 interface MarketPriceImportResult {
 	count: number;
 	observations?: MarketPriceObservationDTO[];
+	priceRefresh?: MarketPriceFullRefreshResult['prices'];
 	refresh?: {
 		candidatesReevaluated: number;
 		basketsRecomputed: number;
@@ -176,12 +179,22 @@ function importSuccessMessage(result: MarketPriceImportResult) {
 	return `${imported} ${refreshed}${failures}`;
 }
 
-function refreshSuccessMessage(refresh: MarketPriceImportRefreshResult) {
+function refreshSuccessMessage(result: MarketPriceFullRefreshResult) {
+	const written = priceRefreshWritten(result);
+	const requested = result.prices.summaries.reduce((sum, summary) => sum + summary.requested, 0);
+	const skipped = result.prices.summaries.reduce((sum, summary) => sum + summary.skipped, 0);
+	const priceErrors = result.prices.summaries.reduce((sum, summary) => sum + summary.errors.length, 0);
+	const refresh = result.dependents;
+	const prices = `Refreshed Steam watchlist: ${written} written, ${skipped} skipped, ${requested} requested.`;
 	const refreshed = `Refreshed ${refresh.candidatesReevaluated} open candidate${refresh.candidatesReevaluated === 1 ? '' : 's'} and ${refresh.basketsRecomputed} active basket${refresh.basketsRecomputed === 1 ? '' : 's'}.`;
 	const failures =
-		refresh.basketErrors.length > 0
-			? ` ${refresh.basketErrors.length} basket refresh error${refresh.basketErrors.length === 1 ? '' : 's'}.`
+		refresh.basketErrors.length > 0 || priceErrors > 0
+			? ` ${priceErrors} price error${priceErrors === 1 ? '' : 's'} and ${refresh.basketErrors.length} basket refresh error${refresh.basketErrors.length === 1 ? '' : 's'}.`
 			: '';
 
-	return `${refreshed}${failures}`;
+	return `${prices} ${refreshed}${failures}`;
+}
+
+function priceRefreshWritten(result: MarketPriceFullRefreshResult) {
+	return result.prices.summaries.reduce((sum, summary) => sum + summary.written, 0);
 }

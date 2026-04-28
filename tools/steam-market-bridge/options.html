@@ -27,9 +27,16 @@
         font-size: 20px;
       }
 
-      form {
+      form,
+      section {
         display: grid;
         gap: 16px;
+      }
+
+      section {
+        margin-top: 24px;
+        border-top: 1px solid #334155;
+        padding-top: 20px;
       }
 
       label {
@@ -45,6 +52,10 @@
         background: #020617;
         color: #f8fafc;
         font: inherit;
+      }
+
+      input[type='number'] {
+        max-width: 160px;
       }
 
       button {
@@ -69,6 +80,21 @@
         min-height: 20px;
         color: #86efac;
       }
+
+      #discovery-status {
+        min-height: 96px;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 12px;
+        background: #020617;
+        white-space: pre-wrap;
+      }
+
+      .button-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
     </style>
   </head>
   <body>
@@ -85,9 +111,33 @@
           <input id="sharedSecret" name="sharedSecret" type="password" required />
         </label>
 
+        <label>
+          Discovery page delay (ms)
+          <input id="discoveryDelayMs" name="discoveryDelayMs" type="number" min="1000" step="500" />
+        </label>
+
         <button type="submit">Save</button>
         <p id="status" aria-live="polite"></p>
       </form>
+
+      <section>
+        <h2>Discovery collector</h2>
+        <p>
+          Fetches plan-derived targets from <code>/api/discovery/targets</code>,
+          opens Steam listing pages in a background tab, reads visible rows, and
+          submits matching candidates. It does not interact with purchase controls.
+        </p>
+        <label>
+          Target limit
+          <input id="targetLimit" type="number" min="1" max="500" step="1" value="50" />
+        </label>
+        <div class="button-row">
+          <button id="start-discovery" type="button">Run Discovery</button>
+          <button id="stop-discovery" type="button">Stop</button>
+          <button id="refresh-discovery-status" type="button">Refresh status</button>
+        </div>
+        <p id="discovery-status" aria-live="polite">No discovery run yet.</p>
+      </section>
 
       <p>
         Set the same secret in the app's <code>.env</code> as <code>EXTENSION_SHARED_SECRET</code>.

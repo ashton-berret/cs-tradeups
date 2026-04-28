@@ -36,6 +36,13 @@
 		};
 	}
 
+	function priceBasisLabel(value: string) {
+		if (value === 'STEAM_NET') return 'Steam net';
+		if (value === 'STEAM_GROSS') return 'Steam gross';
+		if (value === 'THIRD_PARTY_REFERENCE') return 'Third-party ref';
+		return 'Manual estimate';
+	}
+
 	let mode = $state<Mode>('AD_HOC');
 	let planId = $state<string>('');
 	let targetRarity = $state<ItemRarity>('RESTRICTED');
@@ -461,7 +468,7 @@
 								<td class="px-2 py-2 text-right"><Money value={outcome.estimatedValue} /></td>
 								<td class="px-2 py-2 text-right"><Money value={outcome.contribution} /></td>
 								<td class="px-2 py-2 text-xs text-[var(--color-text-secondary)]">
-									{outcome.priceSource === 'OBSERVED_MARKET' ? 'Observed' : 'Plan fallback'}
+									{outcome.priceSource === 'OBSERVED_MARKET' ? priceBasisLabel(outcome.priceBasis) : 'Plan fallback'}
 								</td>
 							</tr>
 						{/each}
