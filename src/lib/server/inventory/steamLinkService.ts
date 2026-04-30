@@ -26,6 +26,7 @@ import { db } from '$lib/server/db/client';
 import { env } from '$env/dynamic/private';
 import { getSteamInventory, type SteamInventoryItem } from '$lib/server/steam/inventoryAdapter';
 import { ValidationError } from '$lib/server/http/errors';
+import { normalizeMarketHashLookup } from '$lib/server/utils/marketHash';
 
 export interface SteamLinkSummary {
   steamId: string;
@@ -44,6 +45,14 @@ export interface SteamLinkSummary {
   alreadyLinked: number;
   unlinkedSteamItems: SteamInventoryItem[];
   missingFromSteam: Array<{ inventoryItemId: string; steamAssetId: string; marketHashName: string }>;
+  /**
+   * Local rows that were eligible for linking (HELD or RESERVED, not yet
+   * linked) but whose marketHashName never matched any Steam asset name.
+   * Surfaced so the UI can explain "0 linked" outcomes — almost always a
+   * symptom of name drift (StatTrak ™, whitespace, casing) between manually
+   * entered local rows and Steam's canonical names.
+   */
+  unmatchedLocalRows: Array<{ inventoryItemId: string; marketHashName: string }>;
 }
 
 const LINKABLE_STATUSES = ['HELD', 'RESERVED_FOR_BASKET'] as const;
@@ -58,9 +67,6 @@ export async function syncInventoryWithSteam(opts: { force?: boolean } = {}): Pr
   const snapshot = await getSteamInventory(steamId, { force: opts.force });
 
   const localRows = await db.inventoryItem.findMany({
-    where: {
-      OR: [{ steamAssetId: null }, { steamAssetId: { not: null } }],
-    },
     select: {
       id: true,
       marketHashName: true,
@@ -72,7 +78,9 @@ export async function syncInventoryWithSteam(opts: { force?: boolean } = {}): Pr
     },
   });
 
-  // Index unlinked, linkable rows by marketHashName.
+  // Index unlinked, linkable rows by *normalized* marketHashName so casing,
+  // whitespace, and unicode-NFC drift between manually entered local rows and
+  // Steam's canonical names cannot silently suppress matches.
   const unlinkedByName = new Map<string, typeof localRows>();
   const linkedAssetIds = new Set<string>();
   for (const row of localRows) {
@@ -81,9 +89,10 @@ export async function syncInventoryWithSteam(opts: { force?: boolean } = {}): Pr
       continue;
     }
     if (!LINKABLE_STATUSES.includes(row.status as (typeof LINKABLE_STATUSES)[number])) continue;
-    const bucket = unlinkedByName.get(row.marketHashName) ?? [];
+    const key = normalizeMarketHashLookup(row.marketHashName);
+    const bucket = unlinkedByName.get(key) ?? [];
     bucket.push(row);
-    unlinkedByName.set(row.marketHashName, bucket);
+    unlinkedByName.set(key, bucket);
   }
   for (const bucket of unlinkedByName.values()) {
     bucket.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
@@ -102,7 +111,7 @@ export async function syncInventoryWithSteam(opts: { force?: boolean } = {}): Pr
   for (const steamItem of snapshot.items) {
     seenAssetIds.add(steamItem.steamAssetId);
     if (linkedAssetIds.has(steamItem.steamAssetId)) continue;
-    const bucket = unlinkedByName.get(steamItem.marketHashName);
+    const bucket = unlinkedByName.get(normalizeMarketHashLookup(steamItem.marketHashName));
     if (!bucket || bucket.length === 0) {
       unlinkedSteamItems.push(steamItem);
       continue;
@@ -167,6 +176,19 @@ export async function syncInventoryWithSteam(opts: { force?: boolean } = {}): Pr
     });
   }
 
+  // Anything left in the buckets is a linkable local row whose marketHashName
+  // never matched any Steam asset — surface so the UI can explain "0 linked"
+  // outcomes instead of silently dropping the rows.
+  const unmatchedLocalRows: SteamLinkSummary['unmatchedLocalRows'] = [];
+  for (const bucket of unlinkedByName.values()) {
+    for (const row of bucket) {
+      unmatchedLocalRows.push({
+        inventoryItemId: row.id,
+        marketHashName: row.marketHashName,
+      });
+    }
+  }
+
   if (updates.size > 0) {
     await db.$transaction(
       Array.from(updates.entries()).map(([inventoryItemId, update]) =>
@@ -186,5 +208,6 @@ export async function syncInventoryWithSteam(opts: { force?: boolean } = {}): Pr
     alreadyLinked: linkedAssetIds.size,
     unlinkedSteamItems,
     missingFromSteam,
+    unmatchedLocalRows,
   };
 }

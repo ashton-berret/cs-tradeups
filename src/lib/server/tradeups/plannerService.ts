@@ -34,7 +34,7 @@ import type { CandidateDecisionStatus } from '$lib/types/enums';
 import { db } from '$lib/server/db/client';
 import { withCatalogOutcomeFloatRanges } from './evaluation/catalogOutcomes';
 import { computeBasketEV } from './evaluation/expectedValue';
-import { averageFloat as avgFloat } from '$lib/server/utils/float';
+import { averageFloat as avgFloat, averageWearProportion } from '$lib/server/utils/float';
 import { percentChange, roundMoney, sumMoney } from '$lib/server/utils/money';
 import { buildPool, computeEligibility } from './planner/eligibility';
 import { basketEV, basketSlots, partitionPlan } from './planner/partition';
@@ -295,7 +295,9 @@ function buildAssignment(input: BuildAssignmentInput): CandidateAssignment {
   const { item, plan, plans, basket, slotIndex, role, summary, planAssignment } = input;
 
   const baseSlots = basketSlots(basket).filter((_, idx) => idx !== slotIndex);
-  const baseEV = computeBasketEV(baseSlots, plan).totalEV;
+  const baseEV = computeBasketEV(baseSlots, plan, {
+    averageWearProportion: averageWearProportion(baseSlots),
+  }).totalEV;
   const fullEV = basketEV(basket, plan);
   const marginal = roundMoney(fullEV - baseEV);
 

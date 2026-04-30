@@ -21,15 +21,16 @@
 // EV which is what the candidate ranking UI surfaces. A more accurate
 // marginal-contribution model is Phase 5 work (basket-aware ranking).
 //
-// Float-to-output-exterior mapping is currently approximate: basket
-// averageFloat is mapped through the global exterior bands (`utils/float`).
-// Per-skin float range tables are required to correctly price each output
-// at its projected exterior; tracked in docs/PROGRESS.md.
+// Float-to-output-exterior mapping uses CS2's normalized float formula:
+// each input's actual/raw float is converted to a relative float within that
+// input skin's min/max range, those relative floats are averaged, and the
+// average is mapped through each output skin's min/max range. Raw average
+// input float is kept only for display/filtering.
 
 import type { Prisma, TradeupPlan } from '@prisma/client';
 import type { BasketEVBreakdown } from '$lib/types/services';
 import { toNumber } from '$lib/server/utils/decimal';
-import { exteriorForFloat, projectOutputFloat } from '$lib/server/utils/float';
+import { averageWearProportion, exteriorForFloat, projectOutputFloat } from '$lib/server/utils/float';
 import { multiplyMoney, roundMoney } from '$lib/server/utils/money';
 import type { ItemExterior } from '$lib/types/enums';
 import type { PriceFreshness } from '$lib/server/marketPrices/freshness';
@@ -166,6 +167,7 @@ export function computeBasketEV(
         marketHashName: outcome.marketHashName,
         probability: Number(probability.toFixed(6)),
         estimatedValue: price.estimatedValue,
+        grossValue: price.grossValue,
         contribution,
         projectedFloat: projection.projectedFloat,
         projectedExterior: projection.projectedExterior,
@@ -271,8 +273,11 @@ export function computeMarginalContribution(
   candidate: BasketSlotContext,
   plan: PlanWithOutcomes,
 ): number {
-  const before = computeBasketEV(baseSlots, plan).totalEV;
-  const after = computeBasketEV([...baseSlots, candidate], plan).totalEV;
+  const beforeWearProportion = averageWearProportion(baseSlots);
+  const afterSlots = [...baseSlots, candidate];
+  const afterWearProportion = averageWearProportion(afterSlots);
+  const before = computeBasketEV(baseSlots, plan, { averageWearProportion: beforeWearProportion }).totalEV;
+  const after = computeBasketEV(afterSlots, plan, { averageWearProportion: afterWearProportion }).totalEV;
   return roundMoney(after - before);
 }
 
@@ -315,6 +320,7 @@ function resolveOutcomePrice(
   projectedMarketHashName: string | null,
 ): {
   estimatedValue: number;
+  grossValue: number;
   source: BasketEVBreakdown['perOutcomeContribution'][number]['priceSource'];
   marketHashName: string;
   observedAt: Date | null;
@@ -332,7 +338,8 @@ function resolveOutcomePrice(
 
     return {
       estimatedValue: netValue.value,
-      source: 'OBSERVED_MARKET',
+      grossValue: dynamicPrice.marketValue,
+      source: projectedMarketHashName == null ? 'OBSERVED_BASE_NAME' : 'OBSERVED_MARKET',
       marketHashName,
       observedAt: dynamicPrice.observedAt ?? null,
       freshness: isPriceFreshness(dynamicPrice.freshness) ? dynamicPrice.freshness : null,
@@ -340,8 +347,10 @@ function resolveOutcomePrice(
     };
   }
 
+  const fallbackValue = toNumber(outcome.estimatedMarketValue) ?? 0;
   return {
-    estimatedValue: toNumber(outcome.estimatedMarketValue) ?? 0,
+    estimatedValue: fallbackValue,
+    grossValue: fallbackValue,
     source: 'PLAN_FALLBACK',
     marketHashName,
     observedAt: null,

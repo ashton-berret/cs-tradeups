@@ -178,6 +178,15 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 			.join(' · ');
 	}
 
+	function formatDuration(ms: number) {
+		if (ms < 1000) return `${ms}ms`;
+		const seconds = Math.round(ms / 1000);
+		if (seconds < 60) return `${seconds}s`;
+		const minutes = Math.floor(seconds / 60);
+		const remSeconds = seconds % 60;
+		return remSeconds === 0 ? `${minutes}m` : `${minutes}m ${remSeconds}s`;
+	}
+
 	function freshnessSort(value: string) {
 		if (value === 'FRESH') return 0;
 		if (value === 'RECENT') return 1;
@@ -195,9 +204,21 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 					Inspect local price observations and refresh Steam watchlist prices for EV.
 				</p>
 			</div>
-			<form method="POST" action="?/refreshDependent" use:enhance>
-				<Button type="submit" variant="secondary">Refresh Steam watchlist</Button>
-			</form>
+			<div class="flex flex-col items-end gap-1">
+				<form method="POST" action="?/refreshDependent" use:enhance>
+					<Button type="submit" variant="secondary">Run sweep now</Button>
+				</form>
+				{#if data.sweeps.length > 0}
+					{@const last = data.sweeps[0]}
+					<div class="text-xs text-[var(--color-text-muted)]">
+						Last sweep: {relativeAge(last.startedAt)}
+						{#if last.finishedAt} · {last.written} written, {last.skipped} skipped{/if}
+						{#if last.errorCount > 0} · <span class="text-[var(--color-warning)]">{last.errorCount} error{last.errorCount === 1 ? '' : 's'}</span>{/if}
+					</div>
+				{:else}
+					<div class="text-xs text-[var(--color-text-muted)]">No sweeps recorded yet.</div>
+				{/if}
+			</div>
 		</div>
 	</div>
 
@@ -277,6 +298,45 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 	{/if}
 
 	<div class="space-y-4">
+		{#if data.sweeps.length > 0}
+			<details class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
+				<summary class="cursor-pointer px-4 py-2.5 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+					Recent sweeps ({data.sweeps.length})
+				</summary>
+				<div class="border-t border-[var(--color-border)] p-4">
+					<div class="grid gap-2">
+						{#each data.sweeps as sweep}
+							<div class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)]/60 px-3 py-2 text-xs">
+								<div>
+									<div class="font-semibold text-[var(--color-text-primary)]">
+										{sweep.trigger} · {formatDate(sweep.startedAt)}
+									</div>
+									<div class="mt-1 text-[var(--color-text-muted)]">
+										{relativeAge(sweep.startedAt)}
+										{#if sweep.durationMs != null} · {formatDuration(sweep.durationMs)}{/if}
+										{#if !sweep.finishedAt} · <span class="text-[var(--color-warning)]">in progress</span>{/if}
+									</div>
+								</div>
+								<div class="flex flex-wrap items-center gap-2 text-[var(--color-text-secondary)]">
+									<span>watchlist {sweep.watchlistCount}</span>
+									<span>·</span>
+									<span>{sweep.written} written</span>
+									<span>·</span>
+									<span>{sweep.skipped} skipped</span>
+									<span>·</span>
+									<span>{sweep.requested} req</span>
+									{#if sweep.errorCount > 0}
+										<Badge tone="warning">{sweep.errorCount} error{sweep.errorCount === 1 ? '' : 's'}</Badge>
+									{/if}
+									<span class="text-[var(--color-text-muted)]">· {sweep.candidatesReevaluated} cand · {sweep.basketsRecomputed} baskets</span>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			</details>
+		{/if}
+
 		<details class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
 			<summary class="cursor-pointer px-4 py-2.5 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
 				Import prices (CSV / JSON)

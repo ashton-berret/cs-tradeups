@@ -2,11 +2,7 @@ import { getCatalogSnapshot } from '$lib/server/catalog/catalogService';
 import { db } from '$lib/server/db/client';
 import { toNumber } from '$lib/server/utils/decimal';
 import type { ItemExterior, ItemRarity } from '$lib/types/enums';
-import type {
-  DiscoveryTarget,
-  DiscoveryTargetConstraint,
-  DiscoveryTargetsResult,
-} from '$lib/types/services';
+import type { DiscoveryTarget, DiscoveryTargetsResult } from '$lib/types/services';
 
 const STEAM_APP_ID = 730;
 
@@ -14,10 +10,9 @@ type ActivePlanRow = Awaited<ReturnType<typeof loadActivePlans>>[number];
 type ActiveRuleRow = ActivePlanRow['rules'][number];
 
 export async function buildDiscoveryTargets(): Promise<DiscoveryTargetsResult> {
-  const [plans, openBasketSlotsByPlan, queueSlotsByPlan, snapshot] = await Promise.all([
+  const [plans, openBasketSlotsByPlan, snapshot] = await Promise.all([
     loadActivePlans(),
     loadOpenBasketSlotsByPlan(),
-    loadQueueSlotsByPlan(),
     getCatalogSnapshot(),
   ]);
 
@@ -27,8 +22,8 @@ export async function buildDiscoveryTargets(): Promise<DiscoveryTargetsResult> {
 
   for (const plan of plans) {
     const planOpenSlots = openBasketSlotsByPlan.get(plan.id) ?? 0;
-    const planQueueSlots = queueSlotsByPlan.get(plan.id) ?? 0;
-    const planDemand = planOpenSlots + planQueueSlots;
+    const planDemand = planOpenSlots;
+    const marketHashPrefix = marketHashQualityPrefixForPlan(plan);
 
     for (const rule of plan.rules) {
       activeRules += 1;
@@ -40,9 +35,10 @@ export async function buildDiscoveryTargets(): Promise<DiscoveryTargetsResult> {
         for (const marketHash of skin.marketHashNames) {
           if (!exteriorMatchesRule(marketHash.exterior, rule)) continue;
           if (!floatRangesOverlap(skin.minFloat, skin.maxFloat, rule.minFloat, rule.maxFloat)) continue;
+          const targetMarketHashName = applyMarketHashPrefix(marketHash.marketHashName, marketHashPrefix);
 
           const target = getOrCreateTarget(targetsByMarketHashName, {
-            marketHashName: marketHash.marketHashName,
+            marketHashName: targetMarketHashName,
             exterior: marketHash.exterior,
             catalogSkinId: skin.id,
             catalogCollectionId: skin.collectionId,
@@ -69,11 +65,10 @@ export async function buildDiscoveryTargets(): Promise<DiscoveryTargetsResult> {
             maxFloat: rule.maxFloat,
             maxBuyPrice: toNumber(rule.maxBuyPrice),
             priority,
-            reason: constraintReason(plan.name, rule, planOpenSlots, planQueueSlots),
+            reason: constraintReason(plan.name, rule, planOpenSlots),
           });
           target.priority = Math.max(target.priority, priority);
           target.demand.openBasketSlots = Math.max(target.demand.openBasketSlots, planOpenSlots);
-          target.demand.queueSlots = Math.max(target.demand.queueSlots, planQueueSlots);
         }
       }
     }
@@ -107,7 +102,10 @@ export async function buildDiscoveryTargets(): Promise<DiscoveryTargetsResult> {
 async function loadActivePlans() {
   return db.tradeupPlan.findMany({
     where: { isActive: true },
-    include: { rules: { orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }] } },
+    include: {
+      rules: { orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }] },
+      outcomeItems: true,
+    },
     orderBy: { name: 'asc' },
   });
 }
@@ -123,14 +121,6 @@ async function loadOpenBasketSlotsByPlan(): Promise<Map<string, number>> {
     slotsByPlan.set(basket.planId, (slotsByPlan.get(basket.planId) ?? 0) + openSlots);
   }
   return slotsByPlan;
-}
-
-async function loadQueueSlotsByPlan(): Promise<Map<string, number>> {
-  const plans = await db.tradeupPlan.findMany({
-    where: { isActive: true },
-    select: { id: true },
-  });
-  return new Map(plans.map((plan) => [plan.id, 10]));
 }
 
 function skinMatchesRule(
@@ -177,7 +167,7 @@ function getOrCreateTarget(
     listingUrl: steamListingUrl(input.marketHashName),
     constraints: [],
     priority: 0,
-    demand: { openBasketSlots: 0, queueSlots: 0 },
+    demand: { openBasketSlots: 0 },
     ...input,
   };
   targetsByMarketHashName.set(input.marketHashName, target);
@@ -196,9 +186,9 @@ function constraintReason(
   planName: string,
   rule: ActiveRuleRow,
   openBasketSlots: number,
-  queueSlots: number,
 ): string {
-  const demand = openBasketSlots > 0 ? `${openBasketSlots} open basket slot(s)` : `${queueSlots} planner slot(s)`;
+  const demand =
+    openBasketSlots > 0 ? `${openBasketSlots} open basket slot(s)` : 'active plan, no open baskets';
   const maxBuy = rule.maxBuyPrice != null ? `, max buy $${toNumber(rule.maxBuyPrice)?.toFixed(2)}` : '';
   const floatBand =
     rule.minFloat != null || rule.maxFloat != null
@@ -209,4 +199,22 @@ function constraintReason(
 
 function normalize(value: string): string {
   return value.trim().toLowerCase();
+}
+
+function marketHashQualityPrefixForPlan(plan: ActivePlanRow): 'StatTrak™ ' | '' {
+  const values = [
+    plan.name,
+    plan.description,
+    plan.notes,
+    ...plan.outcomeItems.map((outcome) => outcome.marketHashName),
+  ];
+
+  return values.some((value) => typeof value === 'string' && /^StatTrak(?:™)?\b/i.test(value.trim()))
+    ? 'StatTrak™ '
+    : '';
+}
+
+function applyMarketHashPrefix(marketHashName: string, prefix: 'StatTrak™ ' | ''): string {
+  if (!prefix || marketHashName.startsWith(prefix)) return marketHashName;
+  return `${prefix}${marketHashName}`;
 }

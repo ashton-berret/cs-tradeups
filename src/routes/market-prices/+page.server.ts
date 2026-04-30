@@ -10,6 +10,7 @@ import type {
 import type {
 	MarketPriceFullRefreshResult
 } from '$lib/server/marketPrices/refreshService';
+import { getRecentSweeps } from '$lib/server/marketPrices/sweepService';
 
 const filterKeys = ['search', 'source', 'currency', 'latestOnly', 'sortBy', 'sortDir', 'page', 'limit'];
 
@@ -24,8 +25,9 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			`/api/market-prices/summary${copySearch(url, ['search', 'source', 'currency', 'latestOnly'])}`
 		);
 		const sources = await apiFetch<MarketPriceObservedSourceDTO[]>(fetch, '/api/market-prices/sources');
+		const sweeps = await getRecentSweeps(10);
 
-		return { page, summary, sources, filter: filterFromUrl(url) as MarketPriceLatestListFilter };
+		return { page, summary, sources, sweeps, filter: filterFromUrl(url) as MarketPriceLatestListFilter };
 	} catch (err) {
 		if (err instanceof ApiError) error(err.status, err.message);
 		throw err;

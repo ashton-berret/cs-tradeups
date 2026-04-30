@@ -111,6 +111,18 @@ export async function resolveCatalogCollectionIdentity(
 	};
 }
 
+export async function getCatalogSkinById(
+	catalogSkinId: string | null | undefined,
+): Promise<CatalogSkin | null> {
+	if (!catalogSkinId) {
+		return null;
+	}
+
+	const snapshot = await getCatalogSnapshot();
+	const index = getCatalogIndex(snapshot);
+	return index.skinsById.get(catalogSkinId) ?? null;
+}
+
 export async function getCatalogSkinFloatRange(
 	catalogSkinId: string | null | undefined,
 ): Promise<CatalogSkinFloatRange | null> {

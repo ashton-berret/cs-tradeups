@@ -84,6 +84,7 @@
 			marketable: boolean;
 		}>;
 		missingFromSteam: Array<{ inventoryItemId: string; steamAssetId: string; marketHashName: string }>;
+		unmatchedLocalRows: Array<{ inventoryItemId: string; marketHashName: string }>;
 	};
 
 	let steamSyncing = $state(false);
@@ -160,8 +161,13 @@
 				</ul>
 			{/if}
 			<div class="mt-2 text-xs text-[var(--color-text-muted)]">
-				{steamSummary.alreadyLinked} already linked · {steamSummary.unlinkedSteamItems.length} Steam items unmatched · {steamSummary.missingFromSteam.length} tracked items missing from Steam
+				{steamSummary.alreadyLinked} already linked · {steamSummary.unlinkedSteamItems.length} Steam items unmatched · {steamSummary.unmatchedLocalRows.length} local rows unmatched · {steamSummary.missingFromSteam.length} tracked items missing from Steam
 			</div>
+			{#if steamSummary.linked.length === 0 && steamSummary.unmatchedLocalRows.length > 0 && steamSummary.unlinkedSteamItems.length > 0}
+				<div class="mt-2 rounded-md border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 p-2 text-xs text-[var(--color-warning)]">
+					Nothing linked but Steam returned {steamSummary.unlinkedSteamItems.length} items and {steamSummary.unmatchedLocalRows.length} local rows are eligible. Most likely cause: market-hash-name drift (StatTrak ™, whitespace, casing). Open the disclosures below and compare names.
+				</div>
+			{/if}
 			{#if fifoLinked.length > 0}
 				<details class="mt-2">
 					<summary class="cursor-pointer text-xs text-[var(--color-warning)]">
@@ -193,6 +199,23 @@
 								{item.marketHashName}
 								<span class="ml-2 text-[var(--color-text-muted)]">
 									asset {item.steamAssetId}{item.tradable ? '' : ' · untradable'}{item.marketable ? '' : ' · unmarketable'}
+								</span>
+							</li>
+						{/each}
+					</ul>
+				</details>
+			{/if}
+			{#if steamSummary.unmatchedLocalRows.length > 0}
+				<details class="mt-2">
+					<summary class="cursor-pointer text-xs text-[var(--color-text-secondary)]">
+						Local rows with no matching Steam asset ({steamSummary.unmatchedLocalRows.length})
+					</summary>
+					<ul class="mt-2 max-h-48 overflow-y-auto pl-4 text-xs text-[var(--color-text-secondary)]">
+						{#each steamSummary.unmatchedLocalRows as row}
+							<li class="border-b border-[var(--color-border)] py-1">
+								{row.marketHashName}
+								<span class="ml-2 text-[var(--color-text-muted)]">
+									inventory {row.inventoryItemId.slice(-8)}
 								</span>
 							</li>
 						{/each}

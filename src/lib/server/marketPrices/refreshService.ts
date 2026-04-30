@@ -12,7 +12,10 @@ export interface MarketPriceImportRefreshResult {
 export interface MarketPriceFullRefreshResult {
   prices: MarketPriceRefreshJobResult;
   dependents: MarketPriceImportRefreshResult;
+  sweepId?: string;
 }
+
+export type MarketPriceSweepTrigger = 'MANUAL' | 'LOOP' | 'CALC';
 
 export async function refreshAfterMarketPriceImport(): Promise<MarketPriceImportRefreshResult> {
   const candidates = await reevaluateOpenCandidates();
@@ -42,9 +45,51 @@ export async function refreshAfterMarketPriceImport(): Promise<MarketPriceImport
   };
 }
 
-export async function refreshMarketPricesAndDependents(): Promise<MarketPriceFullRefreshResult> {
-  const prices = await refreshSteamMarketWatchlist();
-  const dependents = await refreshAfterMarketPriceImport();
+export async function refreshMarketPricesAndDependents(
+  options: { trigger?: MarketPriceSweepTrigger; notes?: string } = {},
+): Promise<MarketPriceFullRefreshResult> {
+  const trigger: MarketPriceSweepTrigger = options.trigger ?? 'MANUAL';
+  const sweep = await db.marketPriceSweep.create({
+    data: { trigger, notes: options.notes ?? null },
+    select: { id: true },
+  });
 
-  return { prices, dependents };
+  try {
+    const prices = await refreshSteamMarketWatchlist();
+    const dependents = await refreshAfterMarketPriceImport();
+
+    const requested = prices.summaries.reduce((sum, s) => sum + s.requested, 0);
+    const written = prices.summaries.reduce((sum, s) => sum + s.written, 0);
+    const skipped = prices.summaries.reduce((sum, s) => sum + s.skipped, 0);
+    const errors = prices.summaries.flatMap((s) =>
+      s.errors.map((e) => ({ adapter: s.adapter, ...e })),
+    );
+
+    await db.marketPriceSweep.update({
+      where: { id: sweep.id },
+      data: {
+        finishedAt: new Date(),
+        watchlistCount: prices.watchlistCount,
+        requested,
+        written,
+        skipped,
+        errorCount: errors.length,
+        candidatesReevaluated: dependents.candidatesReevaluated,
+        basketsRecomputed: dependents.basketsRecomputed,
+        errorsJson: errors.length > 0 ? errors : undefined,
+      },
+    });
+
+    return { prices, dependents, sweepId: sweep.id };
+  } catch (err) {
+    await db.marketPriceSweep.update({
+      where: { id: sweep.id },
+      data: {
+        finishedAt: new Date(),
+        errorCount: 1,
+        errorsJson: [{ message: err instanceof Error ? err.message : String(err) }],
+      },
+    });
+    throw err;
+  }
 }

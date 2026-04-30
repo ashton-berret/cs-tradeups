@@ -3,6 +3,7 @@ import type { PageServerLoad } from './$types';
 import { ApiError, apiFetch } from '$lib/client/api';
 import type { CandidateFilter, PaginatedResponse } from '$lib/types/domain';
 import type { CandidateDTO, InventoryItemDTO, PlanDTO } from '$lib/types/services';
+import { deleteIngestedCandidates } from '$lib/server/candidates/candidateService';
 
 const filterKeys = [
 	'status',
@@ -123,6 +124,21 @@ export const actions: Actions = {
 				body: JSON.stringify({})
 			});
 			return { success: `Refreshed ${result.count} stale candidate${result.count === 1 ? '' : 's'}.` };
+		} catch (err) {
+			return actionError(err, {});
+		}
+	},
+
+	deleteIngested: async () => {
+		try {
+			const result = await deleteIngestedCandidates();
+			const skipped =
+				result.skippedLinkedInventory > 0
+					? ` Skipped ${result.skippedLinkedInventory} linked to inventory.`
+					: '';
+			return {
+				success: `Deleted ${result.count} ingested candidate${result.count === 1 ? '' : 's'}.${skipped}`
+			};
 		} catch (err) {
 			return actionError(err, {});
 		}

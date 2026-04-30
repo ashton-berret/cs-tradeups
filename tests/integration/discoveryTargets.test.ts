@@ -108,4 +108,54 @@ describe('discovery watchlist targets', () => {
       'rule-b',
     ]);
   });
+
+  it('uses StatTrak listing pages when the active plan is StatTrak', async () => {
+    const snapshot = await getCatalogSnapshot();
+    const skin = snapshot.skins.find((entry) => entry.rarity === 'MIL_SPEC' && entry.marketHashNames.length > 0);
+    const outputSkin = snapshot.skins.find(
+      (entry) => entry.collectionId === skin?.collectionId && entry.rarity === 'RESTRICTED' && entry.marketHashNames.length > 0,
+    );
+    if (!skin || !outputSkin) throw new Error('Catalog fixture has no matching MIL_SPEC/RESTRICTED skins');
+    const hash = skin.marketHashNames[0];
+
+    await db.tradeupPlan.create({
+      data: {
+        id: 'plan-stattrak-discovery',
+        name: 'StatTrak Discovery Plan',
+        inputRarity: 'MIL_SPEC',
+        targetRarity: 'RESTRICTED',
+        isActive: true,
+      },
+    });
+    await db.tradeupOutcomeItem.create({
+      data: {
+        planId: 'plan-stattrak-discovery',
+        marketHashName: `StatTrak™ ${outputSkin.marketHashNames[0].marketHashName}`,
+        collection: outputSkin.collectionName,
+        rarity: 'RESTRICTED',
+        estimatedMarketValue: 10,
+        probabilityWeight: 1,
+      },
+    });
+    await db.tradeupPlanRule.create({
+      data: {
+        id: 'rule-stattrak-discovery',
+        planId: 'plan-stattrak-discovery',
+        catalogCollectionId: skin.collectionId,
+        collection: skin.collectionName,
+        rarity: 'MIL_SPEC',
+        exterior: hash.exterior,
+        minFloat: skin.minFloat,
+        maxFloat: skin.maxFloat,
+      },
+    });
+
+    const result = await buildDiscoveryTargets();
+    const statTrakHash = `StatTrak™ ${hash.marketHashName}`;
+    const target = result.targets.find((entry) => entry.marketHashName === statTrakHash);
+
+    expect(target).toBeTruthy();
+    expect(target?.listingUrl).toContain(encodeURIComponent(statTrakHash));
+    expect(result.targets.some((entry) => entry.marketHashName === hash.marketHashName)).toBe(false);
+  });
 });

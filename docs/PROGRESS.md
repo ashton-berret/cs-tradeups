@@ -2,8 +2,8 @@
 
 ## Status Snapshot
 
-**Project Status:** Phases 0-7 complete; Phase 8 mostly complete. Current priority is the plan-targeted Steam discovery loop: the app should surface relevant listings for the operator to inspect and buy manually, not merely price known items.
-**Last Updated:** 2026-04-28
+**Project Status:** Phases 0-7 complete; Phase 8 mostly complete. `/tradeups/saved` was rebuilt in the 2026-04-28 PM session: server-side filter/sort/search/pagination, structural duplicate detection with one-shot cleanup script, bulk recheck, catalog-resolved input names, and a redesigned card layout. Current priority is the plan-targeted Steam discovery loop: the app should surface relevant listings for the operator to inspect and buy manually, not merely price known items.
+**Last Updated:** 2026-04-29
 **Plan Reference:** See `docs/PLAN.md`
 
 ---
@@ -151,6 +151,77 @@ What currently exists:
   `/buy-queue` or the Steam Market bridge options page can run a paced collector that opens
   target pages, extracts visible rows, filters constraints, and submits
   matching candidates.
+- Saved tradeups (`/tradeups/saved`) operator overhaul:
+  - `listCombinations` accepts `{ search, collection, mode, targetRarity,
+    inputRarity, status, source, minProfit, minProfitPct, minProfitChance,
+    maxInputFloat, maxInputPrice, recheckStatus, outputs, sortBy, sortDir,
+    page, limit, collapseDuplicates }` and returns
+    `PaginatedResponse<CombinationDTO>`. Search hits name, notes, and each
+    input's weapon/skin/collection.
+  - `/tradeups/saved` filter UI exposes source/status/mode, input and target
+    rarity, collection contains, min profit, min profit %, min profit chance
+    %, max input float, max input price, recheck status (rechecked/never),
+    outputs presence, duplicates toggle, sort, direction, and page size.
+  - 14 sort options exposed in three optgroups: **Identity** (saved date, name,
+    collection, target rarity, input rarity), **Cost & value** (input cost,
+    estimated value, max price/item, max input float), and **Profit** (thesis
+    profit, thesis profit %, profit chance %, latest profit, latest delta vs
+    thesis). Rarity sorts use a `RARITY_RANK` lookup (`MIL_SPEC < RESTRICTED <
+    CLASSIFIED < COVERT`) instead of broken alphabetical order.
+  - Structural duplicate detection: `computeSignature({ inputRarity,
+    targetRarity, sorted inputs[(catalogSkinId or "c:"+collection, float
+    @4dp, price @2dp)] })`. Two combinations with the same signature are the
+    same tradeup. `listCombinations` collapses by signature by default;
+    representative pick is **active first, otherwise newest by `createdAt`**.
+    Other rows in the group attach to `representative.duplicates` so the UI
+    can surface them. Toggle off with `?showDuplicates=1`.
+  - One-shot cleanup script `tools/dedupe-combinations.ts` (dry-run by
+    default; `--apply` to delete). Already ran once: 51 duplicate groups
+    detected, 63 rows deleted, total combinations 557 → 494. Idempotent.
+  - Bulk recheck endpoint `POST /api/tradeups/combinations/recheck-batch`
+    takes `{ ids: string[] }` (max 500) and returns
+    `{ succeeded, failed: { id, message }[] }`. UI exposes per-row
+    checkboxes + "Select page" + "Recheck N" button.
+  - Save-time backfill: `saveCombination` now resolves
+    `weaponName`/`skinName` from the catalog at write time when
+    `catalogSkinId` is present. `backfillSkinNames` enriches DTOs from the
+    cached catalog index when reading legacy rows whose name columns are
+    null.
+  - `CombinationDTO` now exposes derived fields: `collections[]` (distinct,
+    in-order), `maxInputFloat`, `maxInputPrice`, `outputs[]`, `profitChance`,
+    `signature`, `duplicates`, `tradeupLabId`. Outputs and profit chance are
+    parsed from imported `notes` JSON (tradeuplab `outcomes` /
+    `published.successRate`) with a fallback path that derives them from
+    `thesisPlanSnapshot.outcomes` for local plan-mode saves.
+  - Card layout rebuilt: header strip (select + status/mode badges + name +
+    duplicates pill + actions); horizontal stats row (Collection, Tier,
+    Input cost, Estimated value, Profit, Profit %, Profit chance); bottom
+    row split into a left "Inputs required" panel (Quantity + actual
+    weapon/skin name, Max float, Max price/item) with a chevron toggle that
+    expands to per-slot detail rows showing `Weapon | Skin (Field-Tested) ·
+    float · price`, and a right "Possible outputs" table with Output, Chance,
+    Float, Price, Profit columns. The highest-priced output gets a green
+    star + subtle inset glow ("best output"). Optional latest-recheck strip
+    shows ΔEV / ΔProfit at the bottom.
+  - Collection label rules: 1 collection → "X Collection"; 2 → "X + Y
+    Collections"; >2 → "X + N Collections".
+  - Native dropdowns made readable on dark mode by adding `color-scheme:
+    dark` (`:root`) / `color-scheme: light` (`.light`) so Chromium uses
+    dark system chrome for the open `<select>` popup.
+  - TradeUpLab operations are now reachable from the page: "Import
+    TradeUpLab" runs `tools/import-tradeuplab.ts` via Bun with configurable
+    min probability/page count, and "Delete TradeUpLab imports" removes
+    imported combinations plus generated plans from activated imports when
+    those plans have no baskets/executions.
+  - Activating a saved combination now registers it as a plan server-side:
+    existing source plans are reactivated; ad-hoc combinations create a
+    generated active plan from saved inputs/outcomes and link back to it.
+  - Candidate cleanup support: `/candidates` has "Delete ingested" for
+    clearing Steam-bridge candidates while preserving manual rows and
+    inventory-linked candidates.
+  - Discovery target generation preserves StatTrak intent when an active
+    plan's name/notes/outcomes indicate StatTrak, so the bridge opens
+    `StatTrak™ ...` Steam listing pages instead of normal listing pages.
 
 What does not exist yet:
 
@@ -388,6 +459,15 @@ These decisions are currently stable enough to build against:
   skin selection, so output exterior projection is skipped. The math
   warnings panel makes this visible. Adding `CatalogSkinSelect` later
   removes the limitation without changing the existing endpoint contract.
+- Saved-combination duplicate handling (2026-04-28 PM): "duplicate" is
+  defined structurally — same input/target rarity and same set of
+  `(catalogSkinId or "c:"+collection, float@4dp, price@2dp)` input rows.
+  Title and computed profit numbers are derived from these fields, so they
+  are not part of the key. `listCombinations` collapses by signature by
+  default; the representative is **active first, otherwise newest by
+  `createdAt`**. The full set is reachable via `?showDuplicates=1`. Physical
+  cleanup runs via `tools/dedupe-combinations.ts --apply` and is the only
+  destructive path; it is not invoked automatically.
 
 ---
 
@@ -552,6 +632,141 @@ only then deepen analytics or scoring complexity.
 
 ## Recent Verification
 
+### 2026-04-29 — Explicit normalized float formula helpers
+
+- Audited trade-up float prediction paths. Output projection already used
+  per-input normalized wear proportions in the basket, calculator, and
+  planner EV paths; stale comments still described raw average projection.
+- Added strict formula helpers in `src/lib/server/utils/float.ts`:
+  `toRelativeFloat`, `fromRelativeFloat`, and
+  `calculateTradeupOutputFloat`. These validate invalid ranges and require
+  exactly 10 inputs for the complete-contract helper. Operational projection
+  continues to skip projection when required catalog ranges are unavailable.
+- Tightened `wearProportion` so floats outside their skin range return null
+  instead of broad clamping; values only within the existing float epsilon are
+  boundary-clamped for precision tolerance.
+- Marginal/planner EV comparisons now pass available per-slot normalized
+  projection context instead of computing unprojected EV.
+- Verification: `bun run check`; focused float/evaluation/planner/calculator
+  tests passed. Full `bun test tests/` passed 126 tests and failed the two
+  known candidate-ingestion catalog-rarity assertions (`AK-47 | Slate` now
+  links as `RESTRICTED` from the corrected catalog snapshot while the tests
+  still expect `MIL_SPEC`).
+
+### 2026-04-29 — Saved tradeup Steam-net profitability + calculator row copy
+
+- Saved TradeUpLab combinations now present imported output prices as Steam-net
+  proceeds, recalculate imported thesis EV/profit/profit chance from net
+  output proceeds for DTO display, activation, derived filters, and in-memory
+  sorting, and label saved output prices as net prices in `/tradeups/saved`.
+- `/calculator` input rows now have a compact Copy button that duplicates the
+  row into the next empty row, then the first empty row, and finally the
+  following row when all rows are filled.
+- Verification: `bun run check`; `bun test tests/client/calculatorRows.test.ts`;
+  `bun test tests/integration/savedTradeupFilters.test.ts` outside the sandbox
+  after the known Windows `EPERM` read on `node_modules/esm-env`.
+
+### 2026-04-28 PM — Saved tradeups overhaul
+
+Goal: turn `/tradeups/saved` from a 557-row chronological wall into a usable
+operator surface, fix latent schema dead-code, and clean up structural
+duplicates from the tradeuplab importer.
+
+Server (`src/lib/server/tradeups/combinationService.ts`):
+
+- `listCombinations` now takes `CombinationListFilter` and returns
+  `PaginatedResponse<CombinationDTO>`. Removed dead `where: undefined :
+  undefined` no-op from the previous implementation. DB-side fast path covers
+  `createdAt | name | inputCost | estimatedValue | thesisProfit |
+  thesisProfitPct` when collapse is off; otherwise an in-memory path loads
+  all matching rows, runs `collapseBySignature`, sorts via
+  `compareCombinations`, and paginates representatives. ~Hundreds of rows is
+  fine for the local single-user model.
+- `saveCombination` resolves `weaponName`/`skinName` from the catalog at
+  write time. The `weaponName`/`skinName` columns were previously hardcoded
+  to null on every save — now they're populated and useful for search.
+- `backfillSkinNames(combinations[])` enriches DTOs from the cached catalog
+  `skinsById` index (added `getCatalogSkinById` to
+  `src/lib/server/catalog/linkage.ts`). Used after listing/loading legacy
+  rows whose name columns are null.
+- `computeSignature` produces a stable structural key from
+  `inputRarity:targetRarity::sorted(catalogSkinId|float@4dp|price@2dp)`. Two
+  combinations sharing a signature describe the same tradeup, regardless of
+  imported title.
+- `collapseBySignature` groups DTOs and picks the representative (active
+  first, else newest). Other group members attach to `representative.duplicates`.
+- `recheckBatch(ids[])` returns `{ succeeded[], failed[] }` per id, used by
+  the new bulk recheck endpoint.
+
+API (`src/routes/api/tradeups/combinations`):
+
+- `GET +server.ts` accepts query params: `search, mode, targetRarity,
+  inputRarity, status, source, sortBy, sortDir, page, limit, showDuplicates`.
+  `pickEnum` allowlist updated with all 14 sort keys.
+- `POST recheck-batch/+server.ts` accepts `{ ids: string[] }` (max 500) and
+  delegates to `recheckBatch`.
+
+Cleanup tooling (`tools/dedupe-combinations.ts`):
+
+- Loads all combinations, signs each, groups, prints representative + dupes
+  per group with their tradeupLab IDs. `--apply` deletes the duplicates;
+  cascade handles inputs and snapshots. Idempotent.
+- Already executed once: 51 duplicate groups, 63 rows deleted. Combinations
+  557 → 494. Re-run dry-run reports `Rows to delete: 0`. Confirmed
+  `#1376` group correctly absorbed `#1420, #1428, #1446, #1458, #1460`.
+
+Page UI (`src/routes/tradeups/saved/+page.svelte` + page.server.ts):
+
+- Filter bar uses a full-width 8-column grid (collapses to 4/2 at smaller
+  breakpoints). Each select has uniform `h-9` height. Includes a "Show
+  duplicates" checkbox spanning the full row.
+- Cards rebuilt to: header strip (checkbox · Active/Draft + Mode badges ·
+  name · duplicates pill + chevron · actions); 7-column stats row (Collection
+  · Tier `Industrial → Mil-Spec` · Input cost · Estimated value · Profit ·
+  Profit % · Profit chance %), with profit columns colored by sign; bottom
+  row split `[260px | 1fr]` between "Inputs required" (Quantity / Max float /
+  Max price/item with chevron toggle to expand all 10 slots showing
+  `1. Weapon | Skin (Field-Tested) · float · price`) and "Possible outputs"
+  table (Output, Chance, Float, Price, Profit) with the best-priced row
+  highlighted via `color-mix(in srgb, var(--color-success) 10%, transparent)`
+  background and inset green glow + ★ glyph.
+- Optional latest-recheck strip below the bottom row shows ΔEV / ΔProfit when
+  a snapshot exists.
+- Collection display: 1 → "X Collection"; 2 → "X + Y Collections"; >2 →
+  "X + N Collections".
+- Per-card open state for inputs detail and duplicates panel uses local
+  `Set<string>` so multiple cards expand independently.
+- All native `<select>` popups restyled by adding `color-scheme: dark`
+  (`:root`) / `color-scheme: light` (`.light`) in `src/app.css`, plus
+  `select option/optgroup { background-color: var(--color-surface); color:
+  var(--color-text-primary); }`. Fixes the white-bg/light-text popup issue
+  that affected dark mode on Chromium.
+
+DTO additions:
+
+- `CombinationDTO` adds `collections[]`, `maxInputFloat`, `maxInputPrice`,
+  `outputs[]` (new `CombinationOutputDTO`: `marketHashName`, `displayName`,
+  `exterior`, `floatValue`, `price`, `probability` 0..1), `profitChance`
+  (0..100 or null), `signature`, `duplicates[]`, `tradeupLabId`.
+- Outputs + profitChance derived in `deriveOutputsAndChance`: prefers parsed
+  imported `notes` JSON (`outcomes[]`, `published.successRate`); falls back
+  to `thesisPlanSnapshot.outcomes` with profit chance computed as
+  `Σ probability × (price > totalCost)`.
+
+Verification:
+
+- `bun run check`: 0 errors, 0 warnings, all sessions.
+- API smoke (port 5179/5180/5181/5182):
+  - GET returns paginated `{ data, total, page, limit, totalPages }`.
+  - All 14 sort keys return rows ordered by the chosen field (confirmed via
+    desc-sorted top-2 inspection for inputCost, estimatedValue, profitChance,
+    targetRarity, collection, maxFloat, maxInputPrice).
+  - `recheck-batch` rejects unknown ids cleanly.
+  - With 0 remaining duplicates, default and `?showDuplicates=1` return the
+    same 494 totals.
+- `bun test tests/`: 110 pass; 2 pre-existing `candidate ingestion
+  integration` failures confirmed unrelated by stash-test on `main`.
+
 ### 2026-04-28
 
 - Added `/explore` catalog browser and corrected the CS2 catalog importer to
@@ -618,9 +833,9 @@ Each item is small and independent — pick whichever feels relevant when workin
 - **Linker matching tests.** Three unit tests covering FLOAT_EXACT / FLOAT_BACKFILL / FIFO_FALLBACK paths in steamLinkService. Protects against regression when the adapter or matching logic shifts.
 - **Pattern-aware EV bonus.** TradeupOutcomeItem could carry an optional patternBonus map for known premium patterns (e.g., Case Hardened seed 387 = Scar Pattern → 5x base value). Out-of-MVP but worth a stub if it ever becomes load-bearing.
 - **Sticker-aware EV.** Stickers don't transfer through tradeups — they're destroyed when the contract executes. So a sticker-laden basket input is a *worse* trade-up input than its market price implies. Future: warn when a basket includes high-sticker-value items.
-- **Tradeuplab quarantine investigation.** The importer quarantined 6 very-low-ID cards (e.g., #1209, #1226, #1238, #1260, #1278, #11966) as "invalid card" — they predate the current DOM structure. Sub-1% of the import; only worth fixing if you actually want those specific historical combos.
-- **Bulk recheck across saved combinations.** With ~550 imported combos, hitting "Recheck" individually is tedious. A batch-recheck endpoint (POST /api/tradeups/combinations/recheck-all or similar) that runs through all active or all draft combinations in one go would let you sort by current delta vs thesis to find the still-profitable ones quickly.
-- **Filter / sort on /tradeups/saved.** With ~550 entries, the page becomes a wall. Add filters by target rarity / collection / source plus sort by latest profit delta. Currently it's a chronological scroll.
+- **Tradeuplab quarantine/data-quality investigation.** The importer quarantined 6 very-low-ID cards (e.g., #1209, #1226, #1238, #1260, #1278, #11966) as "invalid card" — they predate the current DOM structure. More importantly, imported TradeUpLab thesis numbers may be stale or use assumptions that do not match current Steam-net EV, so imported rows should be treated as discovery leads until audited/rechecked against current local prices.
+- ~~**Bulk recheck across saved combinations.**~~ Done 2026-04-28 PM. `POST /api/tradeups/combinations/recheck-batch` + per-row checkbox UI.
+- ~~**Filter / sort on /tradeups/saved.**~~ Done 2026-04-28 PM, expanded after operator feedback. Server-side filters now include search, collection, status, mode, source, input/target rarity, min profit, min profit %, min profit chance %, max input float, max input price, recheck status, output presence, and duplicate display; 14 sort keys grouped (Identity / Cost & value / Profit), pagination 25–200/page.
 - **Optional: seed MarketPriceObservation from imported tradeuplab outcome prices.** The importer stashes outcome prices in notes JSON with their `identifiedAt` date. Could be written as observations tagged `source: 'TRADEUPLAB_IMPORT'` so historical-but-better-than-nothing prices populate the table. Caveat: many imported combos are months old, so the prices would be marked STALE/OLD by freshness logic.
 
 ### Random things to fix/notes (2026-04-26 — all addressed in 2026-04-27 session)

@@ -53,7 +53,7 @@ describe('expected value', () => {
     expect(computeBasketEV(slots, testPlan).totalEV).toBe(25);
   });
 
-  it('projects catalog outcome float and exterior when average input float is supplied', () => {
+  it('projects catalog outcome float and exterior when average relative input float is supplied', () => {
     const testPlan = plan({}, {
       outcomeItems: [
         withProjection(outcome({
@@ -135,7 +135,7 @@ describe('expected value', () => {
     expect(ev.totalEV).toBe(10);
     expect(ev.perOutcomeContribution[0]).toMatchObject({
       estimatedValue: 10,
-      priceSource: 'OBSERVED_MARKET',
+      priceSource: 'OBSERVED_BASE_NAME',
       priceBasis: 'STEAM_NET',
     });
   });

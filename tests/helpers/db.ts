@@ -26,6 +26,7 @@ export async function applyMigrations(db: PrismaClient): Promise<void> {
     '20260426165249_phase8_tradeup_combinations/migration.sql',
     '20260426180000_phase8_inventory_steam_asset/migration.sql',
     '20260427120000_tradeup_combination_lab_id/migration.sql',
+    '20260430120000_market_price_sweeps/migration.sql',
   ];
 
   for (const file of migrationFiles) {

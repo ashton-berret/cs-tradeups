@@ -11,19 +11,13 @@
 	import { ITEM_RARITIES, RARITY_LABELS, type ItemRarity } from '$lib/types/enums';
 	import type { PageData } from './$types';
 	import type { BasketEVBreakdown } from '$lib/types/services';
+	import { duplicateCalculatorInputRow, type CalculatorInputRow } from '$lib/client/calculatorRows';
 
 	let { data }: { data: PageData } = $props();
 
 	type Mode = 'PLAN' | 'AD_HOC';
 
-	type Row = {
-		skinDisplay: string;
-		skinId: string;
-		collection: string;
-		catalogCollectionId: string;
-		floatValue: string;
-		price: string;
-	};
+	type Row = CalculatorInputRow;
 
 	function emptyRow(): Row {
 		return {
@@ -47,7 +41,28 @@
 	let planId = $state<string>('');
 	let targetRarity = $state<ItemRarity>('RESTRICTED');
 	let inputRarity = $state<ItemRarity | ''>('');
+	let isStatTrak = $state(false);
 	let rows = $state<Row[]>(Array.from({ length: 10 }, () => emptyRow()));
+
+	// Catalog-skin rarity index — populated once on mount so the rarity helpers
+	// below are pure $derived (no async work in render path).
+	let skinRarityById = $state<Map<string, ItemRarity>>(new Map());
+
+	// One tier above each rarity, in CS2 trade-up order. COVERT has no upgrade —
+	// CS2 does not allow Covert→? trade-ups.
+	const RARITY_ORDER: ItemRarity[] = [
+		'CONSUMER_GRADE',
+		'INDUSTRIAL_GRADE',
+		'MIL_SPEC',
+		'RESTRICTED',
+		'CLASSIFIED',
+		'COVERT',
+	];
+	function oneTierAbove(rarity: ItemRarity): ItemRarity | null {
+		const idx = RARITY_ORDER.indexOf(rarity);
+		if (idx < 0 || idx >= RARITY_ORDER.length - 1) return null;
+		return RARITY_ORDER[idx + 1];
+	}
 	let result = $state<{
 		totalCost: number;
 		averageFloat: number | null;
@@ -60,6 +75,10 @@
 	} | null>(null);
 	let pending = $state(false);
 	let errorMessage = $state<string | null>(null);
+	// Toggle the outcome table between net (after Steam fees) and gross (pre-fee)
+	// values. Gross is what the item is "worth" if reused as a tradeup input
+	// rather than sold on Steam — useful for laddered tradeup planning.
+	let showGross = $state(false);
 
 	// Save-as-combination state.
 	let saveName = $state('');
@@ -69,8 +88,14 @@
 	let saveError = $state<string | null>(null);
 	let savedId = $state<string | null>(null);
 
+	// `Input type="number"` with `bind:value` coerces row.price/row.floatValue
+	// from string to number once the user types — defend the .trim() callers.
+	const trimNumeric = (value: string | number | null | undefined) =>
+		String(value ?? '').trim();
+
 	const filledRowCount = $derived(
-		rows.filter((r) => (r.collection.trim() || r.skinDisplay.trim()) && r.price.trim()).length,
+		rows.filter((r) => (r.collection.trim() || r.skinDisplay.trim()) && trimNumeric(r.price))
+			.length,
 	);
 	const selectedPlan = $derived(data.plans.find((p) => p.id === planId) ?? null);
 
@@ -82,6 +107,13 @@
 			if (!row.skinId) continue;
 			loadSkins()
 				.then((skins) => {
+					if (skinRarityById.size !== skins.length) {
+						const next = new Map<string, ItemRarity>();
+						for (const skin of skins) {
+							if (skin.rarity) next.set(skin.id, skin.rarity);
+						}
+						skinRarityById = next;
+					}
 					const skin = skins.find((s) => s.id === row.skinId);
 					if (skin && row.catalogCollectionId !== skin.collectionId) {
 						row.collection = skin.collectionName;
@@ -94,14 +126,47 @@
 		}
 	});
 
+	// Rarity inference from currently filled rows. Powers auto-target-rarity
+	// and the mismatch validation below. Only populated rows with a catalog
+	// skin id contribute — free-text rows can't be checked.
+	const populatedRowRarities = $derived.by(() => {
+		const out: ItemRarity[] = [];
+		for (const row of rows) {
+			if (!row.skinId) continue;
+			const rarity = skinRarityById.get(row.skinId);
+			if (rarity) out.push(rarity);
+		}
+		return out;
+	});
+	const inferredInputRarity = $derived.by((): ItemRarity | null => {
+		if (populatedRowRarities.length === 0) return null;
+		const first = populatedRowRarities[0];
+		return populatedRowRarities.every((r) => r === first) ? first : null;
+	});
+	const rarityMismatch = $derived(
+		populatedRowRarities.length > 1 && inferredInputRarity == null,
+	);
+	const inferredTargetRarity = $derived(
+		inferredInputRarity ? oneTierAbove(inferredInputRarity) : null,
+	);
+
+	// When inputs unambiguously imply a target rarity, follow them. The user
+	// can still override the dropdown — we only sync the value, we don't lock
+	// the control.
+	$effect(() => {
+		if (inferredTargetRarity && targetRarity !== inferredTargetRarity) {
+			targetRarity = inferredTargetRarity;
+		}
+	});
+
 	async function calculate() {
 		errorMessage = null;
 		pending = true;
 		try {
 			const inputs = rows
-				.filter((r) => (r.collection.trim() || r.skinDisplay.trim()) && r.price.trim())
+				.filter((r) => (r.collection.trim() || r.skinDisplay.trim()) && trimNumeric(r.price))
 				.map((r) => {
-					const float = r.floatValue.trim();
+					const float = trimNumeric(r.floatValue);
 					return {
 						collection: r.collection.trim() || r.skinDisplay.trim(),
 						catalogSkinId: r.skinId || undefined,
@@ -112,6 +177,12 @@
 				});
 			if (inputs.length === 0) {
 				errorMessage = 'Fill at least one input row (collection/skin + price required).';
+				pending = false;
+				return;
+			}
+			if (mode === 'AD_HOC' && rarityMismatch) {
+				errorMessage =
+					'Inputs span multiple rarities. CS2 trade-ups require all 10 inputs at the same rarity.';
 				pending = false;
 				return;
 			}
@@ -126,6 +197,7 @@
 			} else {
 				body.targetRarity = targetRarity;
 				if (inputRarity) body.inputRarity = inputRarity;
+				if (isStatTrak) body.isStatTrak = true;
 			}
 			result = await apiFetch(fetch, '/api/tradeups/calculator', {
 				method: 'POST',
@@ -154,11 +226,15 @@
 		saveError = null;
 	}
 
+	function duplicateRow(idx: number) {
+		rows = duplicateCalculatorInputRow(rows, idx);
+	}
+
 	function buildInputsForSave() {
 		return rows
-			.filter((r) => (r.collection.trim() || r.skinDisplay.trim()) && r.price.trim())
+			.filter((r) => (r.collection.trim() || r.skinDisplay.trim()) && trimNumeric(r.price))
 			.map((r) => {
-				const float = r.floatValue.trim();
+				const float = trimNumeric(r.floatValue);
 				return {
 					collection: r.collection.trim() || r.skinDisplay.trim(),
 					catalogSkinId: r.skinId || undefined,
@@ -189,6 +265,7 @@
 			} else {
 				body.targetRarity = targetRarity;
 				if (inputRarity) body.inputRarity = inputRarity;
+				if (isStatTrak) body.isStatTrak = true;
 			}
 			const created = await apiFetch<{ id: string }>(fetch, '/api/tradeups/combinations', {
 				method: 'POST',
@@ -253,6 +330,11 @@
 							class="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]"
 						>
 							Target rarity (output)
+							{#if inferredTargetRarity}
+								<span class="ml-2 text-xs font-normal text-[var(--color-text-muted)]">
+									(auto from inputs)
+								</span>
+							{/if}
 						</label>
 						<select
 							id="calc-target-rarity"
@@ -263,6 +345,17 @@
 								<option value={rarity}>{RARITY_LABELS[rarity]}</option>
 							{/each}
 						</select>
+						{#if inferredInputRarity}
+							<p class="mt-1 text-xs text-[var(--color-text-muted)]">
+								Inputs are {RARITY_LABELS[inferredInputRarity]} → outputs are
+								{inferredTargetRarity ? RARITY_LABELS[inferredTargetRarity] : '— (no upgrade)'}.
+							</p>
+						{/if}
+						{#if rarityMismatch}
+							<p class="mt-1 text-xs text-[var(--color-danger)]">
+								Inputs span multiple rarities. All 10 inputs must share the same rarity.
+							</p>
+						{/if}
 					</div>
 					<div>
 						<label
@@ -283,6 +376,15 @@
 						</select>
 					</div>
 				</div>
+				<label
+					class="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]"
+				>
+					<input type="checkbox" bind:checked={isStatTrak} />
+					<span class="font-semibold text-[var(--color-warning)]">StatTrak™</span>
+					<span class="text-xs text-[var(--color-text-muted)]">
+						(prices and outcomes use the StatTrak listings — all 10 inputs must be StatTrak)
+					</span>
+				</label>
 				<p class="text-xs text-[var(--color-text-muted)]">
 					Outcomes are derived from the catalog: every skin at the target rarity in the same
 					collection as one of your inputs. Pricing comes from your latest market observations;
@@ -330,9 +432,17 @@
 		</div>
 		<div class="space-y-2">
 			{#each rows as row, idx}
-				<div class="grid grid-cols-1 gap-2 md:grid-cols-[28px_2fr_1fr_120px_120px]">
-					<div class="flex items-center text-xs text-[var(--color-text-muted)]">
-						{idx + 1}
+				<div class="grid grid-cols-1 gap-2 md:grid-cols-[28px_2fr_1fr_120px_120px_56px]">
+					<div class="flex items-center gap-1 text-xs text-[var(--color-text-muted)]">
+						<span>{idx + 1}</span>
+						{#if isStatTrak}
+							<span
+								class="font-semibold text-[var(--color-warning)]"
+								title="StatTrak™ — all 10 inputs must share StatTrak status"
+							>
+								ST
+							</span>
+						{/if}
 					</div>
 					<CatalogSkinSelect
 						name={`row-${idx}-skin`}
@@ -363,15 +473,29 @@
 						placeholder="Price"
 						bind:value={row.price}
 					/>
+					<button
+						type="button"
+						class="inline-flex h-10 items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-2 text-xs font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-border-hover)] hover:bg-[var(--color-bg-surface-overlay)] hover:text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+						title="Duplicate row"
+						aria-label={`Duplicate row ${idx + 1}`}
+						onclick={() => duplicateRow(idx)}
+					>
+						Copy
+					</button>
 				</div>
 			{/each}
 		</div>
 		<div class="mt-4 flex items-center gap-3">
 			<Button onclick={calculate} disabled={pending}>
-				{pending ? 'Calculating…' : 'Calculate'}
+				{pending ? 'Fetching prices… (up to ~30s on first run)' : 'Calculate'}
 			</Button>
 			<Button variant="secondary" onclick={clearAll} disabled={pending}>Clear</Button>
 		</div>
+		<p class="mt-2 text-xs text-[var(--color-text-muted)]">
+			Calculate auto-refreshes Steam priceoverview for the projected output exterior of each
+			outcome (one name per outcome). Cold runs may take 5–30 seconds; observations under 30 minutes
+			old are reused.
+		</p>
 		{#if errorMessage}
 			<p class="mt-3 text-sm text-[var(--color-danger)]">{errorMessage}</p>
 		{/if}
@@ -433,9 +557,20 @@
 		</Card>
 
 		<Card padding="md">
-			<h2 class="mb-3 text-sm font-semibold text-[var(--color-text-secondary)]">
-				Per-outcome contribution
-			</h2>
+			<div class="mb-3 flex items-center justify-between gap-3">
+				<h2 class="text-sm font-semibold text-[var(--color-text-secondary)]">
+					Per-outcome contribution
+				</h2>
+				<Button
+					type="button"
+					size="sm"
+					variant={showGross ? 'primary' : 'secondary'}
+					onclick={() => (showGross = !showGross)}
+					title="Pre-fee value — what the item is worth as a re-usable tradeup input rather than sold on Steam"
+				>
+					{showGross ? 'Showing pre-fee' : 'Show pre-fee'}
+				</Button>
+			</div>
 			{#if result.ev.perOutcomeContribution.length === 0}
 				<p class="text-sm text-[var(--color-text-muted)]">No outcome contributions.</p>
 			{:else}
@@ -445,13 +580,17 @@
 							<th class="px-2 py-2">Outcome</th>
 							<th class="px-2 py-2">Projected exterior</th>
 							<th class="px-2 py-2 text-right">Probability</th>
-							<th class="px-2 py-2 text-right">Estimated value</th>
+							<th class="px-2 py-2 text-right">{showGross ? 'Pre-fee value' : 'Estimated value'}</th>
 							<th class="px-2 py-2 text-right">Contribution</th>
 							<th class="px-2 py-2">Pricing</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each result.ev.perOutcomeContribution as outcome}
+							{@const displayValue = showGross ? outcome.grossValue : outcome.estimatedValue}
+							{@const displayContribution = showGross
+								? outcome.grossValue * outcome.probability
+								: outcome.contribution}
 							<tr class="border-t border-[var(--color-border)]">
 								<td class="px-2 py-2">
 									{outcome.projectedMarketHashName ?? outcome.marketHashName}
@@ -465,14 +604,35 @@
 									{/if}
 								</td>
 								<td class="px-2 py-2 text-right">{(outcome.probability * 100).toFixed(2)}%</td>
-								<td class="px-2 py-2 text-right"><Money value={outcome.estimatedValue} /></td>
-								<td class="px-2 py-2 text-right"><Money value={outcome.contribution} /></td>
+								<td class="px-2 py-2 text-right"><Money value={displayValue} /></td>
+								<td class="px-2 py-2 text-right"><Money value={displayContribution} /></td>
 								<td class="px-2 py-2 text-xs text-[var(--color-text-secondary)]">
-									{outcome.priceSource === 'OBSERVED_MARKET' ? priceBasisLabel(outcome.priceBasis) : 'Plan fallback'}
+									{#if outcome.priceSource === 'OBSERVED_MARKET'}
+										{priceBasisLabel(outcome.priceBasis)}
+									{:else if outcome.priceSource === 'OBSERVED_BASE_NAME'}
+										Observed (base name)
+									{:else}
+										Plan fallback
+									{/if}
 								</td>
 							</tr>
 						{/each}
 					</tbody>
+					{#if showGross}
+						{@const grossTotal = result.ev.perOutcomeContribution.reduce(
+							(sum, o) => sum + o.grossValue * o.probability,
+							0,
+						)}
+						<tfoot>
+							<tr class="border-t border-[var(--color-border)] text-xs text-[var(--color-text-secondary)]">
+								<td class="px-2 py-2 font-semibold" colspan="4">Pre-fee EV (sum)</td>
+								<td class="px-2 py-2 text-right font-semibold">
+									<Money value={grossTotal} />
+								</td>
+								<td class="px-2 py-2 text-[var(--color-text-muted)]">no Steam fee deducted</td>
+							</tr>
+						</tfoot>
+					{/if}
 				</table>
 			{/if}
 		</Card>

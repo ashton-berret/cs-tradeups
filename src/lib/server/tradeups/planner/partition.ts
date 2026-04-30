@@ -200,9 +200,9 @@ function pickAnyImprovingForBasket(
   let best: PoolItem | null = null;
   let bestDelta = 0;
   const baseSlots = basketSlots(basket);
-  const baseEV = computeBasketEV(baseSlots, plan).totalEV;
+  const baseEV = slotsEV(baseSlots, plan);
   for (const item of items) {
-    const trialEV = computeBasketEV([...baseSlots, toSlotContext(item)], plan).totalEV;
+    const trialEV = slotsEV([...baseSlots, toSlotContext(item)], plan);
     const delta = trialEV - baseEV;
     if (delta > bestDelta) {
       bestDelta = delta;
@@ -210,6 +210,11 @@ function pickAnyImprovingForBasket(
     }
   }
   return best;
+}
+
+function slotsEV(slots: BasketSlotContext[], plan: PlanWithRulesAndOutcomes): number {
+  const avgWearProportion = averageWearProportion(slots);
+  return computeBasketEV(slots, plan, { averageWearProportion: avgWearProportion }).totalEV;
 }
 
 function groupByCollection(items: PoolItem[]): Map<string, PoolItem[]> {
@@ -227,6 +232,11 @@ function groupByCollection(items: PoolItem[]): Map<string, PoolItem[]> {
  * EV the item's collection contributes to a basket if it filled all 10 slots.
  * Used as a sort key when forming mixed baskets — items from collections
  * with no outcomes get 0 and sink to the end.
+ *
+ * The phantom slots carry the seed item's float + per-skin range so the EV
+ * path projects to the correct output exterior. Without this, `computeBasketEV`
+ * falls back to base-name pricing and ranks collections by under-priced (or
+ * wrong-tier) values.
  */
 function itemCollectionEV(item: PoolItem, plan: PlanWithRulesAndOutcomes): number {
   if (!item.collectionKey) return 0;
@@ -234,11 +244,14 @@ function itemCollectionEV(item: PoolItem, plan: PlanWithRulesAndOutcomes): numbe
     inventoryItemId: `__phantom__:${idx}`,
     collection: item.collectionKey,
     catalogCollectionId: null,
-    exterior: null,
-    floatValue: null,
+    exterior: item.exterior,
+    floatValue: item.floatValue,
     rarity: item.rarity,
+    inputMinFloat: item.inputMinFloat,
+    inputMaxFloat: item.inputMaxFloat,
   }));
-  return computeBasketEV(slots, plan).totalEV;
+  const avgWearProportion = averageWearProportion(slots);
+  return computeBasketEV(slots, plan, { averageWearProportion: avgWearProportion ?? undefined }).totalEV;
 }
 
 function removeFrom(items: PoolItem[], target: PoolItem): void {

@@ -32,6 +32,13 @@ export const calculatorRequestSchema = z
     planId: cuidSchema.optional(),
     targetRarity: itemRaritySchema.optional(),
     inputRarity: itemRaritySchema.optional(),
+    /**
+     * StatTrak applies only in ad-hoc mode — plan mode uses whatever marketHashNames
+     * the plan's outcomes already carry. CS2 enforces that all 10 inputs must share
+     * StatTrak status; the math is identical (rarity, float ranges, probabilities)
+     * but every output marketHashName takes the `StatTrak™ ` prefix for pricing.
+     */
+    isStatTrak: z.boolean().optional(),
     inputs: z.array(calculatorInputSchema).min(1).max(10),
   })
   .refine((data) => Boolean(data.planId) || Boolean(data.targetRarity), {

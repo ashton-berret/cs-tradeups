@@ -26,6 +26,7 @@
 	let detailOpen = $state(false);
 	let buyOpen = $state(false);
 	let deleteOpen = $state(false);
+	let deleteIngestedOpen = $state(false);
 	let selected = $state<CandidateRowVM | null>(null);
 	let checkedIds = $state(new Set<string>());
 
@@ -88,6 +89,7 @@
 			<form method="POST" action="?/refreshStale" use:enhance>
 				<Button type="submit" variant="secondary">Refresh stale</Button>
 			</form>
+			<Button variant="danger" onclick={() => (deleteIngestedOpen = true)}>Delete ingested</Button>
 			<Button onclick={() => (createOpen = true)}>Manual candidate</Button>
 		</div>
 	</div>
@@ -268,4 +270,11 @@
 	action="?/delete"
 	fields={{ id: selected?.id }}
 	confirmLabel="Delete"
+/>
+<ConfirmModal
+	bind:open={deleteIngestedOpen}
+	title="Delete ingested candidates"
+	message="Delete all candidates ingested by the Steam bridge? Candidates already linked to inventory will be preserved."
+	action="?/deleteIngested"
+	confirmLabel="Delete ingested"
 />

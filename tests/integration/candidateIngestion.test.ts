@@ -48,7 +48,9 @@ describe('candidate ingestion integration', () => {
       weaponName: 'AK-47',
       skinName: 'Slate',
       collection: 'The Snakebite Collection',
-      rarity: 'MIL_SPEC',
+      // Catalog rarity now sourced from `client_loot_lists` per-skin buckets;
+      // AK-47 | Slate is RESTRICTED in The Snakebite Collection.
+      rarity: 'RESTRICTED',
       exterior: 'FIELD_TESTED',
       floatValue: 0.191234,
       pattern: 321,
@@ -147,7 +149,7 @@ describe('candidate ingestion integration', () => {
       catalogCollectionId: ingested.candidate.catalogCollectionId,
       catalogWeaponDefIndex: ingested.candidate.catalogWeaponDefIndex,
       catalogPaintIndex: ingested.candidate.catalogPaintIndex,
-      rarity: 'MIL_SPEC',
+      rarity: 'RESTRICTED',
       exterior: 'FIELD_TESTED',
       floatValue: 0.191234,
     });

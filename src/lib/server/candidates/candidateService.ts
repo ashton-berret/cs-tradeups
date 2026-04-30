@@ -202,6 +202,14 @@ export function bulkDeleteCandidates(ids: string[]): Promise<{ count: number }> 
 }
 
 /**
+ * Delete all candidates ingested through the browser bridge/extension, while
+ * preserving any candidate already linked to inventory.
+ */
+export function deleteIngestedCandidates(): Promise<{ count: number; skippedLinkedInventory: number }> {
+  return deleteIngestedCandidatesImpl();
+}
+
+/**
  * Bulk re-evaluate specific candidates by id. Non-atomic: returns processed
  * count and any per-row errors. Use `reevaluateOpenCandidates` when the
  * caller wants "all open," not a specific set.
@@ -623,6 +631,24 @@ async function bulkDeleteCandidatesImpl(ids: string[]): Promise<{ count: number 
 
   const result = await db.candidateListing.deleteMany({ where: { id: { in: ids } } });
   return { count: result.count };
+}
+
+async function deleteIngestedCandidatesImpl(): Promise<{ count: number; skippedLinkedInventory: number }> {
+  const skippedLinkedInventory = await db.candidateListing.count({
+    where: {
+      source: 'EXTENSION',
+      inventoryItems: { some: {} },
+    },
+  });
+
+  const result = await db.candidateListing.deleteMany({
+    where: {
+      source: 'EXTENSION',
+      inventoryItems: { none: {} },
+    },
+  });
+
+  return { count: result.count, skippedLinkedInventory };
 }
 
 async function bulkReevaluateCandidatesImpl(

@@ -413,3 +413,24 @@ model MarketPriceObservation {
   @@index([catalogCollectionId, exterior, currency, observedAt])
   @@index([source, observedAt])
 }
+
+model MarketPriceSweep {
+  id         String    @id @default(cuid())
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  trigger    String
+
+  watchlistCount        Int @default(0)
+  requested             Int @default(0)
+  written               Int @default(0)
+  skipped               Int @default(0)
+  errorCount            Int @default(0)
+  candidatesReevaluated Int @default(0)
+  basketsRecomputed     Int @default(0)
+
+  errorsJson Json?
+  notes      String?
+
+  @@index([startedAt])
+  @@index([trigger, startedAt])
+}

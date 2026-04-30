@@ -35,7 +35,6 @@ import {
   computeCandidateEV,
   computeMaxBuyPrice,
   computeMarginalContribution,
-  type BasketSlotContext,
 } from './expectedValue';
 import { deriveRecommendation } from './recommendation';
 import { computeLiquidityScore, computeQualityScore, type LiquiditySignal } from './scoring';
@@ -222,9 +221,14 @@ async function evaluateInventoryItemImpl(inventoryItemId: string): Promise<Inven
       include: { items: { include: { inventoryItem: true }, orderBy: { slotIndex: 'asc' } } },
       orderBy: [{ updatedAt: 'desc' }],
     });
-    const baseSlots = basket?.items.map((basketItem) => toBasketSlotContext(basketItem.inventoryItem)) ?? [];
+    const baseItems = basket?.items.map((basketItem) => basketItem.inventoryItem) ?? [];
+    const slots = await enrichSlotsWithInputRanges([...baseItems, item]);
+    const candidateSlot = slots.at(-1);
+    const projectedPlan = await withCatalogOutcomeFloatRanges(bestPlan);
 
-    marginalContribution = computeMarginalContribution(baseSlots, toBasketSlotContext(item), bestPlan);
+    marginalContribution = candidateSlot
+      ? computeMarginalContribution(slots.slice(0, -1), candidateSlot, projectedPlan)
+      : null;
   }
 
   return {
@@ -291,8 +295,10 @@ async function computeMarginalForActiveBasket(
   plan: Parameters<typeof computeMarginalContribution>[2],
   candidate: {
     id: string;
+    catalogSkinId?: string | null;
     collection: string | null;
     catalogCollectionId?: string | null;
+    exterior?: string | null;
     floatValue: number | null;
     rarity: string | null;
   },
@@ -316,16 +322,22 @@ async function computeMarginalForActiveBasket(
     return null;
   }
 
-  const baseSlots = basket.items.map((basketItem) => toBasketSlotContext(basketItem.inventoryItem));
-  const candidateSlot: BasketSlotContext = {
-    inventoryItemId: candidate.id,
-    collection: candidate.collection,
-    catalogCollectionId: candidate.catalogCollectionId,
-    floatValue: candidate.floatValue,
-    rarity: candidate.rarity,
-  };
+  const slots = await enrichSlotsWithInputRanges([
+    ...basket.items.map((basketItem) => basketItem.inventoryItem),
+    {
+      id: candidate.id,
+      catalogSkinId: candidate.catalogSkinId ?? null,
+      collection: candidate.collection,
+      catalogCollectionId: candidate.catalogCollectionId ?? null,
+      exterior: candidate.exterior ?? null,
+      floatValue: candidate.floatValue,
+      rarity: candidate.rarity,
+    },
+  ]);
+  const candidateSlot = slots.at(-1);
+  if (!candidateSlot) return null;
 
-  return computeMarginalContribution(baseSlots, candidateSlot, plan);
+  return computeMarginalContribution(slots.slice(0, -1), candidateSlot, plan);
 }
 
 async function loadLiquiditySignal(
@@ -342,22 +354,4 @@ async function loadLiquiditySignal(
   });
 
   return { observationCount };
-}
-
-function toBasketSlotContext(item: {
-  id: string;
-  collection: string | null;
-  catalogCollectionId?: string | null;
-  exterior?: string | null;
-  floatValue: number | null;
-  rarity: string | null;
-}): BasketSlotContext {
-  return {
-    inventoryItemId: item.id,
-    collection: item.collection,
-    catalogCollectionId: item.catalogCollectionId,
-    exterior: item.exterior,
-    floatValue: item.floatValue,
-    rarity: item.rarity,
-  };
 }

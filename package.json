@@ -14,7 +14,9 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"catalog:inspect": "bunx tsx tools/cs2-catalog/import.ts --inspect",
 		"catalog:import": "bunx tsx tools/cs2-catalog/import.ts",
-		"catalog:backfill-db": "bunx tsx tools/cs2-catalog/backfill-db.ts"
+		"catalog:backfill-db": "bunx tsx tools/cs2-catalog/backfill-db.ts",
+		"refresh-prices": "bunx tsx tools/refresh-prices.ts",
+		"refresh-prices:loop": "bunx tsx tools/refresh-prices-loop.ts"
 	},
 	"prisma": {
 		"seed": "bunx tsx prisma/seed.ts"

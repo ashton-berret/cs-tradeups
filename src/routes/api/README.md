@@ -201,9 +201,11 @@ don't check it into the repo.
 
 - `POST /api/tradeups/evaluate`
   - Basket evaluations include per-outcome EV pricing metadata with
-    `priceSource` (`OBSERVED_MARKET` or `PLAN_FALLBACK`) and the market hash
-    used for the priced value. Observed market prices include
-    `priceFreshness` and `priceObservedAt`.
+    `priceSource` (`OBSERVED_MARKET`, `OBSERVED_BASE_NAME`, or
+    `PLAN_FALLBACK`) and the market hash used for the priced value.
+    `OBSERVED_BASE_NAME` indicates the projected exterior was unavailable so
+    the price came from `outcome.marketHashName` instead. Observed market
+    prices include `priceFreshness` and `priceObservedAt`.
 
 ### Executions
 

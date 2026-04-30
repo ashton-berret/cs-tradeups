@@ -2,7 +2,10 @@ import { describe, expect, it } from 'bun:test';
 import {
   averageFloat,
   averageWearProportion,
+  calculateTradeupOutputFloat,
+  fromRelativeFloat,
   projectOutputFloat,
+  toRelativeFloat,
   wearProportion,
 } from '$lib/server/utils/float';
 import { computeBasketEV } from '$lib/server/tradeups/evaluation/expectedValue';
@@ -17,9 +20,9 @@ describe('wearProportion', () => {
     expect(wearProportion(0.43, 0.06, 0.8)).toBe(0.5);
   });
 
-  it('clamps slightly out-of-range floats to [0, 1]', () => {
-    expect(wearProportion(0.6, 0, 0.5)).toBe(1);
-    expect(wearProportion(-0.01, 0, 0.5)).toBe(0);
+  it('returns null for floats outside their skin range', () => {
+    expect(wearProportion(0.6, 0, 0.5)).toBeNull();
+    expect(wearProportion(-0.01, 0, 0.5)).toBeNull();
   });
 
   it('returns null when any input is missing or the range is degenerate', () => {
@@ -28,6 +31,65 @@ describe('wearProportion', () => {
     expect(wearProportion(0.4, 0, null)).toBeNull();
     expect(wearProportion(0.4, 0.5, 0.5)).toBeNull();
     expect(wearProportion(0.4, 0.6, 0.5)).toBeNull();
+  });
+});
+
+describe('strict trade-up output float helpers', () => {
+  it('matches raw averaging when all input and output ranges are 0-1', () => {
+    const inputs = Array.from({ length: 10 }, () => ({
+      actualFloat: 0.2,
+      minFloat: 0,
+      maxFloat: 1,
+    }));
+
+    expect(calculateTradeupOutputFloat(inputs, { minFloat: 0, maxFloat: 1 })).toBeCloseTo(0.2, 10);
+  });
+
+  it('normalizes restricted input ranges before averaging', () => {
+    const inputs = Array.from({ length: 10 }, () => ({
+      actualFloat: 0.1,
+      minFloat: 0.06,
+      maxFloat: 0.8,
+    }));
+
+    expect(calculateTradeupOutputFloat(inputs, { minFloat: 0, maxFloat: 1 })).toBeCloseTo(
+      (0.1 - 0.06) / 0.74,
+      10,
+    );
+  });
+
+  it('maps an averaged relative float through a restricted output range', () => {
+    expect(fromRelativeFloat(0.2, 0.06, 0.8)).toBeCloseTo(0.208, 10);
+    expect(projectOutputFloat(0.2, 0.06, 0.8)).toBe(0.208);
+  });
+
+  it('handles mixed input ranges', () => {
+    const inputs = [
+      ...Array.from({ length: 5 }, () => ({ actualFloat: 0.1, minFloat: 0, maxFloat: 1 })),
+      ...Array.from({ length: 5 }, () => ({ actualFloat: 0.1, minFloat: 0.06, maxFloat: 0.8 })),
+    ];
+    const expectedAverageRelative = (5 * 0.1 + 5 * ((0.1 - 0.06) / 0.74)) / 10;
+    const expectedOutputFloat = 0.06 + expectedAverageRelative * 0.74;
+
+    expect(calculateTradeupOutputFloat(inputs, { minFloat: 0.06, maxFloat: 0.8 })).toBeCloseTo(
+      expectedOutputFloat,
+      10,
+    );
+  });
+
+  it('rejects invalid input and output ranges', () => {
+    expect(() => toRelativeFloat(0.2, 0.5, 0.5)).toThrow('Invalid float range');
+    expect(() => toRelativeFloat(0.2, 0.8, 0.6)).toThrow('Invalid float range');
+    expect(() => fromRelativeFloat(0.2, 0.6, 0.6)).toThrow('Invalid output float range');
+    expect(() => fromRelativeFloat(0.2, 0.8, 0.6)).toThrow('Invalid output float range');
+  });
+
+  it('rejects incomplete contracts in the strict helper', () => {
+    const inputs = Array.from({ length: 9 }, () => ({ actualFloat: 0.2, minFloat: 0, maxFloat: 1 }));
+
+    expect(() => calculateTradeupOutputFloat(inputs, { minFloat: 0, maxFloat: 1 })).toThrow(
+      'Trade-up requires exactly 10 inputs. Got 9',
+    );
   });
 });
 

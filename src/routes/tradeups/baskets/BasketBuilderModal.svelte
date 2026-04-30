@@ -89,7 +89,17 @@
 	}
 
 	function priceSourceLabel(value: BasketEvaluation['ev']['perOutcomeContribution'][number]['priceSource']) {
-		return value === 'OBSERVED_MARKET' ? 'Observed market' : 'Plan fallback';
+		if (value === 'OBSERVED_MARKET') return 'Observed market';
+		if (value === 'OBSERVED_BASE_NAME') return 'Observed (base name)';
+		return 'Plan fallback';
+	}
+
+	function priceSourceTone(
+		value: BasketEvaluation['ev']['perOutcomeContribution'][number]['priceSource'],
+	): 'success' | 'warning' | 'muted' {
+		if (value === 'OBSERVED_MARKET') return 'success';
+		if (value === 'OBSERVED_BASE_NAME') return 'warning';
+		return 'muted';
 	}
 
 	function priceBasisLabel(value: BasketEvaluation['ev']['perOutcomeContribution'][number]['priceBasis']) {
@@ -208,7 +218,7 @@
 											<Money value={outcome.estimatedValue} />
 										</td>
 										<td class="px-3 py-2">
-											<Badge tone={outcome.priceSource === 'OBSERVED_MARKET' ? 'success' : 'muted'}>
+											<Badge tone={priceSourceTone(outcome.priceSource)}>
 												{outcome.priceSource === 'OBSERVED_MARKET' ? priceBasisLabel(outcome.priceBasis) : priceSourceLabel(outcome.priceSource)}
 											</Badge>
 											<div class="mt-1 text-[var(--color-text-muted)]">

@@ -1,9 +1,10 @@
 // Float value helpers.
 //
 // CS2 float values are 0..1. Exterior bands are defined globally in
-// `EXTERIOR_FLOAT_RANGES`, but the *effective* float range for a specific
-// skin can be narrower (per-skin min/max floats). Phase 2 only needs
-// global band math; per-skin ranges land later (see docs/PROGRESS.md).
+// `EXTERIOR_FLOAT_RANGES`, but the effective float range for a specific skin
+// can be narrower. Trade-up output prediction must normalize each input's
+// actual/raw float into its own skin range, average those relative floats, then
+// map that average through each output skin's range.
 
 import type { ItemExterior } from '$lib/types/enums';
 import { EXTERIOR_FLOAT_RANGES } from '$lib/types/enums';
@@ -67,6 +68,87 @@ export function averageFloat(values: Array<number | null | undefined>): number |
 }
 
 /**
+ * Convert an actual/raw item float into its relative position inside that
+ * skin's own min/max range.
+ *
+ * `actualFloat` is the real CS2 float shown on the item. The returned
+ * `relativeFloat` / normalized float is what trade-up output prediction
+ * averages across the 10 inputs.
+ */
+export function toRelativeFloat(
+  actualFloat: number,
+  minFloat: number,
+  maxFloat: number,
+): number {
+  if (!Number.isFinite(actualFloat) || !Number.isFinite(minFloat) || !Number.isFinite(maxFloat)) {
+    throw new Error('Float values must be finite numbers');
+  }
+  if (maxFloat <= minFloat) {
+    throw new Error(`Invalid float range: min=${minFloat}, max=${maxFloat}`);
+  }
+  if (actualFloat < minFloat - FLOAT_EPSILON || actualFloat > maxFloat + FLOAT_EPSILON) {
+    throw new Error(`Actual float ${actualFloat} is outside range ${minFloat}-${maxFloat}`);
+  }
+
+  const clampedActual = Math.max(minFloat, Math.min(maxFloat, actualFloat));
+  return (clampedActual - minFloat) / (maxFloat - minFloat);
+}
+
+/**
+ * Convert an averaged relative float back to the predicted actual output float
+ * for one possible output skin.
+ */
+export function fromRelativeFloat(
+  relativeFloat: number,
+  outputMinFloat: number,
+  outputMaxFloat: number,
+): number {
+  if (!Number.isFinite(relativeFloat) || !Number.isFinite(outputMinFloat) || !Number.isFinite(outputMaxFloat)) {
+    throw new Error('Float values must be finite numbers');
+  }
+  if (outputMaxFloat <= outputMinFloat) {
+    throw new Error(`Invalid output float range: min=${outputMinFloat}, max=${outputMaxFloat}`);
+  }
+  if (relativeFloat < 0 - FLOAT_EPSILON || relativeFloat > 1 + FLOAT_EPSILON) {
+    throw new Error(`Relative float must be between 0 and 1. Got ${relativeFloat}`);
+  }
+
+  const clampedRelative = Math.max(0, Math.min(1, relativeFloat));
+  return outputMinFloat + clampedRelative * (outputMaxFloat - outputMinFloat);
+}
+
+/**
+ * Strict CS2 trade-up output float formula for a complete 10-input contract.
+ *
+ * Raw/actual input floats are never averaged directly. Each input is first
+ * normalized into its own min/max skin range, those 10 relative values are
+ * averaged, and that average is mapped into the output skin's range.
+ */
+export function calculateTradeupOutputFloat(
+  inputs: Array<{
+    actualFloat: number;
+    minFloat: number;
+    maxFloat: number;
+  }>,
+  output: {
+    minFloat: number;
+    maxFloat: number;
+  },
+): number {
+  if (inputs.length !== 10) {
+    throw new Error(`Trade-up requires exactly 10 inputs. Got ${inputs.length}`);
+  }
+
+  const relativeFloats = inputs.map((item) =>
+    toRelativeFloat(item.actualFloat, item.minFloat, item.maxFloat),
+  );
+  const averageRelativeFloat =
+    relativeFloats.reduce((sum, value) => sum + value, 0) / relativeFloats.length;
+
+  return fromRelativeFloat(averageRelativeFloat, output.minFloat, output.maxFloat);
+}
+
+/**
  * Compute one input's wear proportion within its own float range:
  *   p = (float - inputMin) / (inputMax - inputMin)
  *
@@ -85,17 +167,11 @@ export function wearProportion(
   if (floatValue == null || inputMinFloat == null || inputMaxFloat == null) {
     return null;
   }
-  if (!Number.isFinite(floatValue) || !Number.isFinite(inputMinFloat) || !Number.isFinite(inputMaxFloat)) {
+  try {
+    return Number(toRelativeFloat(floatValue, inputMinFloat, inputMaxFloat).toFixed(6));
+  } catch {
     return null;
   }
-  if (inputMinFloat >= inputMaxFloat) {
-    return null;
-  }
-  const proportion = (floatValue - inputMinFloat) / (inputMaxFloat - inputMinFloat);
-  // Clamp to [0, 1] in case a float sits slightly outside its range due to
-  // rounding or a stale catalog snapshot.
-  const clamped = Math.max(0, Math.min(1, proportion));
-  return Number(clamped.toFixed(6));
 }
 
 /**
@@ -138,20 +214,8 @@ export function projectOutputFloat(
   outcomeMinFloat?: number,
   outcomeMaxFloat?: number,
 ): number {
-  if (
-    !Number.isFinite(averageWearProportion) ||
-    averageWearProportion < 0 ||
-    averageWearProportion > 1
-  ) {
-    throw new Error('Average wear proportion must be between 0 and 1');
-  }
-
   const min = outcomeMinFloat ?? 0;
   const max = outcomeMaxFloat ?? 1;
 
-  if (min > max) {
-    throw new Error('Outcome min float cannot exceed max float');
-  }
-
-  return Number((min + averageWearProportion * (max - min)).toFixed(6));
+  return Number(fromRelativeFloat(averageWearProportion, min, max).toFixed(6));
 }

@@ -318,11 +318,18 @@ export interface BasketEVBreakdown {
     marketHashName: string;
     probability: number;
     estimatedValue: number;
+    /**
+     * Gross (pre-fee) value — equal to estimatedValue for sources without
+     * fees, or the raw observed marketValue for STEAM_NET. Useful when the
+     * outcome will be re-used as a tradeup input rather than sold (no Steam
+     * fee is incurred).
+     */
+    grossValue: number;
     contribution: number; // probability * estimatedValue
     projectedFloat: number | null;
     projectedExterior: ItemExterior | null;
     projectedMarketHashName: string | null;
-    priceSource: 'OBSERVED_MARKET' | 'PLAN_FALLBACK';
+    priceSource: 'OBSERVED_MARKET' | 'OBSERVED_BASE_NAME' | 'PLAN_FALLBACK';
     priceMarketHashName: string;
     priceObservedAt: Date | null;
     priceFreshness: 'FRESH' | 'RECENT' | 'STALE' | 'OLD' | null;
@@ -547,7 +554,6 @@ export interface DiscoveryTarget {
   priority: number;
   demand: {
     openBasketSlots: number;
-    queueSlots: number;
   };
 }
 

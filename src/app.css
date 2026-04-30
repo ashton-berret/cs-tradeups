@@ -1,6 +1,6 @@
-@import "tailwindcss";
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
 
 :root {
 	/* Charcoal + cyan palette. Primary accent is cyan; semantic tokens
@@ -25,6 +25,9 @@
 	--color-text-muted: #6b7684;
 	--color-border: #2d3441;
 	--color-border-hover: #3e4859;
+	/* Tells the browser this document is dark, so native widgets (select
+	   dropdown popups, scrollbars, form controls) use dark system chrome. */
+	color-scheme: dark;
 	font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 	color: var(--color-text-primary);
 	background: var(--color-bg-base);
@@ -35,6 +38,7 @@
 }
 
 .light {
+	color-scheme: light;
 	--color-bg-base: #f5f7fa;
 	--color-bg-surface: #ffffff;
 	--color-bg-surface-elevated: #ffffff;
@@ -97,6 +101,20 @@ input,
 select,
 textarea {
 	font: inherit;
+}
+
+/* Style the native dropdown popup. Browsers can't be fully restyled but they
+ * honor background/color on <option> and <optgroup>, which is enough to keep
+ * the open menu legible on dark themes. */
+select option,
+select optgroup {
+	background-color: var(--color-bg-surface-overlay);
+	color: var(--color-text-primary);
+}
+
+select optgroup {
+	font-weight: 600;
+	color: var(--color-text-secondary);
 }
 
 .tabular-nums,
