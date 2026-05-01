@@ -25,7 +25,7 @@ What currently exists:
 - Base app shell with fixed sidebar navigation and theme toggle.
 - Full Phase 4 operator UI for dashboard, candidates, inventory, plans,
   baskets, executions, saved tradeups, market prices, buy queue, calculator,
-  and catalog Explore.
+  Armory tracking, and catalog Explore.
 - Reusable UI primitives: Button, Card, Input, Badge, Modal, DataTable,
   FilterBar, PaginationControl, StatusBadge, ConfirmModal, and numeric
   formatters.
@@ -63,7 +63,9 @@ What currently exists:
   fixed case-collection trade-up tiers such as Chroma 3 Covert outputs.
 - `/explore` provides an operator-facing catalog browser by collection,
   showing weapon, skin, rarity, float range, supported exteriors, item IDs,
-  and market hash names.
+  and market hash names. It also supports all-collection browsing and a
+  configurable minimum float-floor filter for surfacing skins that cannot
+  reach lower-wear float bands.
 - Candidate and inventory persistence now stores nullable catalog linkage
   fields (`catalogSkinId`, `catalogCollectionId`,
   `catalogWeaponDefIndex`, `catalogPaintIndex`) and a local backfill tool
@@ -146,6 +148,15 @@ What currently exists:
   watchlist refresh, `/market-prices` "Refresh Steam watchlist" action,
   `tools/refresh-prices.ts` CLI wrapper, Steam Market source labeling, and
   Steam-net EV basis labels.
+- `/armory` tracks Armory pass purchases at 40 stars per pass, snapshots
+  reward cost basis from average pass cost per star, creates inventory rows
+  for manually entered rewards, accepts Steam gross reward values and stores
+  an approximate net value at 85%, supports inline reward edits and reward
+  duplication, records net sale results, compares manually entered
+  collection-specific expected rarity odds against actual pull distribution,
+  and keeps pass/odds entry in compact modals. Armory date inputs parse
+  `YYYY-MM-DD` as local calendar dates and display persisted dates by their
+  stored calendar day to avoid timezone off-by-one shifts.
 - Discovery target foundation: `GET /api/discovery/targets` derives narrow
   Steam listing-page targets from active plan rules and current demand, and
   `/buy-queue` or the Steam Market bridge options page can run a paced collector that opens

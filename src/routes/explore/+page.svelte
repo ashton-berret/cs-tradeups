@@ -12,7 +12,25 @@
 	function changeCollection(event: Event) {
 		const select = event.currentTarget as HTMLSelectElement;
 		const params = new URLSearchParams(page.url.searchParams);
-		params.set('collectionId', select.value);
+		if (select.value === 'all') {
+			params.delete('collectionId');
+		} else {
+			params.set('collectionId', select.value);
+		}
+		window.location.href = `/explore?${params.toString()}`;
+	}
+
+	function applyFloatFloorFilter(event: SubmitEvent) {
+		event.preventDefault();
+		const form = event.currentTarget as HTMLFormElement;
+		const formData = new FormData(form);
+		const threshold = String(formData.get('minFloatFloor') ?? '').trim();
+		const params = new URLSearchParams(page.url.searchParams);
+		if (threshold) {
+			params.set('minFloatFloor', threshold);
+		} else {
+			params.delete('minFloatFloor');
+		}
 		window.location.href = `/explore?${params.toString()}`;
 	}
 
@@ -43,30 +61,62 @@
 				Inspect the local CS2 catalog snapshot by collection, weapon, rarity, exterior, and float range.
 			</p>
 		</div>
-		<div class="min-w-80">
-			<label class="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]" for="collection">
-				Collection
-			</label>
-			<select
-				id="collection"
-				value={data.selectedCollection?.id ?? ''}
-				onchange={changeCollection}
-				class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm"
-			>
-				{#each data.collections as collection}
-					<option value={collection.id}>{collection.name} ({collection.skinCount})</option>
-				{/each}
-			</select>
+		<div class="flex flex-wrap items-end gap-3">
+			<div class="min-w-80">
+				<label class="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]" for="collection">
+					Collection
+				</label>
+				<select
+					id="collection"
+					value={data.selectedCollectionId}
+					onchange={changeCollection}
+					class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm"
+				>
+					<option value="all">All collections ({data.stats.skinCount})</option>
+					{#each data.collections as collection}
+						<option value={collection.id}>{collection.name} ({collection.skinCount})</option>
+					{/each}
+				</select>
+			</div>
+			<form class="flex items-end gap-2" onsubmit={applyFloatFloorFilter}>
+				<div class="w-36">
+					<label class="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]" for="minFloatFloor">
+						Min float floor
+					</label>
+					<input
+						id="minFloatFloor"
+						name="minFloatFloor"
+						type="number"
+						min="0"
+						max="1"
+						step="0.000001"
+						value={data.floatFloorMin ?? ''}
+						placeholder="0.15"
+						class="h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 text-sm tabular-nums"
+					/>
+				</div>
+				<button
+					type="submit"
+					class="h-10 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 text-sm font-medium text-[var(--color-text-primary)] hover:border-[var(--color-primary)]"
+				>
+					Apply
+				</button>
+			</form>
 		</div>
 	</div>
 
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 		<Card padding="md" accent>
 			<div class="text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">Selected</div>
-			<div class="mt-1 text-lg font-semibold">{data.selectedCollection?.name ?? 'None'}</div>
+			<div class="mt-1 text-lg font-semibold">{data.selectedCollection?.name ?? 'All collections'}</div>
+			{#if data.floatFloorMin != null}
+				<div class="mt-1 text-xs text-[var(--color-text-secondary)]">
+					Filtered to min float above {data.floatFloorMin.toFixed(6)}
+				</div>
+			{/if}
 		</Card>
 		<Card padding="md">
-			<div class="text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">Skins</div>
+			<div class="text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">Visible skins</div>
 			<div class="mt-1 text-2xl font-semibold">{data.skins.length}</div>
 		</Card>
 		<Card padding="md">
@@ -96,6 +146,7 @@
 			<table class="w-full text-sm">
 				<thead>
 					<tr class="border-b border-[var(--color-border)] text-left text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
+						<th class="px-3 py-2">Collection</th>
 						<th class="px-3 py-2">Weapon</th>
 						<th class="px-3 py-2">Skin</th>
 						<th class="px-3 py-2">Rarity</th>
@@ -108,6 +159,7 @@
 				<tbody>
 					{#each data.skins as skin}
 						<tr class="border-b border-[var(--color-border)] align-top">
+							<td class="px-3 py-2 text-[var(--color-text-secondary)]">{skin.collectionName}</td>
 							<td class="px-3 py-2 font-medium text-[var(--color-text-primary)]">{skin.weaponName}</td>
 							<td class="px-3 py-2">{skin.skinName}</td>
 							<td class="px-3 py-2">

@@ -13,6 +13,7 @@
 		{ href: '/dashboard', label: 'Dashboard' },
 		{ href: '/candidates', label: 'Candidates' },
 		{ href: '/inventory', label: 'Inventory' },
+		{ href: '/armory', label: 'Armory' },
 		{ href: '/tradeups/plans', label: 'Plans' },
 		{ href: '/tradeups/baskets', label: 'Baskets' },
 		{ href: '/tradeups/executions', label: 'Executions' },
