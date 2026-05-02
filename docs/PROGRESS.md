@@ -3,7 +3,7 @@
 ## Status Snapshot
 
 **Project Status:** Phases 0-7 complete; Phase 8 mostly complete. `/tradeups/saved` was rebuilt in the 2026-04-28 PM session: server-side filter/sort/search/pagination, structural duplicate detection with one-shot cleanup script, bulk recheck, catalog-resolved input names, and a redesigned card layout. Current priority is the plan-targeted Steam discovery loop: the app should surface relevant listings for the operator to inspect and buy manually, not merely price known items.
-**Last Updated:** 2026-04-29
+**Last Updated:** 2026-05-01
 **Plan Reference:** See `docs/PLAN.md`
 
 ---
@@ -162,6 +162,37 @@ What currently exists:
   `/buy-queue` or the Steam Market bridge options page can run a paced collector that opens
   target pages, extracts visible rows, filters constraints, and submits
   matching candidates.
+- Tradeup Engine Slice 1 foundation:
+  - Added `TradeupCombo` persistence with `statTrak`, canonical
+    `partitionHash`, `wearRegimeIndex`, `wearIntervalLow/High`, output JSON,
+    and the locked uniqueness key from `docs/tradeup-engine.md` §6.1.
+  - Added Tier-0 combo enumeration service under
+    `src/lib/server/engine/comboEnumerator.ts`, including deterministic
+    partition helpers, output-distribution generation, StatTrak/normal
+    separation, and per-combo breakpoint wear-regime sampling from §5.3.1.
+  - Added `tools/enumerate-combos.ts` for manual enumeration and count
+    reporting by `(inputRarity, statTrak)`. The CLI supports rarity,
+    StatTrak, collection, catalog-version, dry-run, and max distinct
+    collection filters for safe local inspection. It now streams generation
+    in batches, prints terminal progress, supports `--estimate-only`, and
+    refuses very large accidental runs unless `--force-large-run` is supplied.
+    The default distinct-collection cap is intentionally 3, not the original
+    design sketch's 5, because 5 produces an unrealistic full-catalog search
+    space for the current snapshot.
+  - After the initial denormalized run made `prisma/dev.db` grow to ~28 GB,
+    combo storage was compacted: `TradeupComboBase` stores one partition-level
+    `{ skinId, probability }` distribution, while `TradeupCombo` stores only
+    per-regime `{ skinId, projectedExterior, projectedFloat }` projections.
+    Display names and market hashes are resolved from the catalog at read
+    time. The local SQLite database was moved to `D:/cs-tradeups-data/dev.db`;
+    the old oversized DB is preserved as
+    `D:/cs-tradeups-data/dev-full-before-compact.db`.
+  - Added read-only `/tradeups/engine/combos` debug page with rarity,
+    collection, StatTrak, single-output-anchor, and catalog-version filters.
+  - Added focused engine tests covering deterministic partition generation,
+    partition count sanity, output probabilities summing to 1.0, breakpoint
+    regimes for hand-computed cases, and parallel disjoint StatTrak/non-
+    StatTrak enumeration.
 - Saved tradeups (`/tradeups/saved`) operator overhaul:
   - `listCombinations` accepts `{ search, collection, mode, targetRarity,
     inputRarity, status, source, minProfit, minProfitPct, minProfitChance,
@@ -642,6 +673,23 @@ only then deepen analytics or scoring complexity.
 ---
 
 ## Recent Verification
+
+### 2026-05-01 — Tradeup Engine Slice 1 combo enumeration
+
+- Implemented the Tier-0 static combo table, enumerator service, CLI wrapper,
+  and read-only `/tradeups/engine/combos` inspection page. Scope stayed on
+  structural catalog-only enumeration; no price quantiles, thesis scoring, EV,
+  promotion, or discovery integration was added.
+- Tests added in `tests/engine/comboEnumerator.test.ts` for deterministic
+  partitioning, partition count sanity, probability mass, breakpoint sampling
+  on hand-computed float ranges, and StatTrak/normal separation.
+- Verification: `bun run check`; `bun test tests/engine/comboEnumerator.test.ts`;
+  `bun run tools/enumerate-combos.ts --estimate-only --max-distinct-collections=2`;
+  `bun run tools/enumerate-combos.ts --dry-run --rarity=RESTRICTED --normal --collection=set_community_8`;
+  compact-schema smoke write:
+  `bun run tools/enumerate-combos.ts --rarity=RESTRICTED --normal --collection=set_community_8`;
+  full `bun test tests/` passed outside the sandbox after the documented
+  Windows `EPERM` read on `node_modules/esm-env` appeared in the sandbox.
 
 ### 2026-04-29 — Explicit normalized float formula helpers
 

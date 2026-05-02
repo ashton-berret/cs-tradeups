@@ -390,6 +390,46 @@ model TradeupCombinationSnapshot {
   @@index([combinationId, observedAt])
 }
 
+model TradeupComboBase {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  inputRarity       String
+  statTrak          Boolean
+  partition         Json
+  partitionHash     String
+  collections       Json
+  outputDistribution Json
+  hasSingleOutputCollection Boolean
+  crossCollection   Boolean
+  catalogVersion    String
+
+  combos TradeupCombo[]
+
+  @@unique([inputRarity, statTrak, partitionHash, catalogVersion])
+  @@index([inputRarity, statTrak, catalogVersion])
+  @@index([catalogVersion])
+}
+
+model TradeupCombo {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  baseId            String
+  wearRegimeIndex   Int
+  targetAvgWearProp Float
+  wearIntervalLow   Float
+  wearIntervalHigh  Float
+  outputProjection  Json
+  catalogVersion    String
+
+  base TradeupComboBase @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@unique([baseId, wearRegimeIndex])
+  @@index([catalogVersion])
+  @@index([baseId])
+}
+
 model MarketPriceObservation {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())

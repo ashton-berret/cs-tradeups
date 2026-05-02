@@ -20,6 +20,7 @@
 		{ href: '/buy-queue', label: 'Buy Queue' },
 		{ href: '/calculator', label: 'Calculator' },
 		{ href: '/tradeups/saved', label: 'Saved Tradeups' },
+		{ href: '/tradeups/engine/combos', label: 'Engine Combos' },
 		{ href: '/market-prices', label: 'Market Prices' },
 		{ href: '/explore', label: 'Explore' }
 	];
