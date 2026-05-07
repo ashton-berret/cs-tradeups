@@ -7,6 +7,18 @@ const DEFAULT_DELAY_MS = 3000;
 
 let nextAllowedAt = 0;
 
+export class SteamPriceoverviewError extends Error {
+  status: number;
+  retryAfterMs: number | null;
+
+  constructor(marketHashName: string, status: number, retryAfterMs: number | null) {
+    super(`Steam priceoverview failed for ${marketHashName}: HTTP ${status}`);
+    this.name = 'SteamPriceoverviewError';
+    this.status = status;
+    this.retryAfterMs = retryAfterMs;
+  }
+}
+
 export interface SteamPriceoverviewAdapterOptions {
   currency?: number;
   appId?: number;
@@ -36,7 +48,7 @@ export async function fetchSteamPriceoverview(
   });
 
   if (!response.ok) {
-    throw new Error(`Steam priceoverview failed for ${name}: HTTP ${response.status}`);
+    throw new SteamPriceoverviewError(name, response.status, parseRetryAfterMs(response.headers.get('retry-after')));
   }
 
   const body = (await response.json()) as SteamPriceoverviewResponse;
@@ -90,6 +102,21 @@ export function parseSteamVolume(value: string | null | undefined): number | nul
   if (!value) return null;
   const parsed = Number(value.replace(/[^0-9]/g, ''));
   return Number.isInteger(parsed) ? parsed : null;
+}
+
+export function parseRetryAfterMs(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1000;
+  }
+
+  const dateMs = Date.parse(value);
+  if (Number.isFinite(dateMs)) {
+    return Math.max(0, dateMs - Date.now());
+  }
+
+  return null;
 }
 
 async function waitForRateLimit(delayMs: number): Promise<void> {

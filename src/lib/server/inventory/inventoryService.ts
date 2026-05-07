@@ -32,6 +32,7 @@ import { toDecimal, toDecimalOrNull, toNumber } from '$lib/server/utils/decimal'
 import { isWithinFloatRange } from '$lib/server/utils/float';
 import { markBought } from '$lib/server/candidates/candidateService';
 import { resolveCatalogIdentity } from '$lib/server/catalog/linkage';
+import { RARITY_TIER } from '$lib/types/enums';
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -175,11 +176,16 @@ async function listInventoryImpl(
   filter: InventoryFilter,
 ): Promise<PaginatedResponse<InventoryItemDTO>> {
   const where: Prisma.InventoryItemWhereInput = {
-    ...(filter.status ? { status: filter.status } : {}),
+    ...(filter.availableForBasket
+      ? { status: 'HELD' }
+      : filter.status
+        ? { status: filter.status }
+        : filter.ownedOnly
+          ? { status: { in: ['HELD', 'RESERVED_FOR_BASKET'] } }
+          : {}),
     ...(filter.collection ? { collection: filter.collection } : {}),
     ...(filter.rarity ? { rarity: filter.rarity } : {}),
     ...(filter.exterior ? { exterior: filter.exterior } : {}),
-    ...(filter.availableForBasket ? { status: 'HELD' } : {}),
     ...(filter.search
       ? {
           OR: [
@@ -191,16 +197,13 @@ async function listInventoryImpl(
       : {}),
   };
   const skip = (filter.page - 1) * filter.limit;
-  const orderBy: Prisma.InventoryItemOrderByWithRelationInput = {
-    [filter.sortBy]: filter.sortDir,
-  };
-  const [rows, total] = await Promise.all([
-    db.inventoryItem.findMany({ where, orderBy, skip, take: filter.limit }),
-    db.inventoryItem.count({ where }),
-  ]);
+  const rows = await db.inventoryItem.findMany({ where });
+  const sortedRows = rows.sort(compareListInventoryRows(filter.sortBy, filter.sortDir));
+  const total = sortedRows.length;
+  const pageRows = sortedRows.slice(skip, skip + filter.limit);
 
   return {
-    data: rows.map(toInventoryItemDTO),
+    data: pageRows.map(toInventoryItemDTO),
     total,
     page: filter.page,
     limit: filter.limit,
@@ -340,6 +343,7 @@ function validateStatusTransition(current: InventoryStatus, next: InventoryStatu
 }
 
 type InventorySortKey = EligibleInventoryFilter['sortBy'];
+type InventoryListSortKey = InventoryFilter['sortBy'];
 type SortDir = EligibleInventoryFilter['sortDir'];
 
 function inventoryMatchesPlanRules(
@@ -414,6 +418,75 @@ function compareInventoryRows(sortBy: InventorySortKey, sortDir: SortDir) {
 }
 
 function sortableInventoryValue(item: InventoryItem, sortBy: InventorySortKey): number | null {
+  switch (sortBy) {
+    case 'purchasePrice':
+      return toNumber(item.purchasePrice) ?? 0;
+    case 'floatValue':
+      return item.floatValue;
+    case 'currentEstValue':
+      return toNumber(item.currentEstValue);
+    case 'createdAt':
+    default:
+      return item.createdAt.getTime();
+  }
+}
+
+function compareListInventoryRows(sortBy: InventoryListSortKey, sortDir: SortDir) {
+  const direction = sortDir === 'asc' ? 1 : -1;
+
+  return (a: InventoryItem, b: InventoryItem) => {
+    if (sortBy === 'valueRarity') {
+      return compareInventoryValueRarity(a, b, direction);
+    }
+
+    const aValue = sortableListInventoryValue(a, sortBy);
+    const bValue = sortableListInventoryValue(b, sortBy);
+
+    if (aValue == null && bValue == null) {
+      return compareInventoryValueRarity(a, b, -1);
+    }
+
+    if (aValue == null) {
+      return 1;
+    }
+
+    if (bValue == null) {
+      return -1;
+    }
+
+    if (aValue < bValue) {
+      return -1 * direction;
+    }
+
+    if (aValue > bValue) {
+      return 1 * direction;
+    }
+
+    return compareInventoryValueRarity(a, b, -1);
+  };
+}
+
+function compareInventoryValueRarity(a: InventoryItem, b: InventoryItem, direction: number) {
+  const aValue = toNumber(a.currentEstValue) ?? toNumber(a.purchasePrice) ?? 0;
+  const bValue = toNumber(b.currentEstValue) ?? toNumber(b.purchasePrice) ?? 0;
+
+  if (aValue !== bValue) {
+    return aValue < bValue ? -1 * direction : 1 * direction;
+  }
+
+  const aRarity = a.rarity ? (RARITY_TIER[a.rarity as ItemRarity] ?? -1) : -1;
+  const bRarity = b.rarity ? (RARITY_TIER[b.rarity as ItemRarity] ?? -1) : -1;
+  if (aRarity !== bRarity) {
+    return aRarity < bRarity ? -1 * direction : 1 * direction;
+  }
+
+  return b.createdAt.getTime() - a.createdAt.getTime() || a.id.localeCompare(b.id);
+}
+
+function sortableListInventoryValue(
+  item: InventoryItem,
+  sortBy: Exclude<InventoryListSortKey, 'valueRarity'>,
+): number | null {
   switch (sortBy) {
     case 'purchasePrice':
       return toNumber(item.purchasePrice) ?? 0;

@@ -15,9 +15,29 @@
 
 	const rows = $derived(data.page.data);
 	const hasFilters = $derived(Boolean(data.filter.search || data.filter.source || data.filter.currency));
+
+	const quantileMap = $derived(buildQuantileMap(data.quantiles));
+
+	function buildQuantileMap(quantiles: PageData['quantiles']) {
+		const map = new Map<string, (typeof quantiles)[number]>();
+		for (const q of quantiles) {
+			const key = `${q.catalogSkinId}|${q.exterior}|${q.statTrak}`;
+			map.set(key, q);
+		}
+		return map;
+	}
+
+	function getQuantileForRow(row: PageData['page']['data'][number]) {
+		if (!row.catalogSkinId || !row.exterior) return null;
+		const statTrak = row.marketHashName.startsWith('StatTrak™ ');
+		return quantileMap.get(`${row.catalogSkinId}|${row.exterior}|${statTrak}`) ?? null;
+	}
 	const formIssues = $derived(getFormIssues(form));
 	const formRowErrors = $derived(getFormRowErrors(form));
 	const importResult = $derived(getImportResult(form));
+	const engineBootstrapPreview = $derived(getEngineBootstrapPreview(form));
+	const selectedEngineCollectionIds = $derived(getSelectedEngineCollectionIds(form));
+	const engineLimit = $derived(getEngineLimit(form));
 	const summaryRows = $derived(data.summary);
 	const defaultPayload = `{
   "source": "LOCAL_IMPORT",
@@ -148,6 +168,34 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 		return form.importResult;
 	}
 
+	function getEngineBootstrapPreview(form: ActionData | undefined):
+		| {
+				total: number;
+				limitedTotal: number;
+				counts: { engineComboOutputs: number };
+				collectionIds: string[];
+				limit?: number;
+				sample: string[];
+		  }
+		| undefined {
+		if (!form || !('engineBootstrapPreview' in form) || !form.engineBootstrapPreview) return undefined;
+		return form.engineBootstrapPreview;
+	}
+
+	function getSelectedEngineCollectionIds(form: ActionData | undefined) {
+		if (engineBootstrapPreview) return engineBootstrapPreview.collectionIds;
+		if (!form || !('values' in form) || !form.values) return [];
+		const value = form.values.engineCollections;
+		if (Array.isArray(value)) return value.filter((entry): entry is string => typeof entry === 'string');
+		return typeof value === 'string' ? [value] : [];
+	}
+
+	function getEngineLimit(form: ActionData | undefined) {
+		if (engineBootstrapPreview?.limit != null) return String(engineBootstrapPreview.limit);
+		if (!form || !('values' in form) || !form.values) return '100';
+		return typeof form.values.engineLimit === 'string' ? form.values.engineLimit : '100';
+	}
+
 	function importedDistinctCount(result: NonNullable<typeof importResult>) {
 		return new Set(result.observations?.map((observation) => observation.marketHashName) ?? []).size;
 	}
@@ -205,9 +253,14 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 				</p>
 			</div>
 			<div class="flex flex-col items-end gap-1">
-				<form method="POST" action="?/refreshDependent" use:enhance>
-					<Button type="submit" variant="secondary">Run sweep now</Button>
-				</form>
+				<div class="flex gap-2">
+					<form method="POST" action="?/recomputeQuantiles" use:enhance>
+						<Button type="submit" variant="secondary">Recompute quantiles</Button>
+					</form>
+					<form method="POST" action="?/refreshDependent" use:enhance>
+						<Button type="submit" variant="secondary">Run sweep now</Button>
+					</form>
+				</div>
 				{#if data.sweeps.length > 0}
 					{@const last = data.sweeps[0]}
 					<div class="text-xs text-[var(--color-text-muted)]">
@@ -298,6 +351,63 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 	{/if}
 
 	<div class="space-y-4">
+		<div class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
+			<div class="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--color-border)] px-4 py-3">
+				<div>
+					<h2 class="text-sm font-semibold text-[var(--color-text-primary)]">Engine Price Bootstrap</h2>
+					<p class="mt-1 text-xs text-[var(--color-text-secondary)]">
+						Refresh Steam prices for engine combo output skins before thesis scoring.
+					</p>
+				</div>
+				<Badge tone="primary">{data.engineCollections.length} collections</Badge>
+			</div>
+			<form method="POST" class="grid gap-4 p-4 lg:grid-cols-[minmax(260px,420px)_140px_auto]" use:enhance>
+				<label class="space-y-1 text-sm">
+					<span class="text-[var(--color-text-secondary)]">Collections</span>
+					<select
+						name="engineCollections"
+						multiple
+						size="8"
+						class="min-h-48 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm text-[var(--color-text-primary)]"
+					>
+						{#each data.engineCollections as collection}
+							<option value={collection.id} selected={selectedEngineCollectionIds.includes(collection.id)}>
+								{collection.name}
+							</option>
+						{/each}
+					</select>
+				</label>
+				<label class="space-y-1 text-sm">
+					<span class="text-[var(--color-text-secondary)]">Limit</span>
+					<Input name="engineLimit" type="number" min="1" step="1" value={engineLimit} />
+				</label>
+				<div class="flex flex-col justify-end gap-2">
+					<Button type="submit" variant="secondary" formaction="?/previewEngineBootstrap">Preview targets</Button>
+					<Button type="submit" formaction="?/refreshEngineBootstrap">Run sweep</Button>
+				</div>
+			</form>
+			{#if engineBootstrapPreview}
+				<div class="border-t border-[var(--color-border)] px-4 py-3 text-xs text-[var(--color-text-secondary)]">
+					<div class="flex flex-wrap items-center gap-2">
+						<span class="font-semibold text-[var(--color-text-primary)]">{engineBootstrapPreview.limitedTotal} selected</span>
+						<span>from {engineBootstrapPreview.total} engine target{engineBootstrapPreview.total === 1 ? '' : 's'}</span>
+						{#if engineBootstrapPreview.collectionIds.length > 0}
+							<span>· {engineBootstrapPreview.collectionIds.length} collection{engineBootstrapPreview.collectionIds.length === 1 ? '' : 's'}</span>
+						{/if}
+					</div>
+					{#if engineBootstrapPreview.sample.length > 0}
+						<div class="mt-2 grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+							{#each engineBootstrapPreview.sample.slice(0, 12) as name}
+								<div class="truncate rounded border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)]/50 px-2 py-1">
+									{name}
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{/if}
+		</div>
+
 		{#if data.sweeps.length > 0}
 			<details class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
 				<summary class="cursor-pointer px-4 py-2.5 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
@@ -445,13 +555,14 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 			{/if}
 
 			<DataTable
-				columns={['Item', 'Market value', 'Sell prices', 'Volume', 'Source', 'Freshness', 'Catalog']}
+				columns={['Item', 'Market value', 'Sell prices', 'Quantiles (P10/P50/P90)', 'Volume', 'Source', 'Freshness', 'Catalog']}
 				rows={rows}
 				emptyTitle="No price observations match these filters."
 				emptyDescription="Import a JSON batch to start building local price history."
 				clearHref={hasFilters ? '/market-prices' : null}
 			>
 				{#snippet row(row)}
+					{@const q = getQuantileForRow(row)}
 					<td class="px-4 py-3">
 						<div class="font-medium text-[var(--color-text-primary)]">{row.marketHashName}</div>
 						<div class="mt-1 text-xs text-[var(--color-text-muted)]">{row.currency} · {formatExterior(row.exterior)}</div>
@@ -462,6 +573,28 @@ AK-47 | Slate (Field-Tested),USD,1.25,1.40,120,2026-04-24T18:00:00.000Z`;
 					<td class="px-4 py-3 text-xs text-[var(--color-text-secondary)]">
 						<div>Low: <Money value={row.lowestSellPrice} currency={row.currency} /></div>
 						<div>Median: <Money value={row.medianSellPrice} currency={row.currency} /></div>
+					</td>
+					<td class="px-4 py-3 text-xs">
+						{#if q}
+							<div class="space-y-0.5">
+								<div class="text-[var(--color-text-secondary)]">
+									<span class="text-[var(--color-text-muted)]">P10</span> <Money value={q.p10} currency={row.currency} />
+									<span class="mx-1 text-[var(--color-text-muted)]">/</span>
+									<span class="text-[var(--color-text-muted)]">P50</span> <Money value={q.p50} currency={row.currency} />
+									<span class="mx-1 text-[var(--color-text-muted)]">/</span>
+									<span class="text-[var(--color-text-muted)]">P90</span> <Money value={q.p90} currency={row.currency} />
+								</div>
+								<div class="flex items-center gap-2 text-[var(--color-text-muted)]">
+									<span>{q.observationCount} obs</span>
+									<span>· vol {(q.volatility * 100).toFixed(0)}%</span>
+									{#if q.coldStart}
+										<Badge tone="warning">Cold start</Badge>
+									{/if}
+								</div>
+							</div>
+						{:else}
+							<span class="text-[var(--color-text-muted)]">—</span>
+						{/if}
 					</td>
 					<td class="px-4 py-3 text-[var(--color-text-secondary)]">{row.volume ?? '—'}</td>
 					<td class="px-4 py-3 text-[var(--color-text-secondary)]">

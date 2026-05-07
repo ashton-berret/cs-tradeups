@@ -1,7 +1,11 @@
 import { db } from '$lib/server/db/client';
 import { reevaluateOpenCandidates } from '$lib/server/candidates/candidateService';
 import { recomputeMetrics } from '$lib/server/tradeups/basketService';
-import { refreshSteamMarketWatchlist, type MarketPriceRefreshJobResult } from './refreshJob';
+import {
+  refreshSteamMarketWatchlist,
+  type MarketPriceRefreshJobResult,
+  type RefreshSteamWatchlistOptions,
+} from './refreshJob';
 
 export interface MarketPriceImportRefreshResult {
   candidatesReevaluated: number;
@@ -46,7 +50,11 @@ export async function refreshAfterMarketPriceImport(): Promise<MarketPriceImport
 }
 
 export async function refreshMarketPricesAndDependents(
-  options: { trigger?: MarketPriceSweepTrigger; notes?: string } = {},
+  options: {
+    trigger?: MarketPriceSweepTrigger;
+    notes?: string;
+    prices?: RefreshSteamWatchlistOptions;
+  } = {},
 ): Promise<MarketPriceFullRefreshResult> {
   const trigger: MarketPriceSweepTrigger = options.trigger ?? 'MANUAL';
   const sweep = await db.marketPriceSweep.create({
@@ -55,7 +63,7 @@ export async function refreshMarketPricesAndDependents(
   });
 
   try {
-    const prices = await refreshSteamMarketWatchlist();
+    const prices = await refreshSteamMarketWatchlist(options.prices);
     const dependents = await refreshAfterMarketPriceImport();
 
     const requested = prices.summaries.reduce((sum, s) => sum + s.requested, 0);

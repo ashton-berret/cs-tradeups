@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import {
   fetchSteamPriceoverview,
+  parseRetryAfterMs,
   parseSteamMoney,
   parseSteamVolume,
+  SteamPriceoverviewError,
   STEAM_PRICEOVERVIEW_SOURCE,
 } from '$lib/server/marketPrices/adapters/steamPriceoverview';
 
@@ -46,5 +48,27 @@ describe('Steam priceoverview adapter', () => {
     });
 
     expect(observation).toBeNull();
+  });
+
+  it('throws a typed error for Steam rate limits', async () => {
+    await expect(
+      fetchSteamPriceoverview('AK-47 | Slate (Field-Tested)', {
+        delayMs: 0,
+        fetchImpl: async () =>
+          new Response('', {
+            status: 429,
+            headers: { 'retry-after': '120' },
+          }),
+      }),
+    ).rejects.toMatchObject({
+      name: 'SteamPriceoverviewError',
+      status: 429,
+      retryAfterMs: 120000,
+    } satisfies Partial<SteamPriceoverviewError>);
+  });
+
+  it('parses Retry-After seconds', () => {
+    expect(parseRetryAfterMs('5')).toBe(5000);
+    expect(parseRetryAfterMs('not a date')).toBeNull();
   });
 });

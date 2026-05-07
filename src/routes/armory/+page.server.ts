@@ -106,16 +106,16 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const values = valuesFrom(form);
 		const id = field(form, 'id');
-		const salePrice = numberField(form, 'salePrice');
+		const salePrice = numberField(form, 'amountReceived') ?? numberField(form, 'salePrice');
 		if (!id) return fail(400, { error: 'Reward id is required.', values });
 		if (salePrice == null || salePrice < 0) {
-			return fail(400, { error: 'Sale price is required.', values });
+			return fail(400, { error: 'Amount received is required.', values });
 		}
 
 		try {
 			await recordArmorySale(id, {
 				salePrice,
-				saleFees: numberField(form, 'saleFees'),
+				saleFees: numberField(form, 'saleFees') ?? 0,
 				soldAt: dateField(form, 'soldAt')
 			});
 			return { success: 'Armory sale recorded.' };

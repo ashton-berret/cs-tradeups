@@ -405,6 +405,7 @@ model TradeupComboBase {
   catalogVersion    String
 
   combos TradeupCombo[]
+  theses TradeupThesis[]
 
   @@unique([inputRarity, statTrak, partitionHash, catalogVersion])
   @@index([inputRarity, statTrak, catalogVersion])
@@ -423,10 +424,56 @@ model TradeupCombo {
   outputProjection  Json
   catalogVersion    String
 
-  base TradeupComboBase @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  base   TradeupComboBase @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  theses TradeupThesis[]
 
   @@unique([baseId, wearRegimeIndex])
   @@index([catalogVersion])
+  @@index([baseId])
+}
+
+model TradeupThesis {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comboId   String
+  baseId    String
+
+  inputRarity  String
+  statTrak     Boolean
+  partition    Json
+  collections  Json
+
+  wearRegimeIndex   Int
+  targetAvgWearProp Float
+
+  inputCostP50        Decimal
+  outputValueGrossP50 Decimal
+  outputValueNetP50   Decimal
+  evMedian            Decimal
+  profitChance        Float
+  score               Float
+
+  missingOutputPrices Int     @default(0)
+  missingInputPrices  Int     @default(0)
+  totalOutputSkins    Int
+  totalInputSlots     Int     @default(10)
+
+  inputResolution  Json
+  outputResolution Json
+  scoreVersion     String
+
+  catalogVersion String
+  status         String @default("ACTIVE")
+
+  combo TradeupCombo @relation(fields: [comboId], references: [id], onDelete: Cascade)
+  base  TradeupComboBase @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@unique([comboId, scoreVersion])
+  @@index([score, status])
+  @@index([inputRarity, statTrak, status])
+  @@index([status, score])
   @@index([baseId])
 }
 
@@ -547,4 +594,30 @@ model ArmoryExpectedOdds {
 
   @@unique([collection, rarity])
   @@index([collection])
+}
+
+model PriceQuantileSnapshot {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  catalogSkinId       String
+  marketHashName      String
+  exterior            String
+  statTrak            Boolean
+  windowDays          Int
+  observationCount    Int
+  effectiveSampleSize Float
+  p10                 Decimal
+  p50                 Decimal
+  p90                 Decimal
+  mean                Decimal
+  volatility          Float
+  recencyTau          Int
+  coldStart           Boolean
+  sourceFilter        Json?
+  computedAt          DateTime
+  isLatest            Boolean
+
+  @@index([catalogSkinId, exterior, statTrak, isLatest])
+  @@index([coldStart, isLatest])
 }

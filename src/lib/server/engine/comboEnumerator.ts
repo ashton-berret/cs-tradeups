@@ -16,10 +16,10 @@ export const MAX_COLLECTIONS_PER_PARTITION = 2;
 export const PROGRESS_LOG_INTERVAL = 1000;
 // Average wear regimes per partition observed empirically. Single-collection
 // full-range partitions yield ~5 regimes; mixed-range 2-collection partitions
-// yield ~7; 3-collection partitions yield ~10. The blended average for cap-2
-// is ~6, for cap-3 is ~15. We use 15 as a slight over-estimate so the progress
-// bar pessimistic; actual generated count is reported separately (this value was found via actual running of the enumeration).
-const AVG_WEAR_REGIMES_PER_PARTITION = 15;
+// yield ~7; 3-collection partitions yield ~10. We use 7 as a slight
+// over-estimate for the default cap-2 run; actual generated count is reported
+// separately.
+const AVG_WEAR_REGIMES_PER_PARTITION = 7;
 // Anchor-style partitions (one collection has ≤ ANCHOR_OUTPUT_THRESHOLD
 // outputs at R+1) carry asymmetric upside: small probability of a high-value
 // concentrated output. Multi-collection partitions WITHOUT an anchor are

@@ -10,6 +10,7 @@ const filterKeys = [
 	'rarity',
 	'exterior',
 	'availableForBasket',
+	'ownedOnly',
 	'search',
 	'sortBy',
 	'sortDir',
@@ -166,8 +167,9 @@ function filterFromUrl(url: URL) {
 		rarity: url.searchParams.get('rarity') || undefined,
 		exterior: url.searchParams.get('exterior') || undefined,
 		availableForBasket: url.searchParams.get('availableForBasket') === 'true' ? true : undefined,
+		ownedOnly: url.searchParams.get('ownedOnly') === 'false' ? false : true,
 		search: url.searchParams.get('search') || undefined,
-		sortBy: url.searchParams.get('sortBy') || 'createdAt',
+		sortBy: url.searchParams.get('sortBy') || 'valueRarity',
 		sortDir: url.searchParams.get('sortDir') || 'desc',
 		page: searchNumber(url, 'page') ?? 1,
 		limit: searchNumber(url, 'limit') ?? 25

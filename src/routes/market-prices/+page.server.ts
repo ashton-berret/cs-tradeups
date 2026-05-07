@@ -10,7 +10,17 @@ import type {
 import type {
 	MarketPriceFullRefreshResult
 } from '$lib/server/marketPrices/refreshService';
+import { refreshMarketPricesAndDependents } from '$lib/server/marketPrices/refreshService';
+import {
+	buildMarketPriceWatchlist,
+	listEngineComboCollectionOptions
+} from '$lib/server/marketPrices/watchlist';
 import { getRecentSweeps } from '$lib/server/marketPrices/sweepService';
+import {
+	getLatestQuantiles,
+	recomputeQuantiles,
+	type PriceQuantileSnapshotDTO
+} from '$lib/server/engine/priceQuantileService';
 
 const filterKeys = ['search', 'source', 'currency', 'latestOnly', 'sortBy', 'sortDir', 'page', 'limit'];
 
@@ -25,9 +35,25 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			`/api/market-prices/summary${copySearch(url, ['search', 'source', 'currency', 'latestOnly'])}`
 		);
 		const sources = await apiFetch<MarketPriceObservedSourceDTO[]>(fetch, '/api/market-prices/sources');
-		const sweeps = await getRecentSweeps(10);
+		const [sweeps, engineCollections] = await Promise.all([
+			getRecentSweeps(10),
+			listEngineComboCollectionOptions()
+		]);
 
-		return { page, summary, sources, sweeps, filter: filterFromUrl(url) as MarketPriceLatestListFilter };
+		const skinIds = [...new Set(page.data.map((o) => o.catalogSkinId).filter(Boolean) as string[])];
+		const quantiles = skinIds.length > 0
+			? await getLatestQuantiles({ catalogSkinIds: skinIds })
+			: [];
+
+		return {
+			page,
+			summary,
+			sources,
+			sweeps,
+			quantiles,
+			engineCollections,
+			filter: filterFromUrl(url) as MarketPriceLatestListFilter
+		};
 	} catch (err) {
 		if (err instanceof ApiError) error(err.status, err.message);
 		throw err;
@@ -35,6 +61,18 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 };
 
 export const actions: Actions = {
+	recomputeQuantiles: async () => {
+		try {
+			const result = await recomputeQuantiles();
+			const coldCount = result.snapshots.filter((s) => s.coldStart).length;
+			return {
+				success: `Recomputed ${result.snapshots.length} quantile snapshot${result.snapshots.length === 1 ? '' : 's'} in ${result.durationMs}ms. ${coldCount} cold-start.`
+			};
+		} catch (err) {
+			return actionError(err, {});
+		}
+	},
+
 	refreshDependent: async ({ fetch }) => {
 		try {
 			const result = await apiFetch<MarketPriceFullRefreshResult>(
@@ -48,6 +86,63 @@ export const actions: Actions = {
 			};
 		} catch (err) {
 			return actionError(err, {});
+		}
+	},
+
+	previewEngineBootstrap: async ({ request }) => {
+		const form = await request.formData();
+		const values = valuesFrom(form);
+
+		try {
+			const filter = engineBootstrapFilterFromForm(form);
+			const watchlist = await buildMarketPriceWatchlist({
+				engineOnly: true,
+				engineCollectionIds: filter.collectionIds
+			});
+			const names =
+				filter.limit == null ? watchlist.marketHashNames : watchlist.marketHashNames.slice(0, filter.limit);
+
+			return {
+				success: `Previewed ${names.length} engine price target${names.length === 1 ? '' : 's'}${filter.limit != null && watchlist.marketHashNames.length > filter.limit ? ` from ${watchlist.marketHashNames.length} total` : ''}.`,
+				values,
+				engineBootstrapPreview: {
+					total: watchlist.marketHashNames.length,
+					limitedTotal: names.length,
+					counts: watchlist.counts,
+					collectionIds: filter.collectionIds,
+					limit: filter.limit,
+					sample: names.slice(0, 25)
+				}
+			};
+		} catch (err) {
+			return actionError(err, values);
+		}
+	},
+
+	refreshEngineBootstrap: async ({ request }) => {
+		const form = await request.formData();
+		const values = valuesFrom(form);
+
+		try {
+			const filter = engineBootstrapFilterFromForm(form);
+			const result = await refreshMarketPricesAndDependents({
+				notes: `Engine price bootstrap${filter.collectionIds.length > 0 ? `: ${filter.collectionIds.join(', ')}` : ''}`,
+				prices: {
+					watchlist: {
+						engineOnly: true,
+						engineCollectionIds: filter.collectionIds
+					},
+					limit: filter.limit
+				}
+			});
+
+			return {
+				success: refreshSuccessMessage(result),
+				values,
+				importResult: { count: priceRefreshWritten(result), priceRefresh: result.prices, refresh: result.dependents }
+			};
+		} catch (err) {
+			return actionError(err, values);
 		}
 	},
 
@@ -148,6 +243,25 @@ function field(form: FormData, name: string) {
 
 function valuesFrom(form: FormData) {
 	return Object.fromEntries([...form.entries()].filter(([, value]) => typeof value === 'string'));
+}
+
+function engineBootstrapFilterFromForm(form: FormData) {
+	return {
+		collectionIds: form
+			.getAll('engineCollections')
+			.filter((value): value is string => typeof value === 'string' && value.trim() !== '')
+			.map((value) => value.trim()),
+		limit: parseOptionalPositiveInteger(field(form, 'engineLimit'), 'Limit')
+	};
+}
+
+function parseOptionalPositiveInteger(value: string | undefined, label: string): number | undefined {
+	if (value == null) return undefined;
+	const parsed = Number(value);
+	if (!Number.isInteger(parsed) || parsed <= 0) {
+		throw new ApiError(400, { error: `${label} must be a positive integer.` });
+	}
+	return parsed;
 }
 
 async function fileText(form: FormData, name: string) {

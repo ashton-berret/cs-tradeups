@@ -12,6 +12,7 @@ import {
 } from '$lib/server/marketPrices/localImportAdapter';
 import { importMarketPriceObservations } from '$lib/server/marketPrices/priceService';
 import { refreshAfterMarketPriceImport } from '$lib/server/marketPrices/refreshService';
+import { recomputeQuantiles } from '$lib/server/engine/priceQuantileService';
 import { toErrorResponse } from '$lib/server/http/errors';
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -30,6 +31,14 @@ export const POST: RequestHandler = async ({ request }) => {
 
     const result = await importMarketPriceObservations(input.input);
     const refresh = await refreshAfterMarketPriceImport();
+
+    const touchedSkinIds = [
+      ...new Set(result.observations.map((o) => o.catalogSkinId).filter(Boolean) as string[]),
+    ];
+    if (touchedSkinIds.length > 0) {
+      await recomputeQuantiles({ catalogSkinIds: touchedSkinIds });
+    }
+
     return json({ ...result, refresh }, { status: 201 });
   } catch (err) {
     return toErrorResponse(err);

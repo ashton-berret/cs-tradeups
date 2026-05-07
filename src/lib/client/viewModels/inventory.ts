@@ -29,6 +29,7 @@ export function hasInventoryFilters(filter: InventoryFilter): boolean {
 			filter.rarity ||
 			filter.exterior ||
 			filter.availableForBasket ||
+			filter.ownedOnly === false ||
 			filter.search
 	);
 }

@@ -28,7 +28,7 @@ embedding browser-extension concerns inside `src/`.
 4. Choose **Load unpacked** and select `tools/steam-market-bridge/`.
 5. Open the extension's options page.
 6. Set:
-   - app URL: usually `http://127.0.0.1:5173`
+   - app URL: usually `http://localhost:5173`
    - shared secret: the same value as `EXTENSION_SHARED_SECRET`
 
 ## Use

@@ -52,10 +52,11 @@ export const inventoryFilterSchema = z
     rarity: itemRaritySchema.optional(),
     exterior: itemExteriorSchema.optional(),
     availableForBasket: z.boolean().optional(),
+    ownedOnly: z.boolean().default(true),
     search: z.string().optional(),
     sortBy: z
-      .enum(['createdAt', 'purchasePrice', 'floatValue', 'currentEstValue'])
-      .default('createdAt'),
+      .enum(['createdAt', 'purchasePrice', 'floatValue', 'currentEstValue', 'valueRarity'])
+      .default('valueRarity'),
     sortDir: sortDirectionSchema,
   })
   .merge(paginationSchema);

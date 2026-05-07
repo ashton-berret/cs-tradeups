@@ -25,11 +25,28 @@
 	let deleteOpen = $state(false);
 	let selected = $state<InventoryRowVM | null>(null);
 	let checkedIds = $state(new Set<string>());
+	let stickersOpen = $state(false);
+
+	type InventoryDisplayRow =
+		| { kind: 'item'; id: string; item: InventoryRowVM; sortValue: number }
+		| {
+				kind: 'stickers';
+				id: string;
+				items: InventoryRowVM[];
+				count: number;
+				totalCost: number;
+				totalValue: number;
+				totalDelta: number;
+				sortValue: number;
+			};
 
 	const rows = $derived(toInventoryRows(data.page.data));
+	const stickerRows = $derived(rows.filter((row) => isSticker(row)));
+	const displayRows = $derived(buildDisplayRows(rows));
 	const hasFilters = $derived(hasInventoryFilters(data.filter));
 	const selectedIds = $derived(rows.filter((row) => checkedIds.has(row.id)).map((row) => row.id));
 	const allVisibleSelected = $derived(rows.length > 0 && rows.every((row) => checkedIds.has(row.id)));
+	const allStickersSelected = $derived(stickerRows.length > 0 && stickerRows.every((row) => checkedIds.has(row.id)));
 
 	function toggleRow(id: string, checked: boolean) {
 		const next = new Set(checkedIds);
@@ -41,6 +58,15 @@
 	function toggleAllVisible(checked: boolean) {
 		const next = new Set(checkedIds);
 		for (const row of rows) {
+			if (checked) next.add(row.id);
+			else next.delete(row.id);
+		}
+		checkedIds = next;
+	}
+
+	function toggleStickerRows(checked: boolean) {
+		const next = new Set(checkedIds);
+		for (const row of stickerRows) {
 			if (checked) next.add(row.id);
 			else next.delete(row.id);
 		}
@@ -67,6 +93,52 @@
 		deleteOpen = true;
 	}
 
+	function isSticker(row: InventoryRowVM) {
+		return row.marketHashName.toLowerCase().includes('sticker');
+	}
+
+	function buildDisplayRows(items: InventoryRowVM[]): InventoryDisplayRow[] {
+		const stickers = items.filter((row) => isSticker(row));
+		const nonStickers = items.filter((row) => !isSticker(row));
+		const displayRows: InventoryDisplayRow[] = nonStickers.map((item) => ({
+			kind: 'item',
+			id: item.id,
+			item,
+			sortValue: rowWorth(item)
+		}));
+
+		if (stickers.length > 0) {
+			const totalCost = sum(stickers.map((row) => row.purchasePrice));
+			const totalValue = sum(stickers.map((row) => rowWorth(row)));
+			displayRows.push({
+				kind: 'stickers',
+				id: 'stickers',
+				items: stickers,
+				count: stickers.length,
+				totalCost,
+				totalValue,
+				totalDelta: totalValue - totalCost,
+				sortValue: totalValue
+			});
+		}
+
+		return displayRows.sort((a, b) => b.sortValue - a.sortValue || a.id.localeCompare(b.id));
+	}
+
+	function rowWorth(row: InventoryRowVM) {
+		return row.currentEstValue ?? row.purchasePrice;
+	}
+
+	function sum(values: number[]) {
+		return values.reduce((total, value) => total + value, 0);
+	}
+
+	const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+	function money(value: number | null | undefined) {
+		return value == null ? '—' : currency.format(value);
+	}
+
 	type SteamLinkSummary = {
 		totalSteamItems: number;
 		linked: Array<{
@@ -77,6 +149,12 @@
 			floatBackfilled: boolean;
 		}>;
 		alreadyLinked: number;
+		imported: Array<{
+			inventoryItemId: string;
+			steamAssetId: string;
+			marketHashName: string;
+			currentEstValue: number | null;
+		}>;
 		unlinkedSteamItems: Array<{
 			steamAssetId: string;
 			marketHashName: string;
@@ -140,8 +218,10 @@
 		{@const fifoCount = steamSummary.linked.filter((l) => l.matchStrategy === 'FIFO_FALLBACK').length}
 		{@const fifoLinked = steamSummary.linked.filter((l) => l.matchStrategy === 'FIFO_FALLBACK')}
 		<div class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-3 text-sm">
-			<div class="font-medium">Synced {steamSummary.linked.length} new link{steamSummary.linked.length === 1 ? '' : 's'}</div>
-			{#if steamSummary.linked.length > 0}
+			<div class="font-medium">
+				Synced {steamSummary.linked.length} new link{steamSummary.linked.length === 1 ? '' : 's'} · imported {steamSummary.imported.length} Steam item{steamSummary.imported.length === 1 ? '' : 's'}
+			</div>
+			{#if steamSummary.linked.length > 0 || steamSummary.imported.length > 0}
 				<ul class="mt-2 space-y-1 text-xs">
 					{#if exactCount > 0}
 						<li class="text-[var(--color-success)]">
@@ -156,6 +236,11 @@
 					{#if fifoCount > 0}
 						<li class="text-[var(--color-warning)]">
 							⚠ {fifoCount} linked by FIFO fallback — review below
+						</li>
+					{/if}
+					{#if steamSummary.imported.length > 0}
+						<li class="text-[var(--color-success)]">
+							+ {steamSummary.imported.length} Steam-owned item{steamSummary.imported.length === 1 ? '' : 's'} added to local inventory
 						</li>
 					{/if}
 				</ul>
@@ -182,6 +267,23 @@
 								{link.marketHashName}
 								<span class="ml-2 text-[var(--color-text-muted)]">
 									inventory {link.inventoryItemId.slice(-8)} ↔ asset {link.steamAssetId.slice(-8)}
+								</span>
+							</li>
+						{/each}
+					</ul>
+				</details>
+			{/if}
+			{#if steamSummary.imported.length > 0}
+				<details class="mt-2">
+					<summary class="cursor-pointer text-xs text-[var(--color-success)]">
+						Imported Steam items ({steamSummary.imported.length})
+					</summary>
+					<ul class="mt-2 max-h-48 overflow-y-auto pl-4 text-xs text-[var(--color-text-secondary)]">
+						{#each steamSummary.imported as item}
+							<li class="border-b border-[var(--color-border)] py-1">
+								{item.marketHashName}
+								<span class="ml-2 text-[var(--color-text-muted)]">
+									inventory {item.inventoryItemId.slice(-8)} · asset {item.steamAssetId}{item.currentEstValue == null ? ' · value unknown' : ''}
 								</span>
 							</li>
 						{/each}
@@ -271,6 +373,10 @@
 			<option value="">All availability</option>
 			<option value="true">Available for basket</option>
 		</select>
+		<select name="ownedOnly" value={data.filter.ownedOnly === false ? 'false' : 'true'} class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-3 py-2 text-sm">
+			<option value="true">Owned only</option>
+			<option value="false">All tracked rows</option>
+		</select>
 		<Input name="search" placeholder="Search" value={data.filter.search ?? ''} class="w-56" />
 	</FilterBar>
 
@@ -291,19 +397,84 @@
 
 	<DataTable
 		columns={['', 'Item', 'Status', 'Cost', 'Est. value', 'Delta', 'Float', 'Actions']}
-		rows={rows}
+		rows={displayRows}
 		emptyTitle="No inventory items match these filters."
 		emptyDescription="Bought candidates and manual purchases appear here."
 		clearHref={hasFilters ? '/inventory' : null}
 	>
-		{#snippet row(row)}
-			<InventoryRow
-				{row}
-				checked={checkedIds.has(row.id)}
-				onselect={toggleRow}
-				onedit={openEdit}
-				ondelete={openDelete}
-			/>
+		{#snippet row(displayRow)}
+			{#if displayRow.kind === 'item'}
+				<InventoryRow
+					row={displayRow.item}
+					checked={checkedIds.has(displayRow.item.id)}
+					onselect={toggleRow}
+					onedit={openEdit}
+					ondelete={openDelete}
+				/>
+			{:else}
+				<td class="px-4 py-3 align-top">
+					<input
+						type="checkbox"
+						checked={allStickersSelected}
+						aria-label="Select all stickers"
+						onchange={(event) => toggleStickerRows((event.target as HTMLInputElement).checked)}
+					/>
+				</td>
+				<td class="px-4 py-3">
+					<div class="flex items-center gap-2">
+						<button
+							type="button"
+							class="rounded-md border border-[var(--color-border)] px-2 py-1 text-xs"
+							aria-expanded={stickersOpen}
+							onclick={() => (stickersOpen = !stickersOpen)}
+						>
+							{stickersOpen ? 'Collapse' : 'Expand'}
+						</button>
+						<span class="font-medium text-[var(--color-text-primary)]">
+							Stickers x{displayRow.count}
+						</span>
+					</div>
+					<div class="mt-1 text-xs text-[var(--color-text-muted)]">
+						{displayRow.count} sticker{displayRow.count === 1 ? '' : 's'} · worth {money(displayRow.totalValue)}
+					</div>
+					{#if stickersOpen}
+						<div class="mt-3 max-h-80 space-y-2 overflow-y-auto rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-2">
+							{#each displayRow.items as sticker}
+								<div class="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 border-b border-[var(--color-border)]/60 pb-2 last:border-0 last:pb-0">
+									<input
+										type="checkbox"
+										checked={checkedIds.has(sticker.id)}
+										aria-label="Select {sticker.marketHashName}"
+										onchange={(event) => toggleRow(sticker.id, (event.target as HTMLInputElement).checked)}
+									/>
+									<div class="min-w-0">
+										<div class="truncate text-xs font-medium text-[var(--color-text-primary)]">{sticker.marketHashName}</div>
+										<div class="text-[10px] text-[var(--color-text-muted)]">
+											{sticker.status.replaceAll('_', ' ')} · {money(rowWorth(sticker))}
+										</div>
+									</div>
+									<Button size="sm" variant="secondary" onclick={() => openEdit(sticker)}>Edit</Button>
+									<Button size="sm" variant="danger" onclick={() => openDelete(sticker)}>Delete</Button>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</td>
+				<td class="px-4 py-3 text-[var(--color-text-secondary)]">Grouped</td>
+				<td class="px-4 py-3 tabular-nums">{money(displayRow.totalCost)}</td>
+				<td class="px-4 py-3 tabular-nums">{money(displayRow.totalValue)}</td>
+				<td class="px-4 py-3 tabular-nums">
+					<span class={displayRow.totalDelta >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}>
+						{money(displayRow.totalDelta)}
+					</span>
+				</td>
+				<td class="px-4 py-3 text-[var(--color-text-muted)]">—</td>
+				<td class="px-4 py-3">
+					<Button size="sm" variant="secondary" onclick={() => (stickersOpen = !stickersOpen)}>
+						{stickersOpen ? 'Hide stickers' : 'Show stickers'}
+					</Button>
+				</td>
+			{/if}
 		{/snippet}
 	</DataTable>
 

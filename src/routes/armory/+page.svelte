@@ -7,12 +7,20 @@
 
 	let { data, form }: { data: PageData; form?: ActionData } = $props();
 	let editingRewardId = $state<string | null>(null);
+	let expandedRewardGroupKeys = $state(new Set<string>());
 	let passModalOpen = $state(false);
 	let oddsModalOpen = $state(false);
 
+	type Reward = PageData['rewards'][number];
+	type RewardGroup = {
+		key: string;
+		rewards: Reward[];
+		representative: Reward;
+	};
+
 	const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 	const pct = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
-	const recentRewards = $derived(data.rewards.slice(0, 12));
+	const rewardGroups = $derived(groupRewards(data.rewards));
 	const oddsCollections = $derived([...new Set(data.odds.map((row) => row.collection))]);
 
 	function money(value: number | null | undefined) {
@@ -58,6 +66,53 @@
 	function profitClass(value: number | null | undefined) {
 		if (value == null) return 'text-[var(--color-text-secondary)]';
 		return value >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]';
+	}
+
+	function groupRewards(rewards: Reward[]): RewardGroup[] {
+		const groups = new Map<string, Reward[]>();
+		for (const reward of rewards) {
+			const key = rewardGroupKey(reward);
+			groups.set(key, [...(groups.get(key) ?? []), reward]);
+		}
+
+		return [...groups.entries()].map(([key, groupRewards]) => ({
+			key,
+			rewards: groupRewards,
+			representative: groupRewards[0]
+		}));
+	}
+
+	function rewardGroupKey(reward: Reward) {
+		return [
+			reward.marketHashName,
+			reward.weaponName,
+			reward.skinName,
+			reward.collection,
+			reward.rarity,
+			reward.exterior,
+			amountKey(reward.floatValue),
+			reward.starsSpent,
+			amountKey(reward.costBasis),
+			amountKey(reward.estimatedValue)
+		].map((value) => value ?? '').join('\u0000');
+	}
+
+	function amountKey(value: number | null | undefined) {
+		return value == null ? null : value.toFixed(6);
+	}
+
+	function toggleRewardGroup(key: string) {
+		const next = new Set(expandedRewardGroupKeys);
+		if (next.has(key)) {
+			next.delete(key);
+		} else {
+			next.add(key);
+		}
+		expandedRewardGroupKeys = next;
+	}
+
+	function soldCount(group: RewardGroup) {
+		return group.rewards.filter((reward) => reward.soldAt).length;
 	}
 </script>
 
@@ -262,10 +317,15 @@
 	</div>
 
 	<Card padding="md">
-		<h2 class="text-sm font-semibold text-[var(--color-text-primary)]">Rewards</h2>
-		<div class="mt-4 overflow-x-auto">
-			<table class="w-full text-sm">
-				<thead class="text-left text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<h2 class="text-sm font-semibold text-[var(--color-text-primary)]">Rewards</h2>
+			<div class="text-xs text-[var(--color-text-secondary)]">
+				{data.rewards.length} reward{data.rewards.length === 1 ? '' : 's'} · {rewardGroups.length} row{rewardGroups.length === 1 ? '' : 's'}
+			</div>
+		</div>
+		<div class="mt-4 max-h-[70vh] overflow-auto rounded-md border border-[var(--color-border)]">
+			<table class="w-full min-w-[980px] text-sm">
+				<thead class="sticky top-0 z-10 bg-[var(--color-bg-surface)] text-left text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
 					<tr>
 						<th class="px-2 py-2">Item</th>
 						<th class="px-2 py-2">Rarity</th>
@@ -277,134 +337,198 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each recentRewards as reward}
-						<tr class="border-t border-[var(--color-border)] align-top">
+					{#each rewardGroups as group (group.key)}
+						{@const representative = group.representative}
+						<tr class="border-t border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] align-top">
 							<td class="px-2 py-3">
-								<div class="font-medium text-[var(--color-text-primary)]">{reward.marketHashName}</div>
-								<div class="text-xs text-[var(--color-text-secondary)]">
-									{reward.collection ?? 'No collection'} · {displayDate(reward.receivedAt)}
-									{#if reward.inventoryItemId}
-										· <a class="text-[var(--color-primary)]" href={`/inventory?search=${encodeURIComponent(reward.marketHashName)}`}>inventory</a>
-									{/if}
+								<div class="flex items-center gap-2">
+									<button
+										type="button"
+										class="w-fit rounded-md border border-[var(--color-border)] px-2 py-1 text-xs"
+										aria-expanded={expandedRewardGroupKeys.has(group.key)}
+										onclick={() => toggleRewardGroup(group.key)}
+									>
+										{expandedRewardGroupKeys.has(group.key) ? 'Collapse' : 'Expand'}
+									</button>
+									<div class="font-medium text-[var(--color-text-primary)]">
+										{representative.marketHashName} <span class="text-[var(--color-primary)]">x{group.rewards.length}</span>
+									</div>
+								</div>
+								<div class="mt-1 text-xs text-[var(--color-text-secondary)]">
+									{representative.collection ?? 'No collection'} · latest {displayDate(representative.receivedAt)}
+									· {group.rewards.length - soldCount(group)} held · {soldCount(group)} sold
 								</div>
 							</td>
-							<td class="px-2 py-3">{rarityLabel(reward.rarity)}</td>
-							<td class="px-2 py-3 text-right tabular-nums">{reward.starsSpent}</td>
-							<td class="px-2 py-3 text-right tabular-nums">{money(reward.costBasis)}</td>
+							<td class="px-2 py-3">{rarityLabel(representative.rarity)}</td>
 							<td class="px-2 py-3 text-right tabular-nums">
-								{#if reward.salePrice != null}
-									{money(reward.salePrice - (reward.saleFees ?? 0))}
-									<div class="text-xs text-[var(--color-text-secondary)]">sold net</div>
+								{representative.starsSpent}
+								<div class="text-xs text-[var(--color-text-secondary)]">each</div>
+							</td>
+							<td class="px-2 py-3 text-right tabular-nums">
+								{money(representative.costBasis)}
+								<div class="text-xs text-[var(--color-text-secondary)]">
+									{money(representative.costBasis * group.rewards.length)} total
+								</div>
+							</td>
+							<td class="px-2 py-3 text-right tabular-nums">
+								{#if representative.salePrice != null}
+									{money(representative.salePrice - (representative.saleFees ?? 0))}
+									<div class="text-xs text-[var(--color-text-secondary)]">sold net each</div>
 								{:else}
-									{money(reward.estimatedValue)}
+									{money(representative.estimatedValue)}
+									<div class="text-xs text-[var(--color-text-secondary)]">each</div>
 								{/if}
 							</td>
-							<td class={['px-2 py-3 text-right tabular-nums', profitClass(reward.realizedProfit ?? reward.unrealizedProfit)].join(' ')}>
-								{money(reward.realizedProfit ?? reward.unrealizedProfit)}
-								<div class="text-xs">{percent(reward.realizedProfitPct ?? reward.unrealizedProfitPct)}</div>
+							<td class={['px-2 py-3 text-right tabular-nums', profitClass(representative.realizedProfit ?? representative.unrealizedProfit)].join(' ')}>
+								{money(representative.realizedProfit ?? representative.unrealizedProfit)}
+								<div class="text-xs">{percent(representative.realizedProfitPct ?? representative.unrealizedProfitPct)}</div>
 							</td>
 							<td class="px-2 py-3">
-								<div class="flex flex-col gap-2">
-									<div class="flex flex-wrap gap-1">
+								<div class="flex flex-wrap gap-1">
+									<form method="POST" action="?/duplicateReward" use:enhance>
+										<input type="hidden" name="id" value={representative.id} />
 										<button
-											type="button"
+											type="submit"
 											class="w-fit rounded-md border border-[var(--color-border)] px-2 py-1 text-xs"
-											onclick={() => (editingRewardId = editingRewardId === reward.id ? null : reward.id)}
 										>
-											{editingRewardId === reward.id ? 'Close edit' : 'Edit'}
+											Duplicate
 										</button>
-										<form method="POST" action="?/duplicateReward" use:enhance>
-											<input type="hidden" name="id" value={reward.id} />
-											<button
-												type="submit"
-												class="w-fit rounded-md border border-[var(--color-border)] px-2 py-1 text-xs"
-											>
-												Duplicate
-											</button>
-										</form>
-									</div>
-									{#if reward.soldAt}
-										<div class="text-xs text-[var(--color-text-secondary)]">
-											Sold {displayDate(reward.soldAt)}
-										</div>
-									{:else}
-									<form method="POST" action="?/recordSale" use:enhance class="grid grid-cols-[80px_70px_auto] gap-1">
-										<input type="hidden" name="id" value={reward.id} />
-										<input name="salePrice" type="number" min="0" step="0.01" placeholder="gross" class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-2 py-1 text-xs" />
-										<input name="saleFees" type="number" min="0" step="0.01" placeholder="fees" class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-2 py-1 text-xs" />
-										<button type="submit" class="rounded-md border border-[var(--color-border)] px-2 py-1 text-xs">Sold</button>
 									</form>
-									{/if}
 								</div>
 							</td>
 						</tr>
-						{#if editingRewardId === reward.id}
-							<tr class="border-t border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)]">
-								<td colspan="7" class="px-2 py-3">
-									<form method="POST" action="?/updateReward" use:enhance class="grid grid-cols-1 gap-3 md:grid-cols-4">
-										<input type="hidden" name="id" value={reward.id} />
-										<label class="block text-xs text-[var(--color-text-secondary)] md:col-span-2">
-											Market hash name
-											<input name="marketHashName" value={reward.marketHashName} required class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
-										</label>
-										<label class="block text-xs text-[var(--color-text-secondary)]">
-											Stars spent
-											<input name="starsSpent" type="number" min="1" step="1" value={reward.starsSpent} required class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
-										</label>
-										<label class="block text-xs text-[var(--color-text-secondary)]">
-											Received
-											<input name="receivedAt" type="date" value={dateValue(reward.receivedAt)} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
-										</label>
-										<label class="block text-xs text-[var(--color-text-secondary)]">
-											Weapon
-											<input name="weaponName" value={reward.weaponName ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
-										</label>
-										<label class="block text-xs text-[var(--color-text-secondary)]">
-											Skin
-											<input name="skinName" value={reward.skinName ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
-										</label>
-										<label class="block text-xs text-[var(--color-text-secondary)]">
-											Collection
-											<input name="collection" value={reward.collection ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
-										</label>
-										<label class="block text-xs text-[var(--color-text-secondary)]">
-											Rarity
-											<select name="rarity" value={reward.rarity ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm">
-												<option value="">Auto/unknown</option>
-												{#each ITEM_RARITIES as rarity}
-													<option value={rarity}>{rarityLabel(rarity)}</option>
-												{/each}
-											</select>
-										</label>
-										<label class="block text-xs text-[var(--color-text-secondary)]">
-											Exterior
-											<select name="exterior" value={reward.exterior ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm">
-												<option value="">Auto/none</option>
-												{#each ITEM_EXTERIORS as exterior}
-													<option value={exterior}>{exterior.replaceAll('_', ' ')}</option>
-												{/each}
-											</select>
-										</label>
-										<label class="block text-xs text-[var(--color-text-secondary)]">
-											Float
-											<input name="floatValue" type="number" min="0" max="1" step="0.0000001" value={reward.floatValue ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
-										</label>
-										<label class="block text-xs text-[var(--color-text-secondary)]">
-											Steam gross value
-											<input name="estimatedGrossValue" type="number" min="0" step="0.01" value={grossFromNet(reward.estimatedValue)} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
-										</label>
-										<label class="block text-xs text-[var(--color-text-secondary)] md:col-span-2">
-											Notes
-											<input name="notes" value={reward.notes ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
-										</label>
-										<div class="md:col-span-4">
-											<button type="submit" class="rounded-md bg-[var(--color-primary)] px-3 py-2 text-sm font-medium text-black">
-												Save reward
-											</button>
+						{#if expandedRewardGroupKeys.has(group.key)}
+							{#each group.rewards as reward (reward.id)}
+								<tr class="border-t border-[var(--color-border)] bg-[var(--color-bg-surface)] align-top">
+									<td class="px-2 py-3">
+										<div class="pl-10 font-medium text-[var(--color-text-primary)]">
+											{reward.marketHashName}
 										</div>
-									</form>
-								</td>
-							</tr>
+										<div class="pl-10 text-xs text-[var(--color-text-secondary)]">
+											{reward.collection ?? 'No collection'} · {displayDate(reward.receivedAt)}
+											{#if reward.inventoryItemId}
+												· <a class="text-[var(--color-primary)]" href={`/inventory?search=${encodeURIComponent(reward.marketHashName)}`}>inventory</a>
+											{/if}
+										</div>
+									</td>
+									<td class="px-2 py-3">{rarityLabel(reward.rarity)}</td>
+									<td class="px-2 py-3 text-right tabular-nums">{reward.starsSpent}</td>
+									<td class="px-2 py-3 text-right tabular-nums">{money(reward.costBasis)}</td>
+									<td class="px-2 py-3 text-right tabular-nums">
+										{#if reward.salePrice != null}
+											{money(reward.salePrice - (reward.saleFees ?? 0))}
+											<div class="text-xs text-[var(--color-text-secondary)]">sold net</div>
+										{:else}
+											{money(reward.estimatedValue)}
+										{/if}
+									</td>
+									<td class={['px-2 py-3 text-right tabular-nums', profitClass(reward.realizedProfit ?? reward.unrealizedProfit)].join(' ')}>
+										{money(reward.realizedProfit ?? reward.unrealizedProfit)}
+										<div class="text-xs">{percent(reward.realizedProfitPct ?? reward.unrealizedProfitPct)}</div>
+									</td>
+									<td class="px-2 py-3">
+										<div class="flex flex-col gap-2">
+											<div class="flex flex-wrap gap-1">
+												<button
+													type="button"
+													class="w-fit rounded-md border border-[var(--color-border)] px-2 py-1 text-xs"
+													onclick={() => (editingRewardId = editingRewardId === reward.id ? null : reward.id)}
+												>
+													{editingRewardId === reward.id ? 'Close edit' : 'Edit'}
+												</button>
+												<form method="POST" action="?/duplicateReward" use:enhance>
+													<input type="hidden" name="id" value={reward.id} />
+													<button
+														type="submit"
+														class="w-fit rounded-md border border-[var(--color-border)] px-2 py-1 text-xs"
+													>
+														Duplicate
+													</button>
+												</form>
+											</div>
+											{#if reward.soldAt}
+												<div class="text-xs text-[var(--color-text-secondary)]">
+													Sold {displayDate(reward.soldAt)}
+												</div>
+											{:else}
+											<form method="POST" action="?/recordSale" use:enhance class="grid grid-cols-[110px_auto] gap-1">
+												<input type="hidden" name="id" value={reward.id} />
+												<input name="amountReceived" type="number" min="0" step="0.01" placeholder="received" class="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)] px-2 py-1 text-xs" />
+												<button type="submit" class="rounded-md border border-[var(--color-border)] px-2 py-1 text-xs">Mark sold</button>
+											</form>
+											{/if}
+										</div>
+									</td>
+								</tr>
+								{#if editingRewardId === reward.id}
+									<tr class="border-t border-[var(--color-border)] bg-[var(--color-bg-surface-overlay)]">
+										<td colspan="7" class="px-2 py-3">
+											<form method="POST" action="?/updateReward" use:enhance class="grid grid-cols-1 gap-3 md:grid-cols-4">
+												<input type="hidden" name="id" value={reward.id} />
+												<label class="block text-xs text-[var(--color-text-secondary)] md:col-span-2">
+													Market hash name
+													<input name="marketHashName" value={reward.marketHashName} required class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
+												</label>
+												<label class="block text-xs text-[var(--color-text-secondary)]">
+													Stars spent
+													<input name="starsSpent" type="number" min="1" step="1" value={reward.starsSpent} required class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
+												</label>
+												<label class="block text-xs text-[var(--color-text-secondary)]">
+													Received
+													<input name="receivedAt" type="date" value={dateValue(reward.receivedAt)} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
+												</label>
+												<label class="block text-xs text-[var(--color-text-secondary)]">
+													Weapon
+													<input name="weaponName" value={reward.weaponName ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
+												</label>
+												<label class="block text-xs text-[var(--color-text-secondary)]">
+													Skin
+													<input name="skinName" value={reward.skinName ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
+												</label>
+												<label class="block text-xs text-[var(--color-text-secondary)]">
+													Collection
+													<input name="collection" value={reward.collection ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
+												</label>
+												<label class="block text-xs text-[var(--color-text-secondary)]">
+													Rarity
+													<select name="rarity" value={reward.rarity ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm">
+														<option value="">Auto/unknown</option>
+														{#each ITEM_RARITIES as rarity}
+															<option value={rarity}>{rarityLabel(rarity)}</option>
+														{/each}
+													</select>
+												</label>
+												<label class="block text-xs text-[var(--color-text-secondary)]">
+													Exterior
+													<select name="exterior" value={reward.exterior ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm">
+														<option value="">Auto/none</option>
+														{#each ITEM_EXTERIORS as exterior}
+															<option value={exterior}>{exterior.replaceAll('_', ' ')}</option>
+														{/each}
+													</select>
+												</label>
+												<label class="block text-xs text-[var(--color-text-secondary)]">
+													Float
+													<input name="floatValue" type="number" min="0" max="1" step="0.0000001" value={reward.floatValue ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
+												</label>
+												<label class="block text-xs text-[var(--color-text-secondary)]">
+													Steam gross value
+													<input name="estimatedGrossValue" type="number" min="0" step="0.01" value={grossFromNet(reward.estimatedValue)} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
+												</label>
+												<label class="block text-xs text-[var(--color-text-secondary)] md:col-span-2">
+													Notes
+													<input name="notes" value={reward.notes ?? ''} class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm" />
+												</label>
+												<div class="md:col-span-4">
+													<button type="submit" class="rounded-md bg-[var(--color-primary)] px-3 py-2 text-sm font-medium text-black">
+														Save reward
+													</button>
+												</div>
+											</form>
+										</td>
+									</tr>
+								{/if}
+							{/each}
 						{/if}
 					{:else}
 						<tr>

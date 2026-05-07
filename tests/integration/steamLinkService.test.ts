@@ -206,8 +206,12 @@ describe('syncInventoryWithSteam', () => {
     expect(result.unmatchedLocalRows).toEqual([
       { inventoryItemId: 'inv-orphan', marketHashName: 'AK-47 | Redline (Field-Tested)' },
     ]);
-    expect(result.unlinkedSteamItems).toHaveLength(1);
-    expect(result.unlinkedSteamItems[0]?.steamAssetId).toBe('asset-orphan');
+    expect(result.imported).toHaveLength(1);
+    expect(result.imported[0]?.steamAssetId).toBe('asset-orphan');
+    expect(result.unlinkedSteamItems).toHaveLength(0);
+    const importedRow = await db.inventoryItem.findFirstOrThrow({ where: { steamAssetId: 'asset-orphan' } });
+    expect(importedRow.marketHashName).toBe('AWP | Asiimov (Battle-Scarred)');
+    expect(importedRow.status).toBe('HELD');
   });
 
   it('ignores inventory rows whose status is not HELD or RESERVED_FOR_BASKET', async () => {
@@ -228,7 +232,8 @@ describe('syncInventoryWithSteam', () => {
 
     expect(result.linked).toHaveLength(0);
     expect(result.unmatchedLocalRows).toHaveLength(0);
-    expect(result.unlinkedSteamItems).toHaveLength(1);
+    expect(result.imported).toHaveLength(1);
+    expect(result.unlinkedSteamItems).toHaveLength(0);
   });
 });
 

@@ -26,7 +26,15 @@ import { db } from '$lib/server/db/client';
 import { env } from '$env/dynamic/private';
 import { getSteamInventory, type SteamInventoryItem } from '$lib/server/steam/inventoryAdapter';
 import { ValidationError } from '$lib/server/http/errors';
-import { normalizeMarketHashLookup } from '$lib/server/utils/marketHash';
+import { getLatestMarketPriceForMarketHashName } from '$lib/server/marketPrices/priceService';
+import { resolveCatalogIdentity } from '$lib/server/catalog/linkage';
+import { toDecimal, toDecimalOrNull } from '$lib/server/utils/decimal';
+import {
+  exteriorFromLabel,
+  normalizeMarketHashLookup,
+  parseMarketHashName,
+} from '$lib/server/utils/marketHash';
+import type { ItemExterior, ItemRarity } from '$lib/types/enums';
 
 export interface SteamLinkSummary {
   steamId: string;
@@ -43,6 +51,12 @@ export interface SteamLinkSummary {
     floatBackfilled: boolean;
   }>;
   alreadyLinked: number;
+  imported: Array<{
+    inventoryItemId: string;
+    steamAssetId: string;
+    marketHashName: string;
+    currentEstValue: number | null;
+  }>;
   unlinkedSteamItems: SteamInventoryItem[];
   missingFromSteam: Array<{ inventoryItemId: string; steamAssetId: string; marketHashName: string }>;
   /**
@@ -200,14 +214,87 @@ export async function syncInventoryWithSteam(opts: { force?: boolean } = {}): Pr
     );
   }
 
+  const imported = await importUnlinkedSteamItems(unlinkedSteamItems, snapshot.fetchedAt);
+  const importedAssetIds = new Set(imported.map((item) => item.steamAssetId));
+
   return {
     steamId,
     fetchedAt: snapshot.fetchedAt,
     totalSteamItems: snapshot.totalItems,
     linked,
     alreadyLinked: linkedAssetIds.size,
-    unlinkedSteamItems,
+    imported,
+    unlinkedSteamItems: unlinkedSteamItems.filter((item) => !importedAssetIds.has(item.steamAssetId)),
     missingFromSteam,
     unmatchedLocalRows,
   };
+}
+
+async function importUnlinkedSteamItems(
+  steamItems: SteamInventoryItem[],
+  fetchedAt: Date,
+): Promise<SteamLinkSummary['imported']> {
+  const imported: SteamLinkSummary['imported'] = [];
+
+  for (const steamItem of steamItems) {
+    const parsed = parseMarketHashName(steamItem.marketHashName);
+    const exterior = exteriorFromLabel(parsed.exteriorLabel ?? steamItem.exterior ?? undefined);
+    const rarity = rarityFromSteamTag(steamItem.rarity);
+    const latestPrice = await getLatestMarketPriceForMarketHashName(steamItem.marketHashName);
+    const currentEstValue = latestPrice?.marketValue ?? null;
+    const catalogIdentity = await resolveCatalogIdentity({
+      marketHashName: steamItem.marketHashName,
+      weaponName: parsed.weaponName,
+      skinName: parsed.skinName,
+      rarity: rarity ?? null,
+      exterior: exterior ?? null,
+      floatValue: steamItem.floatValue,
+    });
+
+    const row = await db.inventoryItem.create({
+      data: {
+        steamAssetId: steamItem.steamAssetId,
+        marketHashName: steamItem.marketHashName,
+        weaponName: catalogIdentity?.weaponName ?? parsed.weaponName,
+        skinName: catalogIdentity?.skinName ?? parsed.skinName,
+        collection: catalogIdentity?.collection,
+        catalogSkinId: catalogIdentity?.catalogSkinId,
+        catalogCollectionId: catalogIdentity?.catalogCollectionId,
+        catalogWeaponDefIndex: catalogIdentity?.catalogWeaponDefIndex,
+        catalogPaintIndex: catalogIdentity?.catalogPaintIndex,
+        rarity: catalogIdentity?.rarity ?? rarity,
+        exterior: catalogIdentity?.exterior ?? exterior,
+        floatValue: steamItem.floatValue,
+        pattern: steamItem.paintSeed,
+        inspectLink: steamItem.inspectLink ?? undefined,
+        purchasePrice: toDecimal(currentEstValue ?? 0),
+        purchaseCurrency: 'USD',
+        purchaseDate: fetchedAt,
+        currentEstValue: toDecimalOrNull(currentEstValue),
+        notes: currentEstValue == null
+          ? 'Imported from Steam inventory sync. Purchase price and value need review.'
+          : 'Imported from Steam inventory sync. Purchase price was initialized from latest observed market value.',
+      },
+    });
+
+    imported.push({
+      inventoryItemId: row.id,
+      steamAssetId: steamItem.steamAssetId,
+      marketHashName: steamItem.marketHashName,
+      currentEstValue,
+    });
+  }
+
+  return imported;
+}
+
+function rarityFromSteamTag(value: string | null): ItemRarity | null {
+  const normalized = value?.toLowerCase() ?? '';
+  if (normalized.includes('covert')) return 'COVERT';
+  if (normalized.includes('classified')) return 'CLASSIFIED';
+  if (normalized.includes('restricted')) return 'RESTRICTED';
+  if (normalized.includes('mil-spec') || normalized.includes('mil spec')) return 'MIL_SPEC';
+  if (normalized.includes('industrial')) return 'INDUSTRIAL_GRADE';
+  if (normalized.includes('consumer')) return 'CONSUMER_GRADE';
+  return null;
 }
